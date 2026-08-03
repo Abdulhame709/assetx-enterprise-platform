@@ -161,6 +161,11 @@ The audit assessed each document for:
 | `ADL-X-03` | No existing document is modified, deleted, or copied; ES docs reference, extend, or are new. | **Approved** | Preserves approved baselines. |
 | `ADL-X-04` | All unresolved conflicts remain Pending and are referenced by ADL ID, never resolved ad hoc. | **Approved** | Honors "no assumption without approval." |
 | `ADL-X-05` | The existing `API/API_Specification.md` is the authoritative API contract; ES "API Contracts" extends it with detailed schemas, not a rewrite. | **Approved** | Avoids duplication (per instruction #5 and gap G04). |
+| `ADL-X-06` | **Global ID scheme adopted** across the whole project. Existing types (BR, FR, NFR, ADL) are canonical; new types approved: `DOC` (Documents) and `MOD` (System Modules), plus the previously proposed `ENT/BC/TB/FLD/EP/SCR/WF/TC/EV`. Full scheme is documented in the Architecture Index (ES-000.5). | **Approved** | Enables end-to-end traceability; unified identification across all documents. |
+| `ADL-X-07` | **Global Traceability Matrix NOT created as a standalone document at this stage.** Only the ID scheme and traceability rules are adopted. The matrix is populated incrementally as each document is produced and finalized after the core documents are complete. | **Approved** | Avoids rebuilding; keeps the project in Enterprise-ready traceable state incrementally. |
+| `ADL-X-08` | Create an **Architecture Index / Enterprise Knowledge Index** (ES-000.5) as the central hub that links all documents and elements (docs, modules, entities, tables, APIs, workflows, screens, tests, events) from one place. It creates **no new content**; it unifies linking. | **Approved** | Single point of navigation and traceability across the project. |
+| `ADL-X-09` | **Entity Specifications** are a full Domain reference. Each entity must include: Business Purpose, Owner, Aggregate Root, Lifecycle, States, Domain Events, and References to Business Rules, Validation, Database, API, Workflow, Screen, Security, and Audit. | **Approved** | Makes Entity Spec a complete Domain model, not just an entity description. |
+| `ADL-X-10` | **Do not merge PR #1** into `main` until all Engineering Specifications documents are complete, reviewed, and approved. | **Approved** | Ensures the documentation set is cohesive and approved as a whole. |
 
 ---
 
