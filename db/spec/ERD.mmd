@@ -1,0 +1,54 @@
+erDiagram
+    tenants ||--o{ organizations : has
+    tenants ||--o{ employees : employs
+    tenants ||--o{ users : has
+    tenants ||--o{ roles : defines
+    tenants ||--o{ permissions : defines
+    tenants ||--o{ asset_categories : owns
+    tenants ||--o{ asset_models : owns
+    tenants ||--o{ statuses : owns
+    tenants ||--o{ locations : owns
+    tenants ||--o{ assets : owns
+    tenants ||--o{ asset_movements : logs
+    tenants ||--o{ maintenance_orders : owns
+    tenants ||--o{ inventory_cycles : runs
+    tenants ||--o{ audit_events : records
+    tenants ||--o{ settings : configures
+    tenants ||--o{ notification_templates : owns
+    tenants ||--o{ notifications : sends
+
+    organizations ||--o{ organizations : parent_child
+    organizations ||--o{ users : contains
+
+    employees ||--o{ users : has_account
+    employees ||--o{ assets : holds
+    employees ||--o{ inventory_team : joins
+
+    users ||--o{ user_roles : assigned
+    roles ||--o{ role_permissions : grants
+    roles ||--o{ user_roles : has
+    permissions ||--o{ role_permissions : used_in
+    users ||--o{ user_permissions : granted
+    users ||--o{ audit_events : performs
+    users ||--o{ notifications : receives
+
+    asset_categories ||--o{ asset_categories : parent_sub
+    asset_categories ||--o{ asset_models : categorizes
+    asset_categories ||--o{ assets : categorizes
+
+    locations ||--o{ locations : parent_child
+    locations ||--o{ assets : locates
+
+    statuses ||--o{ assets : classifies
+
+    assets ||--o{ asset_movements : has_movements
+    assets ||--o{ maintenance_orders : undergoes
+    assets ||--o{ inventory_records : counted_in
+
+    inventory_cycles ||--o{ inventory_records : contains
+    inventory_cycles ||--o{ inventory_team : assigns
+
+    notification_templates ||--o{ notifications : templated
+    notification_channels ||--o{ notifications : channel_used
+
+    %% Computed view: v_inventory_result derived from inventory_records
