@@ -14,3 +14,4 @@ export const EMPLOYEE_PORT = 'EMPLOYEE_PORT';
 export const CYCLE_PORT = 'CYCLE_PORT';
 export const RECORD_PORT = 'RECORD_PORT';
 export const RESULT_PORT = 'RESULT_PORT';
+export const MOVEMENT_PORT = 'MOVEMENT_PORT';

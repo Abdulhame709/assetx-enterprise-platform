@@ -12,11 +12,11 @@ import * as path from 'path';
 /** Apply migration + demo tenant to the provided PGlite instance. */
 export async function initLocalDatabase(pg: PGlite): Promise<void> {
   const db = new PGliteDatabase(pg);
-  const migration = fs.readFileSync(
-    path.resolve(__dirname, '../../../db/migrations/001_init.sql'),
-    'utf8',
-  );
-  await db.exec(migration);
+  const migrationsDir = path.resolve(__dirname, '../../../db/migrations');
+  const migration001 = fs.readFileSync(path.join(migrationsDir, '001_init.sql'), 'utf8');
+  await db.exec(migration001);
+  const migration002 = fs.readFileSync(path.join(migrationsDir, '002_movement_lifecycle.sql'), 'utf8');
+  await db.exec(migration002);
 
   // Create a demo tenant (deterministic UUID for local tooling) so auth endpoints
   // have a known tenant to bind to.

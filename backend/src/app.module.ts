@@ -39,6 +39,9 @@ import { RecordService } from './application/record.service';
 import { ResultRepository } from './infrastructure/repositories/result.repository';
 import { InventoryResultService } from './application/inventory-result.service';
 import { InventoryController } from './api/inventory/inventory.controller';
+import { MovementService } from './application/movement.service';
+import { MovementRepository } from './infrastructure/repositories/movement.repository';
+import { MovementController } from './api/movements/movement.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -52,6 +55,7 @@ import {
   CYCLE_PORT,
   RECORD_PORT,
   RESULT_PORT,
+  MOVEMENT_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -99,9 +103,11 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     { provide: CYCLE_PORT, useClass: CycleRepository },
     { provide: RECORD_PORT, useClass: RecordRepository },
     { provide: RESULT_PORT, useClass: ResultRepository },
+    { provide: MOVEMENT_PORT, useClass: MovementRepository },
     CycleService,
     RecordService,
     InventoryResultService,
+    MovementService,
     {
       provide: AuthGuard,
       useFactory: (tokens: JwtTokenManager) => new AuthGuard(tokens),
@@ -112,7 +118,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
   controllers: [
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
-    InventoryController,
+    InventoryController, MovementController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService],
 })

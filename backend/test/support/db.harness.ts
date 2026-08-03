@@ -26,6 +26,8 @@ import { ResultRepository } from '../../src/infrastructure/repositories/result.r
 import { CycleService } from '../../src/application/cycle.service';
 import { RecordService } from '../../src/application/record.service';
 import { InventoryResultService } from '../../src/application/inventory-result.service';
+import { MovementRepository } from '../../src/infrastructure/repositories/movement.repository';
+import { MovementService } from '../../src/application/movement.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -45,6 +47,7 @@ export interface Harness {
   cycles: CycleService;
   records: RecordService;
   inventoryResult: InventoryResultService;
+  movements: MovementService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -59,11 +62,11 @@ export async function createHarness(): Promise<Harness> {
   const pg = new PGlite();
   const db = new PGliteDatabase(pg);
 
-  const migration = fs.readFileSync(
-    path.resolve(__dirname, '../../../db/migrations/001_init.sql'),
-    'utf8',
-  );
-  await db.exec(migration);
+  const migrationsDir = path.resolve(__dirname, '../../../db/migrations');
+  const migration001 = fs.readFileSync(path.join(migrationsDir, '001_init.sql'), 'utf8');
+  await db.exec(migration001);
+  const migration002 = fs.readFileSync(path.join(migrationsDir, '002_movement_lifecycle.sql'), 'utf8');
+  await db.exec(migration002);
 
   // Create a non-owner 'authenticated' role and grant table access.
   // This mirrors the Supabase production model where the API connects as a
@@ -138,6 +141,7 @@ export async function createHarness(): Promise<Harness> {
   const cycles = new CycleService(cycleRepo, recordRepo, db);
   const records = new RecordService(cycleRepo, recordRepo, db);
   const inventoryResult = new InventoryResultService(cycleRepo, resultRepo, db);
+  const movements = new MovementService(new MovementRepository(db), assetRepo, db);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, tenantA, tenantB, refA, refB };
 }

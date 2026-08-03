@@ -45,4 +45,11 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   RECORD_NOT_FOUND:          { http: 404, code: 'NOT_FOUND' },
   ASSET_NOT_IN_CYCLE:        { http: 404, code: 'NOT_FOUND' },
   CANNOT_VERIFY_UNINVENTORIED: { http: 409, code: 'CONFLICT' },
+  // Movement
+  MOVEMENT_NOT_FOUND:      { http: 404, code: 'NOT_FOUND' },
+  MOVEMENT_NOT_PENDING:    { http: 409, code: 'CONFLICT' },
+  ASSET_INACTIVE:          { http: 409, code: 'CONFLICT' },
+  EMPLOYEE_INACTIVE:       { http: 409, code: 'CONFLICT' },
+  SAME_LOCATION:           { http: 409, code: 'CONFLICT' },
+  DUPLICATE_PENDING:       { http: 409, code: 'CONFLICT' },
 };
