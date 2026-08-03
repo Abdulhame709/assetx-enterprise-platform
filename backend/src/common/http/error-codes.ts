@@ -52,4 +52,6 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   EMPLOYEE_INACTIVE:       { http: 409, code: 'CONFLICT' },
   SAME_LOCATION:           { http: 409, code: 'CONFLICT' },
   DUPLICATE_PENDING:       { http: 409, code: 'CONFLICT' },
+  // Phase 9.5
+  PERMISSIONS_STALE:       { http: 401, code: 'PERMISSIONS_STALE' },
 };

@@ -23,5 +23,6 @@ export interface TokenPayload {
   role: string;                 // primary role (legacy RBAC)
   roles: string[];              // all roles (Phase 9)
   permissions: string[];        // flat permission keys (Phase 9)
+  permission_version: number;   // permission version (Phase 9.5)
   session_id: string;
 }

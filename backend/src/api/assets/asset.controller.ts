@@ -15,9 +15,7 @@ import {
 import { AssetService } from '../../application/asset.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
 import {
@@ -29,12 +27,11 @@ import {
 } from '../dto/asset.dto';
 
 @Controller('assets')
-@UseGuards(AuthGuard, TenantGuard, RolesGuard, PermissionGuard)
+@UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class AssetController {
   constructor(private readonly assets: AssetService) {}
 
   @Post()
-  @Roles('Administrator', 'Asset Manager')
   @RequirePermission('asset.create')
   create(@Body() dto: CreateAssetDto, @CurrentUser() user: RequestUser) {
     return this.assets.create({
@@ -61,7 +58,6 @@ export class AssetController {
   }
 
   @Get()
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
   @RequirePermission('asset.view')
   search(@Query() query: AssetQueryDto, @CurrentUser() user: RequestUser) {
     return this.assets.search({
@@ -77,21 +73,18 @@ export class AssetController {
   }
 
   @Get(':id')
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
   @RequirePermission('asset.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.assets.getById(id, user.tenant_id);
   }
 
   @Patch(':id')
-  @Roles('Administrator', 'Asset Manager')
   @RequirePermission('asset.update')
   update(@Param('id') id: string, @Body() dto: UpdateAssetDto, @CurrentUser() user: RequestUser) {
     return this.assets.update(id, user.tenant_id, dto);
   }
 
   @Post(':id/transfer')
-  @Roles('Administrator', 'Asset Manager')
   @RequirePermission('asset.transfer')
   transfer(@Param('id') id: string, @Body() dto: TransferAssetDto, @CurrentUser() user: RequestUser) {
     return this.assets.transfer(id, user.tenant_id, {
@@ -105,7 +98,6 @@ export class AssetController {
   }
 
   @Patch(':id/status')
-  @Roles('Administrator', 'Asset Manager')
   @RequirePermission('asset.update')
   changeStatus(@Param('id') id: string, @Body() dto: ChangeStatusDto, @CurrentUser() user: RequestUser) {
     return this.assets.changeStatus(id, user.tenant_id, dto.status_id);

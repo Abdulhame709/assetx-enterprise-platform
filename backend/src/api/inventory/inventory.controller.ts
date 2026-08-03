@@ -11,15 +11,15 @@ import { RecordService } from '../../application/record.service';
 import { InventoryResultService } from '../../application/inventory-result.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { PermissionGuard } from '../../common/guards/permission.guard';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
 import {
   CreateCycleDto, RecordResultDto, UpdateRecordDto, VerifyRecordDto,
 } from '../dto/inventory.dto';
 
 @Controller('inventory')
-@UseGuards(AuthGuard, TenantGuard, RolesGuard)
+@UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class InventoryController {
   constructor(
     private readonly cycles: CycleService,
@@ -29,7 +29,7 @@ export class InventoryController {
 
   // ---- Cycles ----
   @Post('cycles')
-  @Roles('Administrator', 'Asset Manager')
+  @RequirePermission('inventory.create')
   create(@Body() dto: CreateCycleDto, @CurrentUser() user: RequestUser) {
     return this.cycles.create(user.tenant_id, dto.year, {
       all: dto.scope?.all,
@@ -39,45 +39,45 @@ export class InventoryController {
   }
 
   @Get('cycles')
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
+  @RequirePermission('inventory.view')
   list(@CurrentUser() user: RequestUser) {
     return this.cycles.list(user.tenant_id);
   }
 
   @Get('cycles/:id')
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
+  @RequirePermission('inventory.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.cycles.getById(id, user.tenant_id);
   }
 
   @Patch('cycles/:id/start')
-  @Roles('Administrator', 'Asset Manager')
+  @RequirePermission('inventory.execute')
   start(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.cycles.start(id, user.tenant_id);
   }
 
   @Patch('cycles/:id/close')
-  @Roles('Administrator', 'Asset Manager')
+  @RequirePermission('inventory.close')
   close(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.cycles.close(id, user.tenant_id);
   }
 
   // ---- Summary / results ----
   @Get('cycles/:id/summary')
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
+  @RequirePermission('inventory.view')
   summary(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.results.getSummary(id, user.tenant_id);
   }
 
   @Get('cycles/:id/results')
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
+  @RequirePermission('inventory.view')
   getResults(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.results.getResults(id, user.tenant_id);
   }
 
   // ---- Records ----
   @Post('cycles/:id/records')
-  @Roles('Administrator', 'Asset Manager', 'Inventory Team')
+  @RequirePermission('inventory.execute')
   record(@Param('id') id: string, @Body() dto: RecordResultDto, @CurrentUser() user: RequestUser) {
     return this.records.record(id, user.tenant_id, dto.asset_id, {
       actual_location_id: dto.actual_location_id,
@@ -89,19 +89,19 @@ export class InventoryController {
   }
 
   @Get('cycles/:id/records')
-  @Roles('Administrator', 'Asset Manager', 'Auditor', 'Department Manager')
+  @RequirePermission('inventory.view')
   listRecords(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     return this.records.listByCycle(id, user.tenant_id);
   }
 
   @Patch('records/:id')
-  @Roles('Administrator', 'Asset Manager', 'Inventory Team')
+  @RequirePermission('inventory.execute')
   updateRecord(@Param('id') id: string, @Body() dto: UpdateRecordDto, @CurrentUser() user: RequestUser) {
     return this.records.update(id, user.tenant_id, dto, user.sub);
   }
 
   @Patch('records/:id/verify')
-  @Roles('Administrator', 'Auditor')
+  @RequirePermission('inventory.verify')
   verify(@Param('id') id: string, @Body() dto: VerifyRecordDto, @CurrentUser() user: RequestUser) {
     return this.records.verify(id, user.tenant_id, dto.verified, user.sub);
   }

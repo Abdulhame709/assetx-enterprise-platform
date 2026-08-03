@@ -8,6 +8,7 @@ import { DatabasePort } from '../core/ports/database.port';
 import { PasswordHasher, TokenManager, TokenPayload } from '../core/ports/auth.port';
 import { UserRepository } from '../infrastructure/repositories/user.repository';
 import { DATABASE_PORT, PASSWORD_HASHER, TOKEN_MANAGER } from '../core/ports/tokens';
+import { getPermissionVersion } from '../bootstrap/permission-version';
 import { randomUUID } from 'crypto';
 
 export interface RegisterInput {
@@ -69,6 +70,7 @@ export class AuthService {
     const roleNames = await this.users.findRoleNames(user.id);
     const role = roleNames[0] ?? 'Employee';
     const permissions = await this.users.findPermissionKeys(user.id);
+    const permissionVersion = await getPermissionVersion(this.db, user.tenant_id);
     const sessionId = randomUUID();
     this.sessions.set(sessionId, user.id);
 
@@ -79,6 +81,7 @@ export class AuthService {
       role,
       roles: roleNames.length ? roleNames : ['Employee'],
       permissions,
+      permission_version: permissionVersion,
       session_id: sessionId,
     };
     await this.users.updateLastLogin(user.id);
@@ -101,6 +104,7 @@ export class AuthService {
     const sessionExists = this.sessions.has(payload.session_id);
     if (!sessionExists) throw new Error('SESSION_REVOKED');
     // Rebuild a clean payload (verify() returns iat/exp which must not be re-signed).
+    const currentVersion = await getPermissionVersion(this.db, payload.tenant_id);
     const clean: TokenPayload = {
       sub: payload.sub,
       username: payload.username,
@@ -108,6 +112,7 @@ export class AuthService {
       role: payload.role,
       roles: payload.roles ?? [],
       permissions: payload.permissions ?? [],
+      permission_version: currentVersion,
       session_id: payload.session_id,
     };
     return { accessToken: this.tokens.signAccessToken(clean) };

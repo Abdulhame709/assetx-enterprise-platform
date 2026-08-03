@@ -117,8 +117,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     ReportingService,
     {
       provide: AuthGuard,
-      useFactory: (tokens: JwtTokenManager) => new AuthGuard(tokens),
-      inject: [TOKEN_MANAGER],
+      useFactory: (tokens: JwtTokenManager, db: PGliteDatabase) => new AuthGuard(tokens, db),
+      inject: [TOKEN_MANAGER, DATABASE_PORT],
     },
     RolesGuard,
     PermissionGuard,

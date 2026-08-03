@@ -7,27 +7,42 @@
  */
 import { DatabasePort } from '../core/ports/database.port';
 
-/** Flat permission keys per role. */
+/** Flat permission keys per role (single source of truth — Phase 9.5 Task 2). */
 export const PERMISSION_CATALOG: Record<string, string[]> = {
   Administrator: [
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
-    'inventory.create', 'inventory.execute', 'inventory.verify', 'inventory.close',
+    'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.verify', 'inventory.close',
     'dashboard.view', 'report.export', 'audit.export',
+    // Master Data
+    'location.view', 'location.create', 'location.update', 'location.delete',
+    'category.view', 'category.create', 'category.update', 'category.delete',
+    'model.view', 'model.create', 'model.update', 'model.delete',
+    'employee.view', 'employee.create', 'employee.update', 'employee.delete',
   ],
   'Asset Manager': [
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
-    'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
+    'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
+    // Master Data
+    'location.view', 'location.create', 'location.update', 'location.delete',
+    'category.view', 'category.create', 'category.update', 'category.delete',
+    'model.view', 'model.create', 'model.update', 'model.delete',
+    'employee.view', 'employee.create', 'employee.update', 'employee.delete',
   ],
   Auditor: [
-    'asset.view', 'movement.view', 'inventory.verify',
+    'asset.view', 'movement.view', 'inventory.view', 'inventory.verify',
     'dashboard.view', 'report.export', 'audit.export',
+    // Master Data (read only)
+    'location.view', 'category.view', 'model.view', 'employee.view',
   ],
-  'Department Manager': ['asset.view', 'movement.view', 'dashboard.view'],
-  'Inventory Team': ['inventory.execute', 'asset.view'],
-  Maintenance: ['asset.view', 'movement.view'],
-  Employee: ['asset.view'],
+  'Department Manager': [
+    'asset.view', 'movement.view', 'inventory.view', 'dashboard.view',
+    'location.view', 'category.view', 'model.view', 'employee.view',
+  ],
+  'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view'],
+  Maintenance: ['asset.view', 'movement.view', 'location.view'],
+  Employee: ['asset.view', 'location.view'],
 };
 
 /** Idempotently seed permission rows + role_permissions for a tenant. */
