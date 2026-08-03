@@ -22,8 +22,11 @@ INSERT INTO notification_templates (tenant_id, name, subject, body) VALUES
   (current_tenant_id(), 'inventory_assigned',   'Inventory Campaign Assigned', 'You have been assigned to inventory campaign {{cycle}}.'),
   (current_tenant_id(), 'inventory_completed',  'Inventory Campaign Completed', 'Campaign {{cycle}} has been completed.'),
   (current_tenant_id(), 'sync_failure',         'Sync Failure', 'Device {{device}} has {{count}} failed sync records.'),
-  (current_tenant_id(), 'asset_transferred',    'Asset Transferred', 'Asset {{asset}} has been transferred.'),
-  (current_tenant_id(), 'approval_required',    'Approval Required', 'Action {{action}} requires your approval.')
+  (current_tenant_id(), 'asset_transferred',    'Asset Transferred', 'Asset {{asset_name}} has been transferred.'),
+  (current_tenant_id(), 'approval_required',    'Approval Required', 'Action {{action}} requires your approval.'),
+  (current_tenant_id(), 'asset_created',        'Asset Created', 'Asset {{asset_name}} has been created.'),
+  (current_tenant_id(), 'asset_status_changed', 'Asset Status Changed', 'Asset {{asset_name}} status changed to {{status_name}}.'),
+  (current_tenant_id(), 'compliance_warning',   'Compliance Warning', 'Compliance warning: {{check}} count {{count}}.')
 ON CONFLICT (tenant_id, name) DO NOTHING;
 
 -- ---------------------------------------------------------------------------

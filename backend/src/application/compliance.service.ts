@@ -8,7 +8,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePort } from '../core/ports/database.port';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
-import { DATABASE_PORT } from '../core/ports/tokens';
+import { DATABASE_PORT, EVENT_BUS } from '../core/ports/tokens';
+import { EventBus } from '../core/events/event-bus';
+import { DOMAIN_EVENTS } from '../core/events/event-types';
 
 export interface ComplianceCheck {
   check: string;
@@ -25,6 +27,7 @@ export class ComplianceService {
   constructor(
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
     private readonly audit: AuditService,
+    @Inject(EVENT_BUS) private readonly bus: EventBus,
   ) {}
 
   async health(tenantId: string): Promise<{ tenant_id: string; checks: ComplianceCheck[]; overall: 'OK' | 'WARNING' }> {
@@ -76,6 +79,15 @@ export class ComplianceService {
         action: AUDIT_EVENTS.COMPLIANCE_WARNING, entity: 'compliance', entityId: tenantId,
         metadata: { checks: checks.filter((c) => c.status === 'WARNING') },
       }).catch(() => undefined);
+      // Notify: compliance warning (each failing check)
+      for (const c of checks.filter((x) => x.status === 'WARNING')) {
+        this.bus.publish({
+          event: DOMAIN_EVENTS.COMPLIANCE_WARNING,
+          tenant_id: tenantId,
+          entityId: tenantId,
+          payload: { check: c.check, count: String(c.count) },
+        });
+      }
     }
     return { tenant_id: tenantId, checks, overall };
   }

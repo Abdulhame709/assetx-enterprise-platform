@@ -12,6 +12,9 @@ import { Asset } from '../core/entities/asset.entity';
 import { ASSET_PORT, DATABASE_PORT, MOVEMENT_PORT } from '../core/ports/tokens';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
+import { EventBus } from '../core/events/event-bus';
+import { DOMAIN_EVENTS } from '../core/events/event-types';
+import { EVENT_BUS } from '../core/ports/tokens';
 
 @Injectable()
 export class MovementService {
@@ -20,6 +23,7 @@ export class MovementService {
     @Inject(ASSET_PORT) private readonly assets: AssetPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
     private readonly audit: AuditService,
+    @Inject(EVENT_BUS) private readonly bus: EventBus,
   ) {}
 
   /** Create a movement. Validates the asset/employee, then stores as pending (no asset change). */
@@ -65,6 +69,14 @@ export class MovementService {
       action: AUDIT_EVENTS.MOVEMENT_CREATED, entity: 'movement', entityId: created.id,
       metadata: { asset_id: input.asset_id, movement_type: created.movement_type },
     }).catch(() => undefined);
+    // Notify: movement pending approval
+    this.bus.publish({
+      event: DOMAIN_EVENTS.MOVEMENT_PENDING,
+      tenant_id: tenantId,
+      userId: input.performed_by ?? undefined,
+      entityId: created.id,
+      payload: { action: created.movement_type, asset_id: input.asset_id },
+    });
     return created;
   }
 
@@ -82,6 +94,12 @@ export class MovementService {
       action: AUDIT_EVENTS.MOVEMENT_APPROVED, entity: 'movement', entityId: id,
       metadata: { asset_id: mv.asset_id, movement_type: mv.movement_type },
     }).catch(() => undefined);
+    this.bus.publish({
+      event: DOMAIN_EVENTS.MOVEMENT_APPROVED,
+      tenant_id: tenantId,
+      entityId: id,
+      payload: { asset_name: mv.asset_id, movement_type: mv.movement_type },
+    });
     return updated;
   }
 
@@ -98,6 +116,12 @@ export class MovementService {
       action: AUDIT_EVENTS.MOVEMENT_REJECTED, entity: 'movement', entityId: id,
       metadata: { asset_id: mv.asset_id, movement_type: mv.movement_type },
     }).catch(() => undefined);
+    this.bus.publish({
+      event: DOMAIN_EVENTS.MOVEMENT_REJECTED,
+      tenant_id: tenantId,
+      entityId: id,
+      payload: { asset_name: mv.asset_id, movement_type: mv.movement_type },
+    });
     return updated;
   }
 

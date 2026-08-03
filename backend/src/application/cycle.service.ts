@@ -10,6 +10,9 @@ import { InventoryCycle, CycleStatus, CycleScope } from '../core/entities/invent
 import { CYCLE_PORT, DATABASE_PORT, RECORD_PORT } from '../core/ports/tokens';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
+import { EventBus } from '../core/events/event-bus';
+import { DOMAIN_EVENTS } from '../core/events/event-types';
+import { EVENT_BUS } from '../core/ports/tokens';
 
 const ALLOWED_TRANSITIONS: Record<CycleStatus, CycleStatus[]> = {
   new: ['in_progress'],
@@ -24,6 +27,7 @@ export class CycleService {
     @Inject(RECORD_PORT) private readonly records: RecordPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
     private readonly audit: AuditService,
+    @Inject(EVENT_BUS) private readonly bus: EventBus,
   ) {}
 
   /** Create a cycle and snapshot active assets (BR-INV-001). */
@@ -76,6 +80,22 @@ export class CycleService {
       entity: 'inventory', entityId: id,
       metadata: { from: cycle.status, to },
     }).catch(() => undefined);
+    // Notify: inventory completed when closing
+    if (to === 'closed') {
+      this.bus.publish({
+        event: DOMAIN_EVENTS.INVENTORY_COMPLETED,
+        tenant_id: tenantId,
+        entityId: id,
+        payload: { cycle: String(cycle.year) },
+      });
+    } else {
+      this.bus.publish({
+        event: DOMAIN_EVENTS.INVENTORY_STARTED,
+        tenant_id: tenantId,
+        entityId: id,
+        payload: { cycle: String(cycle.year) },
+      });
+    }
     return updated;
   }
 }

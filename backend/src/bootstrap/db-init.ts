@@ -7,6 +7,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDatabase } from '../infrastructure/database/pglite.database';
 import { seedPermissions } from './permission-seed';
+import { seedNotificationTemplates } from './notification-seed';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -76,6 +77,8 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
 
   // Seed the permission catalog (flat keys → roles) for the demo tenant.
   await seedPermissions(db, tenantId);
+  // Seed notification templates for the demo tenant.
+  await seedNotificationTemplates(db, tenantId);
 
   await db.exec(`SET ROLE postgres;`); // reset to owner for app-level setup
 }

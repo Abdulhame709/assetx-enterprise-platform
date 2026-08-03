@@ -57,4 +57,7 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   // Phase 10
   INVALID_AUDIT_ACTION:    { http: 400, code: 'VALIDATION_ERROR' },
   COMPLIANCE_VIEW_DENIED:  { http: 403, code: 'FORBIDDEN' },
+  // Phase 11
+  TEMPLATE_NOT_FOUND:      { http: 404, code: 'NOT_FOUND' },
+  NOTIFICATION_NOT_FOUND:  { http: 404, code: 'NOT_FOUND' },
 };

@@ -15,6 +15,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.verify', 'inventory.close',
     'dashboard.view', 'report.export', 'audit.export',
     'audit.view', 'compliance.view',
+    'notification.view', 'notification.manage',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
     'category.view', 'category.create', 'category.update', 'category.delete',
@@ -25,6 +26,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
+    'notification.view',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
     'category.view', 'category.create', 'category.update', 'category.delete',
@@ -35,16 +37,18 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'asset.view', 'movement.view', 'inventory.view', 'inventory.verify',
     'dashboard.view', 'report.export', 'audit.export',
     'audit.view', 'compliance.view',
+    'notification.view',
     // Master Data (read only)
     'location.view', 'category.view', 'model.view', 'employee.view',
   ],
   'Department Manager': [
     'asset.view', 'movement.view', 'inventory.view', 'dashboard.view',
+    'notification.view',
     'location.view', 'category.view', 'model.view', 'employee.view',
   ],
-  'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view'],
-  Maintenance: ['asset.view', 'movement.view', 'location.view'],
-  Employee: ['asset.view', 'location.view'],
+  'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view', 'notification.view'],
+  Maintenance: ['asset.view', 'movement.view', 'location.view', 'notification.view'],
+  Employee: ['asset.view', 'location.view', 'notification.view'],
 };
 
 /** Idempotently seed permission rows + role_permissions for a tenant. */

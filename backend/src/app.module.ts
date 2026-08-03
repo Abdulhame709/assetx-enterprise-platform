@@ -53,6 +53,10 @@ import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { AuditController } from './api/audit/audit.controller';
 import { ComplianceService } from './application/compliance.service';
 import { ComplianceController } from './api/compliance/compliance.controller';
+import { EventBus } from './core/events/event-bus';
+import { NotificationRepository } from './infrastructure/repositories/notification.repository';
+import { NotificationService } from './application/notification.service';
+import { TemplateRenderer } from './application/template-renderer.service';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -69,6 +73,8 @@ import {
   MOVEMENT_PORT,
   REPORTING_PORT,
   AUDIT_PORT,
+  EVENT_BUS,
+  NOTIFICATION_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -121,6 +127,10 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     { provide: AUDIT_PORT, useClass: AuditRepository },
     AuditService,
     ComplianceService,
+    { provide: EVENT_BUS, useClass: EventBus },
+    { provide: NOTIFICATION_PORT, useClass: NotificationRepository },
+    TemplateRenderer,
+    NotificationService,
     CycleService,
     RecordService,
     InventoryResultService,

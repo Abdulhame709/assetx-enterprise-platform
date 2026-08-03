@@ -10,6 +10,9 @@ import { DatabasePort } from '../core/ports/database.port';
 import { ASSET_PORT, DATABASE_PORT } from '../core/ports/tokens';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
+import { EventBus } from '../core/events/event-bus';
+import { DOMAIN_EVENTS } from '../core/events/event-types';
+import { EVENT_BUS } from '../core/ports/tokens';
 
 @Injectable()
 export class AssetService {
@@ -17,6 +20,7 @@ export class AssetService {
     @Inject(ASSET_PORT) private readonly assets: AssetPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
     private readonly audit: AuditService,
+    @Inject(EVENT_BUS) private readonly bus: EventBus,
   ) {}
 
   /** Validation (BR-ASSET-002): name, category, location, status required. */
@@ -42,6 +46,13 @@ export class AssetService {
       action: AUDIT_EVENTS.ASSET_CREATED, entity: 'asset', entityId: created.id,
       metadata: { name: created.name, code: created.full_asset_code },
     }).catch(() => undefined);
+    // Notify: asset created
+    this.bus.publish({
+      event: DOMAIN_EVENTS.ASSET_CREATED,
+      tenant_id: input.tenant_id,
+      entityId: created.id,
+      payload: { asset_name: created.name, asset_code: created.full_asset_code },
+    });
     return created;
   }
 

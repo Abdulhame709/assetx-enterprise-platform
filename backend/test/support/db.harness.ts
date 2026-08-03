@@ -31,9 +31,14 @@ import { MovementService } from '../../src/application/movement.service';
 import { ReportingRepository } from '../../src/infrastructure/repositories/reporting.repository';
 import { ReportingService } from '../../src/application/reporting.service';
 import { seedPermissions } from '../../src/bootstrap/permission-seed';
+import { seedNotificationTemplates } from '../../src/bootstrap/notification-seed';
 import { AuditRepository } from '../../src/infrastructure/repositories/audit.repository';
 import { AuditService } from '../../src/application/audit.service';
 import { ComplianceService } from '../../src/application/compliance.service';
+import { EventBus } from '../../src/core/events/event-bus';
+import { NotificationRepository } from '../../src/infrastructure/repositories/notification.repository';
+import { NotificationService } from '../../src/application/notification.service';
+import { TemplateRenderer } from '../../src/application/template-renderer.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -57,6 +62,8 @@ export interface Harness {
   reporting: ReportingService;
   audit: AuditService;
   compliance: ComplianceService;
+  notificationService: NotificationService;
+  bus: EventBus;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -134,9 +141,11 @@ export async function createHarness(): Promise<Harness> {
   const refA = await refFor(tenantA);
   const refB = await refFor(tenantB);
 
-  // Seed permission catalog (flat keys → roles) for both tenants.
+  // Seed permission catalog (flat keys → roles) + notification templates.
   await seedPermissions(db, tenantA);
   await seedPermissions(db, tenantB);
+  await seedNotificationTemplates(db, tenantA);
+  await seedNotificationTemplates(db, tenantB);
 
   // Act as the authenticated role for all subsequent (app) queries.
   await db.exec(`SET ROLE authenticated;`);
@@ -145,10 +154,13 @@ export async function createHarness(): Promise<Harness> {
   const tokens = new JwtTokenManager(ACCESS, REFRESH);
   const repo = new UserRepository(db);
   const audit = new AuditService(new AuditRepository(db), db);
+  const bus = new EventBus();
+  const notificationService = new NotificationService(bus, new NotificationRepository(db), db, new TemplateRenderer());
+  await notificationService.onModuleInit();
   const auth = new AuthService(db, repo, hasher, tokens, audit);
   const users = new UsersService(repo);
   const assetRepo = new AssetRepository(db);
-  const assets = new AssetService(assetRepo, db, audit);
+  const assets = new AssetService(assetRepo, db, audit, bus);
   const locations = new LocationService(new LocationRepository(db), db);
   const categories = new CategoryService(new CategoryRepository(db), db);
   const models = new ModelService(new ModelRepository(db), db);
@@ -156,12 +168,12 @@ export async function createHarness(): Promise<Harness> {
   const cycleRepo = new CycleRepository(db);
   const recordRepo = new RecordRepository(db);
   const resultRepo = new ResultRepository(db);
-  const cycles = new CycleService(cycleRepo, recordRepo, db, audit);
+  const cycles = new CycleService(cycleRepo, recordRepo, db, audit, bus);
   const records = new RecordService(cycleRepo, recordRepo, db);
   const inventoryResult = new InventoryResultService(cycleRepo, resultRepo, db);
-  const movements = new MovementService(new MovementRepository(db), assetRepo, db, audit);
+  const movements = new MovementService(new MovementRepository(db), assetRepo, db, audit, bus);
   const reporting = new ReportingService(new ReportingRepository(db), db);
-  const compliance = new ComplianceService(db, audit);
+  const compliance = new ComplianceService(db, audit, bus);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, bus, tenantA, tenantB, refA, refB };
 }
