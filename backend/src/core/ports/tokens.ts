@@ -7,3 +7,7 @@ export const PASSWORD_HASHER = 'PASSWORD_HASHER';
 export const TOKEN_MANAGER = 'TOKEN_MANAGER';
 export const PGLITE = 'PGLITE';
 export const ASSET_PORT = 'ASSET_PORT';
+export const LOCATION_PORT = 'LOCATION_PORT';
+export const CATEGORY_PORT = 'CATEGORY_PORT';
+export const MODEL_PORT = 'MODEL_PORT';
+export const EMPLOYEE_PORT = 'EMPLOYEE_PORT';

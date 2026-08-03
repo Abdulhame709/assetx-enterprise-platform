@@ -12,6 +12,14 @@ import { AuthService } from '../../src/application/auth.service';
 import { UsersService } from '../../src/application/users.service';
 import { AssetRepository } from '../../src/infrastructure/repositories/asset.repository';
 import { AssetService } from '../../src/application/asset.service';
+import { LocationRepository } from '../../src/infrastructure/repositories/location.repository';
+import { LocationService } from '../../src/application/location.service';
+import { CategoryRepository } from '../../src/infrastructure/repositories/category.repository';
+import { CategoryService } from '../../src/application/category.service';
+import { ModelRepository } from '../../src/infrastructure/repositories/model.repository';
+import { ModelService } from '../../src/application/model.service';
+import { EmployeeRepository } from '../../src/infrastructure/repositories/employee.repository';
+import { EmployeeService } from '../../src/application/employee.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -24,6 +32,10 @@ export interface Harness {
   hasher: BcryptHasher;
   assetRepo: AssetRepository;
   assets: AssetService;
+  locations: LocationService;
+  categories: CategoryService;
+  models: ModelService;
+  employees: EmployeeService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -104,6 +116,10 @@ export async function createHarness(): Promise<Harness> {
   const users = new UsersService(repo);
   const assetRepo = new AssetRepository(db);
   const assets = new AssetService(assetRepo, db);
+  const locations = new LocationService(new LocationRepository(db), db);
+  const categories = new CategoryService(new CategoryRepository(db), db);
+  const models = new ModelService(new ModelRepository(db), db);
+  const employees = new EmployeeService(new EmployeeRepository(db), db);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, tenantA, tenantB, refA, refB };
 }

@@ -23,4 +23,17 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   PRICE_INVALID:           { http: 400, code: 'VALIDATION_ERROR' },
   DEPRECIATION_RATE_INVALID: { http: 400, code: 'VALIDATION_ERROR' },
   TRANSFER_TARGET_REQUIRED: { http: 400, code: 'VALIDATION_ERROR' },
+  // Master data
+  NAME_INVALID:              { http: 400, code: 'VALIDATION_ERROR' },
+  DUPLICATE_LOCATION:        { http: 409, code: 'CONFLICT' },
+  DUPLICATE_CATEGORY:        { http: 409, code: 'CONFLICT' },
+  DUPLICATE_MODEL:           { http: 409, code: 'CONFLICT' },
+  LOCATION_NOT_FOUND:        { http: 404, code: 'NOT_FOUND' },
+  CATEGORY_NOT_FOUND:        { http: 404, code: 'NOT_FOUND' },
+  MODEL_NOT_FOUND:           { http: 404, code: 'NOT_FOUND' },
+  EMPLOYEE_NOT_FOUND:        { http: 404, code: 'NOT_FOUND' },
+  PARENT_NOT_FOUND:          { http: 404, code: 'NOT_FOUND' },
+  LOCATION_HAS_CHILDREN:     { http: 409, code: 'CONFLICT' },
+  LOCATION_HAS_ASSETS:       { http: 409, code: 'CONFLICT' },
+  EMPLOYEE_HAS_ASSETS:       { http: 409, code: 'CONFLICT' },
 };

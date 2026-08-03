@@ -20,12 +20,28 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { AssetService } from './application/asset.service';
 import { AssetRepository } from './infrastructure/repositories/asset.repository';
 import { AssetController } from './api/assets/asset.controller';
+import { LocationService } from './application/location.service';
+import { LocationRepository } from './infrastructure/repositories/location.repository';
+import { LocationController } from './api/locations/location.controller';
+import { CategoryService } from './application/category.service';
+import { CategoryRepository } from './infrastructure/repositories/category.repository';
+import { CategoryController } from './api/categories/category.controller';
+import { ModelService } from './application/model.service';
+import { ModelRepository } from './infrastructure/repositories/model.repository';
+import { ModelController } from './api/models/model.controller';
+import { EmployeeService } from './application/employee.service';
+import { EmployeeRepository } from './infrastructure/repositories/employee.repository';
+import { EmployeeController } from './api/employees/employee.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
   TOKEN_MANAGER,
   PGLITE,
   ASSET_PORT,
+  LOCATION_PORT,
+  CATEGORY_PORT,
+  MODEL_PORT,
+  EMPLOYEE_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -62,6 +78,14 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
       useClass: AssetRepository,
     },
     AssetService,
+    { provide: LOCATION_PORT, useClass: LocationRepository },
+    LocationService,
+    { provide: CATEGORY_PORT, useClass: CategoryRepository },
+    CategoryService,
+    { provide: MODEL_PORT, useClass: ModelRepository },
+    ModelService,
+    { provide: EMPLOYEE_PORT, useClass: EmployeeRepository },
+    EmployeeService,
     {
       provide: AuthGuard,
       useFactory: (tokens: JwtTokenManager) => new AuthGuard(tokens),
@@ -69,7 +93,10 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     },
     RolesGuard,
   ],
-  controllers: [AuthController, UsersController, TenantController, AssetController],
+  controllers: [
+    AuthController, UsersController, TenantController, AssetController,
+    LocationController, CategoryController, ModelController, EmployeeController,
+  ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService],
 })
 export class AppModule {}
