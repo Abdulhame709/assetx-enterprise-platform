@@ -32,6 +32,13 @@ import { ModelController } from './api/models/model.controller';
 import { EmployeeService } from './application/employee.service';
 import { EmployeeRepository } from './infrastructure/repositories/employee.repository';
 import { EmployeeController } from './api/employees/employee.controller';
+import { CycleService } from './application/cycle.service';
+import { CycleRepository } from './infrastructure/repositories/cycle.repository';
+import { RecordRepository } from './infrastructure/repositories/record.repository';
+import { RecordService } from './application/record.service';
+import { ResultRepository } from './infrastructure/repositories/result.repository';
+import { InventoryResultService } from './application/inventory-result.service';
+import { InventoryController } from './api/inventory/inventory.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -42,6 +49,9 @@ import {
   CATEGORY_PORT,
   MODEL_PORT,
   EMPLOYEE_PORT,
+  CYCLE_PORT,
+  RECORD_PORT,
+  RESULT_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -86,6 +96,12 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     ModelService,
     { provide: EMPLOYEE_PORT, useClass: EmployeeRepository },
     EmployeeService,
+    { provide: CYCLE_PORT, useClass: CycleRepository },
+    { provide: RECORD_PORT, useClass: RecordRepository },
+    { provide: RESULT_PORT, useClass: ResultRepository },
+    CycleService,
+    RecordService,
+    InventoryResultService,
     {
       provide: AuthGuard,
       useFactory: (tokens: JwtTokenManager) => new AuthGuard(tokens),
@@ -96,6 +112,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
   controllers: [
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
+    InventoryController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService],
 })

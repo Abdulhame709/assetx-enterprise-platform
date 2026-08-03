@@ -11,3 +11,6 @@ export const LOCATION_PORT = 'LOCATION_PORT';
 export const CATEGORY_PORT = 'CATEGORY_PORT';
 export const MODEL_PORT = 'MODEL_PORT';
 export const EMPLOYEE_PORT = 'EMPLOYEE_PORT';
+export const CYCLE_PORT = 'CYCLE_PORT';
+export const RECORD_PORT = 'RECORD_PORT';
+export const RESULT_PORT = 'RESULT_PORT';

@@ -508,6 +508,15 @@ FROM inventory_records ir;
 -- ============================================================================
 -- 8. Audit Context (BC-AUDIT) — TB-AUDIT (append-only, immutable)
 -- ============================================================================
+-- Ensure the app role exists (idempotent) and grant the computed view (ADL-006).
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    CREATE ROLE authenticated NOLOGIN;
+  END IF;
+END;
+$$;
+GRANT SELECT ON v_inventory_result TO authenticated;
 CREATE TABLE audit_events (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id          uuid NOT NULL REFERENCES tenants(id),

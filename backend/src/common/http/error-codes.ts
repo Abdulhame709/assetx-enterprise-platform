@@ -36,4 +36,13 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   LOCATION_HAS_CHILDREN:     { http: 409, code: 'CONFLICT' },
   LOCATION_HAS_ASSETS:       { http: 409, code: 'CONFLICT' },
   EMPLOYEE_HAS_ASSETS:       { http: 409, code: 'CONFLICT' },
+  // Inventory
+  INVALID_YEAR:              { http: 400, code: 'VALIDATION_ERROR' },
+  CYCLE_YEAR_EXISTS:         { http: 409, code: 'CONFLICT' },
+  CYCLE_NOT_FOUND:           { http: 404, code: 'NOT_FOUND' },
+  CYCLE_CLOSED:              { http: 409, code: 'CONFLICT' },
+  INVALID_CYCLE_TRANSITION:  { http: 409, code: 'CONFLICT' },
+  RECORD_NOT_FOUND:          { http: 404, code: 'NOT_FOUND' },
+  ASSET_NOT_IN_CYCLE:        { http: 404, code: 'NOT_FOUND' },
+  CANNOT_VERIFY_UNINVENTORIED: { http: 409, code: 'CONFLICT' },
 };

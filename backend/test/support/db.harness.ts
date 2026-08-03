@@ -20,6 +20,12 @@ import { ModelRepository } from '../../src/infrastructure/repositories/model.rep
 import { ModelService } from '../../src/application/model.service';
 import { EmployeeRepository } from '../../src/infrastructure/repositories/employee.repository';
 import { EmployeeService } from '../../src/application/employee.service';
+import { CycleRepository } from '../../src/infrastructure/repositories/cycle.repository';
+import { RecordRepository } from '../../src/infrastructure/repositories/record.repository';
+import { ResultRepository } from '../../src/infrastructure/repositories/result.repository';
+import { CycleService } from '../../src/application/cycle.service';
+import { RecordService } from '../../src/application/record.service';
+import { InventoryResultService } from '../../src/application/inventory-result.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -36,6 +42,9 @@ export interface Harness {
   categories: CategoryService;
   models: ModelService;
   employees: EmployeeService;
+  cycles: CycleService;
+  records: RecordService;
+  inventoryResult: InventoryResultService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -56,48 +65,16 @@ export async function createHarness(): Promise<Harness> {
   );
   await db.exec(migration);
 
-  // Seed reference data for two tenants
-  await db.exec(
-    `INSERT INTO tenants (tenant_code, name, status) VALUES ('tenant_a','Tenant A','active'), ('tenant_b','Tenant B','active');`,
-  );
-  const { rows: tenants } = await db.query<{ id: string; tenant_code: string }>(
-    `SELECT id, tenant_code FROM tenants;`,
-  );
-  const tenantA = tenants.find((t) => t.tenant_code === 'tenant_a')!.id;
-  const tenantB = tenants.find((t) => t.tenant_code === 'tenant_b')!.id;
-
-  // Seed roles for each tenant
-  for (const tid of [tenantA, tenantB]) {
-    await db.setTenant(tid);
-    await db.exec(
-      `INSERT INTO roles (tenant_id, name, role_type) VALUES
-         ('${tid}','Administrator','admin'),
-         ('${tid}','Asset Manager','manager'),
-         ('${tid}','Employee','employee');`,
-    );
-    // Reference data: a status, a location, a category per tenant
-    await db.exec(`
-      INSERT INTO statuses (tenant_id, name, color) VALUES ('${tid}','Good','#27ae60');
-      INSERT INTO locations (tenant_id, name, path, full_path, level_number)
-        VALUES ('${tid}','HQ','hq','HQ',0);
-      INSERT INTO asset_categories (tenant_id, name) VALUES ('${tid}','IT');
-    `);
-  }
-
-  async function refFor(tid: string) {
-    await db.setTenant(tid);
-    const status = (await db.query<{ id: string }>(`SELECT id FROM statuses WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
-    const location = (await db.query<{ id: string }>(`SELECT id FROM locations WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
-    const category = (await db.query<{ id: string }>(`SELECT id FROM asset_categories WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
-    return { status, location, category };
-  }
-  const refA = await refFor(tenantA);
-  const refB = await refFor(tenantB);
-
-  // Create a non-owner 'authenticated' role and act as it for all queries.
+  // Create a non-owner 'authenticated' role and grant table access.
   // This mirrors the Supabase production model where the API connects as a
   // non-owner role, so Row-Level Security actually applies (owner bypasses RLS).
-  await db.exec(`CREATE ROLE authenticated NOLOGIN;`);
+  await db.exec(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+      END IF;
+    END $$;
+  `);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
@@ -107,6 +84,41 @@ export async function createHarness(): Promise<Harness> {
       notifications, settings TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;
   `);
+
+  // Seed reference data for two tenants (as owner — RLS bypassed during setup)
+  await db.exec(
+    `INSERT INTO tenants (tenant_code, name, status) VALUES ('tenant_a','Tenant A','active'), ('tenant_b','Tenant B','active');`,
+  );
+  const { rows: tenants } = await db.query<{ id: string; tenant_code: string }>(
+    `SELECT id, tenant_code FROM tenants;`,
+  );
+  const tenantA = tenants.find((t) => t.tenant_code === 'tenant_a')!.id;
+  const tenantB = tenants.find((t) => t.tenant_code === 'tenant_b')!.id;
+
+  // Seed roles + reference data for each tenant (owner context, RLS not applied)
+  for (const tid of [tenantA, tenantB]) {
+    await db.exec(
+      `INSERT INTO roles (tenant_id, name, role_type) VALUES
+         ('${tid}','Administrator','admin'),
+         ('${tid}','Asset Manager','manager'),
+         ('${tid}','Employee','employee');
+       INSERT INTO statuses (tenant_id, name, color) VALUES ('${tid}','Good','#27ae60');
+       INSERT INTO locations (tenant_id, name, path, full_path, level_number)
+         VALUES ('${tid}','HQ','hq','HQ',0);
+       INSERT INTO asset_categories (tenant_id, name) VALUES ('${tid}','IT');`,
+    );
+  }
+
+  async function refFor(tid: string) {
+    const status = (await db.query<{ id: string }>(`SELECT id FROM statuses WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
+    const location = (await db.query<{ id: string }>(`SELECT id FROM locations WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
+    const category = (await db.query<{ id: string }>(`SELECT id FROM asset_categories WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
+    return { status, location, category };
+  }
+  const refA = await refFor(tenantA);
+  const refB = await refFor(tenantB);
+
+  // Act as the authenticated role for all subsequent (app) queries.
   await db.exec(`SET ROLE authenticated;`);
 
   const hasher = new BcryptHasher();
@@ -120,6 +132,12 @@ export async function createHarness(): Promise<Harness> {
   const categories = new CategoryService(new CategoryRepository(db), db);
   const models = new ModelService(new ModelRepository(db), db);
   const employees = new EmployeeService(new EmployeeRepository(db), db);
+  const cycleRepo = new CycleRepository(db);
+  const recordRepo = new RecordRepository(db);
+  const resultRepo = new ResultRepository(db);
+  const cycles = new CycleService(cycleRepo, recordRepo, db);
+  const records = new RecordService(cycleRepo, recordRepo, db);
+  const inventoryResult = new InventoryResultService(cycleRepo, resultRepo, db);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, tenantA, tenantB, refA, refB };
 }

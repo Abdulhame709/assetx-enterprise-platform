@@ -31,7 +31,13 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
   );
   const tenantId = rows[0].id;
   // Create the non-owner 'authenticated' role (production-like RLS semantics).
-  await db.exec(`CREATE ROLE authenticated NOLOGIN;`);
+  await db.exec(`
+    DO $$ BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        CREATE ROLE authenticated NOLOGIN;
+      END IF;
+    END $$;
+  `);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
