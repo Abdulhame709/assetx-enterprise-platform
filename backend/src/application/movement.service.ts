@@ -10,6 +10,8 @@ import { AssetPort } from '../core/ports/asset.port';
 import { AssetMovement, MovementType, MovementStatus } from '../core/entities/movement.entity';
 import { Asset } from '../core/entities/asset.entity';
 import { ASSET_PORT, DATABASE_PORT, MOVEMENT_PORT } from '../core/ports/tokens';
+import { AuditService } from './audit.service';
+import { AUDIT_EVENTS } from '../core/constants/audit-events';
 
 @Injectable()
 export class MovementService {
@@ -17,6 +19,7 @@ export class MovementService {
     @Inject(MOVEMENT_PORT) private readonly movements: MovementPort,
     @Inject(ASSET_PORT) private readonly assets: AssetPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
+    private readonly audit: AuditService,
   ) {}
 
   /** Create a movement. Validates the asset/employee, then stores as pending (no asset change). */
@@ -42,7 +45,7 @@ export class MovementService {
 
     // capture from-state (BR-MOV-001: audit history). All movements are created
     // pending and applied only on approval (BR-MOV-005 requires approval workflow).
-    return this.movements.create({
+    const created = await this.movements.create({
       tenant_id: tenantId,
       asset_id: input.asset_id,
       movement_type: input.movement_type,
@@ -57,6 +60,12 @@ export class MovementService {
       notes: input.notes,
       performed_by: input.performed_by,
     });
+    await this.audit.log({
+      tenant_id: tenantId, userId: input.performed_by ?? null,
+      action: AUDIT_EVENTS.MOVEMENT_CREATED, entity: 'movement', entityId: created.id,
+      metadata: { asset_id: input.asset_id, movement_type: created.movement_type },
+    }).catch(() => undefined);
+    return created;
   }
 
   /** Approve a pending movement and apply its effect to the asset. */
@@ -68,6 +77,11 @@ export class MovementService {
     await this.applyToAsset(mv, tenantId);
     const updated = await this.movements.setStatus(id, tenantId, 'approved', approverId);
     if (!updated) throw new Error('MOVEMENT_NOT_FOUND');
+    await this.audit.log({
+      tenant_id: tenantId, userId: approverId,
+      action: AUDIT_EVENTS.MOVEMENT_APPROVED, entity: 'movement', entityId: id,
+      metadata: { asset_id: mv.asset_id, movement_type: mv.movement_type },
+    }).catch(() => undefined);
     return updated;
   }
 
@@ -79,6 +93,11 @@ export class MovementService {
     if (mv.status !== 'pending') throw new Error('MOVEMENT_NOT_PENDING');
     const updated = await this.movements.setStatus(id, tenantId, 'rejected', null as never);
     if (!updated) throw new Error('MOVEMENT_NOT_FOUND');
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: AUDIT_EVENTS.MOVEMENT_REJECTED, entity: 'movement', entityId: id,
+      metadata: { asset_id: mv.asset_id, movement_type: mv.movement_type },
+    }).catch(() => undefined);
     return updated;
   }
 

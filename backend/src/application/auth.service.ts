@@ -9,6 +9,8 @@ import { PasswordHasher, TokenManager, TokenPayload } from '../core/ports/auth.p
 import { UserRepository } from '../infrastructure/repositories/user.repository';
 import { DATABASE_PORT, PASSWORD_HASHER, TOKEN_MANAGER } from '../core/ports/tokens';
 import { getPermissionVersion } from '../bootstrap/permission-version';
+import { AuditService } from './audit.service';
+import { AUDIT_EVENTS } from '../core/constants/audit-events';
 import { randomUUID } from 'crypto';
 
 export interface RegisterInput {
@@ -31,6 +33,7 @@ export class AuthService {
     private readonly users: UserRepository,
     @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasher,
     @Inject(TOKEN_MANAGER) private readonly tokens: TokenManager,
+    private readonly audit: AuditService,
   ) {}
 
   /** Validate minimal password policy (implementation-level; full rules in Validation Rules spec). */
@@ -65,7 +68,14 @@ export class AuthService {
     const user = await this.users.findByUsername(input.username);
     if (!user || !user.is_active) throw new Error('INVALID_CREDENTIALS');
     const valid = await this.hasher.verify(input.password, user.password_hash);
-    if (!valid) throw new Error('INVALID_CREDENTIALS');
+    if (!valid) {
+      if (user.tenant_id) await this.audit.log({
+        tenant_id: user.tenant_id, userId: user.id,
+        action: AUDIT_EVENTS.AUTH_LOGIN_FAILED, entity: 'auth', entityId: user.id,
+        metadata: { username: input.username, reason: 'invalid_password' },
+      }).catch(() => undefined);
+      throw new Error('INVALID_CREDENTIALS');
+    }
 
     const roleNames = await this.users.findRoleNames(user.id);
     const role = roleNames[0] ?? 'Employee';
@@ -85,6 +95,11 @@ export class AuthService {
       session_id: sessionId,
     };
     await this.users.updateLastLogin(user.id);
+    await this.audit.log({
+      tenant_id: user.tenant_id, userId: user.id,
+      action: AUDIT_EVENTS.AUTH_LOGIN_SUCCESS, entity: 'auth', entityId: user.id,
+      metadata: { username: user.username },
+    }).catch(() => undefined);
     return {
       accessToken: this.tokens.signAccessToken(payload),
       refreshToken: this.tokens.signRefreshToken(payload),
@@ -115,6 +130,10 @@ export class AuthService {
       permission_version: currentVersion,
       session_id: payload.session_id,
     };
+    await this.audit.log({
+      tenant_id: payload.tenant_id, userId: payload.sub,
+      action: AUDIT_EVENTS.AUTH_TOKEN_REFRESH, entity: 'auth', entityId: payload.sub,
+    }).catch(() => undefined);
     return { accessToken: this.tokens.signAccessToken(clean) };
   }
 

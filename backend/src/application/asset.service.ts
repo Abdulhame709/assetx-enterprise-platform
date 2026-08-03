@@ -8,12 +8,15 @@ import { AssetPort, CreateAssetInput, UpdateAssetInput, AssetFilter } from '../c
 import { Asset, AssetSummary } from '../core/entities/asset.entity';
 import { DatabasePort } from '../core/ports/database.port';
 import { ASSET_PORT, DATABASE_PORT } from '../core/ports/tokens';
+import { AuditService } from './audit.service';
+import { AUDIT_EVENTS } from '../core/constants/audit-events';
 
 @Injectable()
 export class AssetService {
   constructor(
     @Inject(ASSET_PORT) private readonly assets: AssetPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
+    private readonly audit: AuditService,
   ) {}
 
   /** Validation (BR-ASSET-002): name, category, location, status required. */
@@ -33,7 +36,13 @@ export class AssetService {
     this.validateCreate(input);
     // Scope the write to the target tenant so RLS (current_tenant_id) allows it.
     await this.db.setTenant(input.tenant_id);
-    return this.assets.create(input);
+    const created = await this.assets.create(input);
+    await this.audit.log({
+      tenant_id: input.tenant_id, userId: null,
+      action: AUDIT_EVENTS.ASSET_CREATED, entity: 'asset', entityId: created.id,
+      metadata: { name: created.name, code: created.full_asset_code },
+    }).catch(() => undefined);
+    return created;
   }
 
   async getById(id: string, tenantId: string): Promise<Asset | null> {
@@ -48,7 +57,13 @@ export class AssetService {
     await this.db.setTenant(tenantId);
     const existing = await this.assets.findById(id, tenantId);
     if (!existing) throw new Error('ASSET_NOT_FOUND');
-    return this.assets.update(id, input);
+    const updated = await this.assets.update(id, input);
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: AUDIT_EVENTS.ASSET_UPDATED, entity: 'asset', entityId: id,
+      metadata: { fields: Object.keys(input) },
+    }).catch(() => undefined);
+    return updated;
   }
 
   async search(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }> {
@@ -112,7 +127,13 @@ export class AssetService {
     const existing = await this.assets.findById(id, tenantId);
     if (!existing) throw new Error('ASSET_NOT_FOUND');
     if (!statusId) throw new Error('STATUS_REQUIRED');
-    return this.assets.updateStatus(id, tenantId, statusId);
+    const updated = await this.assets.updateStatus(id, tenantId, statusId);
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: AUDIT_EVENTS.ASSET_STATUS_CHANGED, entity: 'asset', entityId: id,
+      metadata: { to_status_id: statusId },
+    }).catch(() => undefined);
+    return updated;
   }
 
   private toSummary(a: Asset): AssetSummary {

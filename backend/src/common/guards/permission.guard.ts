@@ -1,20 +1,21 @@
 /**
  * PermissionGuard — enforces flat permission keys declared via @RequirePermission(...).
- * Supports ANY/ALL modes and multiple permissions. Logs authorization decisions to
- * the existing audit_events table (append-only) — no new table.
- * Reference: Security Architecture (DOC-13) · Phase 9.5 authorization hardening
+ * Supports ANY/ALL modes and multiple permissions. Logs authorization decisions
+ * through AuditService (which delegates to AuditRepository → audit_events).
+ * No direct DB access here (Phase 10.3).
+ * Reference: Security Architecture (DOC-13) · ADR-010
  */
-import { CanActivate, ExecutionContext, Inject, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { DatabasePort } from '../../core/ports/database.port';
-import { DATABASE_PORT } from '../../core/ports/tokens';
+import { AuditService } from '../../application/audit.service';
+import { AUDIT_EVENTS } from '../../core/constants/audit-events';
 import { PERMISSIONS_KEY, PermissionRequirement } from '../decorators/require-permission.decorator';
 
 @Injectable()
 export class PermissionGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    @Inject(DATABASE_PORT) private readonly db: DatabasePort,
+    private readonly audit: AuditService,
   ) {}
 
   private satisfies(requirement: PermissionRequirement, granted: string[]): boolean {
@@ -42,55 +43,41 @@ export class PermissionGuard implements CanActivate {
 
     const method = context.getHandler().name;
     const resource = context.getClass().name;
-    const allPass = requirements.every((r) => this.satisfies(r, granted));
     const requiredKeys = requirements.flatMap((r) => r.permissions);
+    const allPass = requirements.every((r) => this.satisfies(r, granted));
 
-    await this.audit({
-      tenantId: user.tenant_id ?? '',
-      userId: user.sub ?? null,
-      permission: requiredKeys.join(','),
-      resource,
-      action: method,
-      result: allPass ? 'ALLOWED' : 'DENIED',
-      reason: allPass ? 'Permission granted' : 'Permission missing',
-    });
+    if (allPass) {
+      await this.audit.log({
+        tenant_id: user.tenant_id ?? '',
+        userId: user.sub ?? null,
+        action: AUDIT_EVENTS.PERMISSION_GRANTED,
+        entity: 'permission',
+        entityId: resource,
+        metadata: {
+          permission: requiredKeys.join(','),
+          endpoint: req.route?.path ?? req.url,
+          method: req.method,
+          resource,
+          reason: 'Permission granted',
+        },
+      });
+    } else {
+      await this.audit.log({
+        tenant_id: user.tenant_id ?? '',
+        userId: user.sub ?? null,
+        action: AUDIT_EVENTS.PERMISSION_DENIED,
+        entity: 'permission',
+        entityId: resource,
+        metadata: {
+          required_permission: requiredKeys.join(','),
+          provided_permissions: granted,
+          endpoint: req.route?.path ?? req.url,
+          reason: 'Permission missing',
+        },
+      });
+    }
 
     if (!allPass) throw new Error('FORBIDDEN');
     return true;
-  }
-
-  /** Append-only authorization decision log (uses existing audit_events table). */
-  private async audit(opts: {
-    tenantId: string;
-    userId: string | null;
-    permission: string;
-    resource: string;
-    action: string;
-    result: 'ALLOWED' | 'DENIED';
-    reason: string;
-  }): Promise<void> {
-    try {
-      await this.db.query(
-        `INSERT INTO audit_events (tenant_id, user_id, action_type, table_name, record_id, details, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6::jsonb, now())`,
-        [
-          opts.tenantId,
-          opts.userId,
-          'authz',
-          'permission',
-          opts.resource,
-          JSON.stringify({
-            permission: opts.permission,
-            resource: opts.resource,
-            action: opts.action,
-            result: opts.result,
-            reason: opts.reason,
-            timestamp: new Date().toISOString(),
-          }),
-        ],
-      );
-    } catch {
-      // Audit must never break the authorization decision.
-    }
   }
 }

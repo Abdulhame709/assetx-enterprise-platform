@@ -8,6 +8,8 @@ import { DatabasePort } from '../core/ports/database.port';
 import { CyclePort, RecordPort } from '../core/ports/inventory.port';
 import { InventoryCycle, CycleStatus, CycleScope } from '../core/entities/inventory.entity';
 import { CYCLE_PORT, DATABASE_PORT, RECORD_PORT } from '../core/ports/tokens';
+import { AuditService } from './audit.service';
+import { AUDIT_EVENTS } from '../core/constants/audit-events';
 
 const ALLOWED_TRANSITIONS: Record<CycleStatus, CycleStatus[]> = {
   new: ['in_progress'],
@@ -21,6 +23,7 @@ export class CycleService {
     @Inject(CYCLE_PORT) private readonly cycles: CyclePort,
     @Inject(RECORD_PORT) private readonly records: RecordPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
+    private readonly audit: AuditService,
   ) {}
 
   /** Create a cycle and snapshot active assets (BR-INV-001). */
@@ -30,6 +33,11 @@ export class CycleService {
     if (await this.cycles.existsYear(tenantId, year)) throw new Error('CYCLE_YEAR_EXISTS');
     const cycle = await this.cycles.create(tenantId, year);
     const snapshotCount = await this.records.createSnapshot(tenantId, cycle.id, scope);
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: AUDIT_EVENTS.INVENTORY_CREATED, entity: 'inventory', entityId: cycle.id,
+      metadata: { year, snapshotCount },
+    }).catch(() => undefined);
     return { cycle, snapshotCount };
   }
 
@@ -62,6 +70,12 @@ export class CycleService {
     if (!allowed.includes(to)) throw new Error('INVALID_CYCLE_TRANSITION');
     const updated = await this.cycles.updateStatus(id, tenantId, to, true);
     if (!updated) throw new Error('CYCLE_NOT_FOUND');
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: to === 'in_progress' ? AUDIT_EVENTS.INVENTORY_STARTED : AUDIT_EVENTS.INVENTORY_CLOSED,
+      entity: 'inventory', entityId: id,
+      metadata: { from: cycle.status, to },
+    }).catch(() => undefined);
     return updated;
   }
 }

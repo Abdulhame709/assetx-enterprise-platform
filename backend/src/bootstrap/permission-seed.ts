@@ -14,6 +14,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.verify', 'inventory.close',
     'dashboard.view', 'report.export', 'audit.export',
+    'audit.view', 'compliance.view',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
     'category.view', 'category.create', 'category.update', 'category.delete',
@@ -33,6 +34,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
   Auditor: [
     'asset.view', 'movement.view', 'inventory.view', 'inventory.verify',
     'dashboard.view', 'report.export', 'audit.export',
+    'audit.view', 'compliance.view',
     // Master Data (read only)
     'location.view', 'category.view', 'model.view', 'employee.view',
   ],

@@ -4,6 +4,7 @@
  * implements them; API consumes services. Ports are injected by token to satisfy NestJS.
  */
 import { Module, Global } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDatabase } from './infrastructure/database/pglite.database';
 import { initLocalDatabase } from './bootstrap/db-init';
@@ -46,6 +47,12 @@ import { MovementController } from './api/movements/movement.controller';
 import { ReportingService } from './application/reporting.service';
 import { ReportingRepository } from './infrastructure/repositories/reporting.repository';
 import { DashboardController } from './api/dashboard/dashboard.controller';
+import { AuditService } from './application/audit.service';
+import { AuditRepository } from './infrastructure/repositories/audit.repository';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
+import { AuditController } from './api/audit/audit.controller';
+import { ComplianceService } from './application/compliance.service';
+import { ComplianceController } from './api/compliance/compliance.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -61,6 +68,7 @@ import {
   RESULT_PORT,
   MOVEMENT_PORT,
   REPORTING_PORT,
+  AUDIT_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -110,6 +118,9 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     { provide: RESULT_PORT, useClass: ResultRepository },
     { provide: MOVEMENT_PORT, useClass: MovementRepository },
     { provide: REPORTING_PORT, useClass: ReportingRepository },
+    { provide: AUDIT_PORT, useClass: AuditRepository },
+    AuditService,
+    ComplianceService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -122,12 +133,16 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     },
     RolesGuard,
     PermissionGuard,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor,
+    },
   ],
   controllers: [
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
-    InventoryController, MovementController, DashboardController,
+    InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
   ],
-  exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService],
+  exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })
 export class AppModule {}

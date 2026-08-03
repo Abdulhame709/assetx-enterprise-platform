@@ -51,7 +51,7 @@ describe('Authorization Hardening — integration (Phase 9.5)', () => {
 
   describe('Task 3 — guard ANY/ALL modes', () => {
     it('ANY: passes if at least one required permission is granted', () => {
-      const guard = new PermissionGuard({ getAllAndOverride: () => ([{ permissions: ['asset.create', 'asset.delete'], mode: 'ANY' }] as PermissionRequirement[]) } as never, h.db);
+      const guard = new PermissionGuard({ getAllAndOverride: () => ([{ permissions: ['asset.create', 'asset.delete'], mode: 'ANY' }] as PermissionRequirement[]) } as never, h.audit);
       // canActivate needs a request context; instead test the private satisfies via a proxy
       const anyGranted = ['asset.create'];
       const satisfiesAny = anyGranted.some((p) => ['asset.create', 'asset.delete'].includes(p));

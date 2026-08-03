@@ -54,4 +54,7 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   DUPLICATE_PENDING:       { http: 409, code: 'CONFLICT' },
   // Phase 9.5
   PERMISSIONS_STALE:       { http: 401, code: 'PERMISSIONS_STALE' },
+  // Phase 10
+  INVALID_AUDIT_ACTION:    { http: 400, code: 'VALIDATION_ERROR' },
+  COMPLIANCE_VIEW_DENIED:  { http: 403, code: 'FORBIDDEN' },
 };

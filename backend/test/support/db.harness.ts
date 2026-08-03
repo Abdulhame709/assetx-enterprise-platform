@@ -31,6 +31,9 @@ import { MovementService } from '../../src/application/movement.service';
 import { ReportingRepository } from '../../src/infrastructure/repositories/reporting.repository';
 import { ReportingService } from '../../src/application/reporting.service';
 import { seedPermissions } from '../../src/bootstrap/permission-seed';
+import { AuditRepository } from '../../src/infrastructure/repositories/audit.repository';
+import { AuditService } from '../../src/application/audit.service';
+import { ComplianceService } from '../../src/application/compliance.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -52,6 +55,8 @@ export interface Harness {
   inventoryResult: InventoryResultService;
   movements: MovementService;
   reporting: ReportingService;
+  audit: AuditService;
+  compliance: ComplianceService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -139,10 +144,11 @@ export async function createHarness(): Promise<Harness> {
   const hasher = new BcryptHasher();
   const tokens = new JwtTokenManager(ACCESS, REFRESH);
   const repo = new UserRepository(db);
-  const auth = new AuthService(db, repo, hasher, tokens);
+  const audit = new AuditService(new AuditRepository(db), db);
+  const auth = new AuthService(db, repo, hasher, tokens, audit);
   const users = new UsersService(repo);
   const assetRepo = new AssetRepository(db);
-  const assets = new AssetService(assetRepo, db);
+  const assets = new AssetService(assetRepo, db, audit);
   const locations = new LocationService(new LocationRepository(db), db);
   const categories = new CategoryService(new CategoryRepository(db), db);
   const models = new ModelService(new ModelRepository(db), db);
@@ -150,11 +156,12 @@ export async function createHarness(): Promise<Harness> {
   const cycleRepo = new CycleRepository(db);
   const recordRepo = new RecordRepository(db);
   const resultRepo = new ResultRepository(db);
-  const cycles = new CycleService(cycleRepo, recordRepo, db);
+  const cycles = new CycleService(cycleRepo, recordRepo, db, audit);
   const records = new RecordService(cycleRepo, recordRepo, db);
   const inventoryResult = new InventoryResultService(cycleRepo, resultRepo, db);
-  const movements = new MovementService(new MovementRepository(db), assetRepo, db);
+  const movements = new MovementService(new MovementRepository(db), assetRepo, db, audit);
   const reporting = new ReportingService(new ReportingRepository(db), db);
+  const compliance = new ComplianceService(db, audit);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, tenantA, tenantB, refA, refB };
 }
