@@ -10,6 +10,8 @@ import { JwtTokenManager } from '../../src/infrastructure/auth/jwt.token-manager
 import { UserRepository } from '../../src/infrastructure/repositories/user.repository';
 import { AuthService } from '../../src/application/auth.service';
 import { UsersService } from '../../src/application/users.service';
+import { AssetRepository } from '../../src/infrastructure/repositories/asset.repository';
+import { AssetService } from '../../src/application/asset.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -20,8 +22,13 @@ export interface Harness {
   users: UsersService;
   tokens: JwtTokenManager;
   hasher: BcryptHasher;
+  assetRepo: AssetRepository;
+  assets: AssetService;
   tenantA: string;
   tenantB: string;
+  /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
+  refA: { status: string; location: string; category: string };
+  refB: { status: string; location: string; category: string };
 }
 
 const ACCESS = 'test-access-secret';
@@ -56,7 +63,24 @@ export async function createHarness(): Promise<Harness> {
          ('${tid}','Asset Manager','manager'),
          ('${tid}','Employee','employee');`,
     );
+    // Reference data: a status, a location, a category per tenant
+    await db.exec(`
+      INSERT INTO statuses (tenant_id, name, color) VALUES ('${tid}','Good','#27ae60');
+      INSERT INTO locations (tenant_id, name, path, full_path, level_number)
+        VALUES ('${tid}','HQ','hq','HQ',0);
+      INSERT INTO asset_categories (tenant_id, name) VALUES ('${tid}','IT');
+    `);
   }
+
+  async function refFor(tid: string) {
+    await db.setTenant(tid);
+    const status = (await db.query<{ id: string }>(`SELECT id FROM statuses WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
+    const location = (await db.query<{ id: string }>(`SELECT id FROM locations WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
+    const category = (await db.query<{ id: string }>(`SELECT id FROM asset_categories WHERE tenant_id='${tid}' LIMIT 1`)).rows[0].id;
+    return { status, location, category };
+  }
+  const refA = await refFor(tenantA);
+  const refB = await refFor(tenantB);
 
   // Create a non-owner 'authenticated' role and act as it for all queries.
   // This mirrors the Supabase production model where the API connects as a
@@ -78,6 +102,8 @@ export async function createHarness(): Promise<Harness> {
   const repo = new UserRepository(db);
   const auth = new AuthService(db, repo, hasher, tokens);
   const users = new UsersService(repo);
+  const assetRepo = new AssetRepository(db);
+  const assets = new AssetService(assetRepo, db);
 
-  return { db, repo, auth, users, tokens, hasher, tenantA, tenantB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, tenantA, tenantB, refA, refB };
 }

@@ -16,11 +16,16 @@ import { AuthController } from './api/auth/auth.controller';
 import { UsersController } from './api/users/users.controller';
 import { TenantController } from './api/tenant/tenant.controller';
 import { AuthGuard } from './common/guards/auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
+import { AssetService } from './application/asset.service';
+import { AssetRepository } from './infrastructure/repositories/asset.repository';
+import { AssetController } from './api/assets/asset.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
   TOKEN_MANAGER,
   PGLITE,
+  ASSET_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -53,12 +58,18 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     AuthService,
     UsersService,
     {
+      provide: ASSET_PORT,
+      useClass: AssetRepository,
+    },
+    AssetService,
+    {
       provide: AuthGuard,
       useFactory: (tokens: JwtTokenManager) => new AuthGuard(tokens),
       inject: [TOKEN_MANAGER],
     },
+    RolesGuard,
   ],
-  controllers: [AuthController, UsersController, TenantController],
-  exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService],
+  controllers: [AuthController, UsersController, TenantController, AssetController],
+  exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService],
 })
 export class AppModule {}

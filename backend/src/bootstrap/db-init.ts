@@ -41,16 +41,39 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
       notifications, settings TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;
   `);
-  // Seed roles for the demo tenant
+  // Seed roles + reference data for the demo tenant
   await db.setTenant(tenantId);
   await db.exec(
     `INSERT INTO roles (tenant_id, name, role_type) VALUES
        ('${tenantId}','Administrator','admin'),
        ('${tenantId}','Asset Manager','manager'),
        ('${tenantId}','Employee','employee')
-     ON CONFLICT (tenant_id, name) DO NOTHING;`,
+     ON CONFLICT (tenant_id, name) DO NOTHING;
+     INSERT INTO statuses (tenant_id, name, color) VALUES ('${tenantId}','Good','#27ae60');
+     INSERT INTO asset_categories (tenant_id, name) VALUES ('${tenantId}','IT');
+     INSERT INTO locations (tenant_id, name, path, full_path, level_number)
+       VALUES ('${tenantId}','HQ','hq','HQ',0);`,
   );
+
+  // Bootstrap Administrator user (hashed with bcrypt cost 12) for the demo tenant.
+  const adminHash = await hashForLocalDev('AdminPass123');
+  await db.exec(
+    `INSERT INTO users (tenant_id, username, email, password_hash, is_active)
+       VALUES ('${tenantId}','admin','admin@assetx.io','${adminHash}',true)
+     ON CONFLICT (username) DO NOTHING;
+     INSERT INTO user_roles (tenant_id, user_id, role_id)
+       SELECT '${tenantId}', u.id, r.id FROM users u, roles r
+       WHERE u.username='admin' AND r.name='Administrator' AND r.tenant_id='${tenantId}'
+     ON CONFLICT DO NOTHING;`,
+  );
+
   await db.exec(`SET ROLE postgres;`); // reset to owner for app-level setup
+}
+
+/** Local dev-only: bcrypt hash for the bootstrap admin. (bcryptjs, cost 12) */
+function hashForLocalDev(plain: string): Promise<string> {
+  const bcrypt = require('bcryptjs');
+  return bcrypt.hash(plain, 12);
 }
 
 /** Convenience: create a fresh initialized PGlite (used by tooling/tests). */

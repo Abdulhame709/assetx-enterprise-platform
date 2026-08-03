@@ -13,4 +13,14 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   USER_NOT_FOUND:          { http: 404, code: 'NOT_FOUND' },
   TENANT_NOT_FOUND:        { http: 404, code: 'NOT_FOUND' },
   SESSION_REVOKED:         { http: 401, code: 'UNAUTHORIZED' },
+  // Asset module
+  ASSET_NOT_FOUND:         { http: 404, code: 'NOT_FOUND' },
+  ASSET_NAME_INVALID:      { http: 400, code: 'VALIDATION_ERROR' },
+  CATEGORY_REQUIRED:       { http: 400, code: 'VALIDATION_ERROR' },
+  LOCATION_REQUIRED:       { http: 400, code: 'VALIDATION_ERROR' },
+  STATUS_REQUIRED:         { http: 400, code: 'VALIDATION_ERROR' },
+  QUANTITY_INVALID:        { http: 400, code: 'VALIDATION_ERROR' },
+  PRICE_INVALID:           { http: 400, code: 'VALIDATION_ERROR' },
+  DEPRECIATION_RATE_INVALID: { http: 400, code: 'VALIDATION_ERROR' },
+  TRANSFER_TARGET_REQUIRED: { http: 400, code: 'VALIDATION_ERROR' },
 };

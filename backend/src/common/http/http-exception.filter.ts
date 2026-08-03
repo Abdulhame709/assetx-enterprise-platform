@@ -44,6 +44,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     // Unknown internal error
+    // eslint-disable-next-line no-console
+    console.error('[HttpExceptionFilter] Unhandled error:', exception instanceof Error ? exception.stack : exception);
     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       data: null,
       error: { code: 'INTERNAL_ERROR', message: 'internal_error', details: {} },
