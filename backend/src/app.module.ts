@@ -60,6 +60,18 @@ import { TemplateRenderer } from './application/template-renderer.service';
 import { SSEManager } from './common/sse/sse-manager';
 import { RealtimeService } from './application/realtime.service';
 import { NotificationController } from './api/notifications/notification.controller';
+import { CsvGenerator } from './infrastructure/export/csv.generator';
+import { ExcelGenerator } from './infrastructure/export/excel.generator';
+import { PdfGenerator } from './infrastructure/export/pdf.generator';
+import { FileGeneratorFactory } from './infrastructure/export/file-generator.factory';
+import { ExportDataAdapter } from './application/export/adapters/export-data.adapter';
+import { AssetsExportProvider } from './application/export/providers/assets-export.provider';
+import { MovementsExportProvider } from './application/export/providers/movements-export.provider';
+import { InventoryExportProvider } from './application/export/providers/inventory-export.provider';
+import { AuditExportProvider } from './application/export/providers/audit-export.provider';
+import { DashboardExportProvider } from './application/export/providers/dashboard-export.provider';
+import { ExportService } from './application/export.service';
+import { ExportController } from './api/export/export.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -79,6 +91,7 @@ import {
   EVENT_BUS,
   NOTIFICATION_PORT,
   REALTIME_PORT,
+  EXPORT_PROVIDERS,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -138,6 +151,22 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     NotificationService,
     SSEManager,
     RealtimeService,
+    CsvGenerator,
+    ExcelGenerator,
+    PdfGenerator,
+    FileGeneratorFactory,
+    ExportDataAdapter,
+    AssetsExportProvider,
+    MovementsExportProvider,
+    InventoryExportProvider,
+    AuditExportProvider,
+    DashboardExportProvider,
+    {
+      provide: EXPORT_PROVIDERS,
+      useFactory: (assets, movements, inventory, audit, dashboard) => [assets, movements, inventory, audit, dashboard],
+      inject: [AssetsExportProvider, MovementsExportProvider, InventoryExportProvider, AuditExportProvider, DashboardExportProvider],
+    },
+    ExportService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -159,7 +188,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
-    NotificationController,
+    NotificationController, ExportController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })

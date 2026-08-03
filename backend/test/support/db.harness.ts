@@ -41,6 +41,17 @@ import { NotificationService } from '../../src/application/notification.service'
 import { TemplateRenderer } from '../../src/application/template-renderer.service';
 import { SSEManager } from '../../src/common/sse/sse-manager';
 import { RealtimeService } from '../../src/application/realtime.service';
+import { CsvGenerator } from '../../src/infrastructure/export/csv.generator';
+import { ExcelGenerator } from '../../src/infrastructure/export/excel.generator';
+import { PdfGenerator } from '../../src/infrastructure/export/pdf.generator';
+import { FileGeneratorFactory } from '../../src/infrastructure/export/file-generator.factory';
+import { ExportDataAdapter } from '../../src/application/export/adapters/export-data.adapter';
+import { AssetsExportProvider } from '../../src/application/export/providers/assets-export.provider';
+import { MovementsExportProvider } from '../../src/application/export/providers/movements-export.provider';
+import { InventoryExportProvider } from '../../src/application/export/providers/inventory-export.provider';
+import { AuditExportProvider } from '../../src/application/export/providers/audit-export.provider';
+import { DashboardExportProvider } from '../../src/application/export/providers/dashboard-export.provider';
+import { ExportService } from '../../src/application/export.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -68,6 +79,7 @@ export interface Harness {
   realtime: RealtimeService;
   sse: SSEManager;
   bus: EventBus;
+  exportService: ExportService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -180,6 +192,19 @@ export async function createHarness(): Promise<Harness> {
   const movements = new MovementService(new MovementRepository(db), assetRepo, db, audit, bus);
   const reporting = new ReportingService(new ReportingRepository(db), db);
   const compliance = new ComplianceService(db, audit, bus);
+  const exportService = new ExportService(
+    new FileGeneratorFactory(new CsvGenerator(), new ExcelGenerator(), new PdfGenerator()),
+    new ExportDataAdapter(),
+    audit,
+    bus,
+    [
+      new AssetsExportProvider(assetRepo),
+      new MovementsExportProvider(new MovementRepository(db)),
+      new InventoryExportProvider(inventoryResult),
+      new AuditExportProvider(new AuditRepository(db)),
+      new DashboardExportProvider(reporting),
+    ],
+  );
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, exportService, tenantA, tenantB, refA, refB };
 }

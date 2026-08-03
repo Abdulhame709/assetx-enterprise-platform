@@ -20,3 +20,4 @@ export const AUDIT_PORT = 'AUDIT_PORT';
 export const EVENT_BUS = 'EVENT_BUS';
 export const NOTIFICATION_PORT = 'NOTIFICATION_PORT';
 export const REALTIME_PORT = 'REALTIME_PORT';
+export const EXPORT_PROVIDERS = 'EXPORT_PROVIDERS';

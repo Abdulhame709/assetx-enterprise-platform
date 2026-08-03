@@ -60,4 +60,7 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   // Phase 11
   TEMPLATE_NOT_FOUND:      { http: 404, code: 'NOT_FOUND' },
   NOTIFICATION_NOT_FOUND:  { http: 404, code: 'NOT_FOUND' },
+  // Phase 11.3 Export
+  UNSUPPORTED_EXPORT_FORMAT: { http: 400, code: 'VALIDATION_ERROR' },
+  UNSUPPORTED_EXPORT_RESOURCE: { http: 400, code: 'VALIDATION_ERROR' },
 };

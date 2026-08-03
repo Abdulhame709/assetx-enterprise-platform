@@ -13,7 +13,9 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.verify', 'inventory.close',
-    'dashboard.view', 'report.export', 'audit.export',
+    'dashboard.view',
+    'export.assets', 'export.movements', 'export.inventory', 'export.audit', 'export.dashboard',
+    'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
     'notification.view', 'notification.manage',
     // Master Data
@@ -26,6 +28,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
+    'export.assets', 'export.movements', 'export.inventory', 'export.dashboard',
     'notification.view',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
@@ -35,7 +38,9 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
   ],
   Auditor: [
     'asset.view', 'movement.view', 'inventory.view', 'inventory.verify',
-    'dashboard.view', 'report.export', 'audit.export',
+    'dashboard.view',
+    'export.assets', 'export.movements', 'export.inventory', 'export.audit', 'export.dashboard',
+    'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
     'notification.view',
     // Master Data (read only)
