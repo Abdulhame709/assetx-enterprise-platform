@@ -86,6 +86,26 @@ export class UserRepository {
     return perms.some((p) => p.module_name === module && Boolean((p as unknown as Record<string, boolean>)[`can_${action}`]));
   }
 
+  /**
+   * Resolve a user's flat permission keys (e.g. 'asset.create').
+   * module_name holds the permission key; can_view=true marks it active (Phase 9).
+   * Combines role_permissions + direct user_permissions.
+   */
+  async findPermissionKeys(userId: string): Promise<string[]> {
+    const { rows } = await this.db.query<{ key: string }>(
+      `SELECT DISTINCT p.module_name AS key
+       FROM permissions p
+       JOIN role_permissions rp ON rp.permission_id = p.id
+       JOIN user_roles ur ON ur.role_id = rp.role_id
+       WHERE ur.user_id = $1 AND p.is_active = true AND p.can_view = true
+       UNION
+       SELECT module_name AS key FROM user_permissions
+       WHERE user_id = $1 AND can_view = true`,
+      [userId],
+    );
+    return rows.map((r) => r.key);
+  }
+
   async findTenantCode(tenantId: string): Promise<string | null> {
     const { rows } = await this.db.query<{ tenant_code: string }>(
       `SELECT tenant_code FROM tenants WHERE id = $1 LIMIT 1`,

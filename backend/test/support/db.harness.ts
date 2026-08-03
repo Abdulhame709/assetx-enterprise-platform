@@ -30,6 +30,7 @@ import { MovementRepository } from '../../src/infrastructure/repositories/moveme
 import { MovementService } from '../../src/application/movement.service';
 import { ReportingRepository } from '../../src/infrastructure/repositories/reporting.repository';
 import { ReportingService } from '../../src/application/reporting.service';
+import { seedPermissions } from '../../src/bootstrap/permission-seed';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -107,6 +108,10 @@ export async function createHarness(): Promise<Harness> {
       `INSERT INTO roles (tenant_id, name, role_type) VALUES
          ('${tid}','Administrator','admin'),
          ('${tid}','Asset Manager','manager'),
+         ('${tid}','Auditor','auditor'),
+         ('${tid}','Department Manager','manager'),
+         ('${tid}','Inventory Team','field'),
+         ('${tid}','Maintenance','maintenance'),
          ('${tid}','Employee','employee');
        INSERT INTO statuses (tenant_id, name, color) VALUES ('${tid}','Good','#27ae60');
        INSERT INTO locations (tenant_id, name, path, full_path, level_number)
@@ -123,6 +128,10 @@ export async function createHarness(): Promise<Harness> {
   }
   const refA = await refFor(tenantA);
   const refB = await refFor(tenantB);
+
+  // Seed permission catalog (flat keys → roles) for both tenants.
+  await seedPermissions(db, tenantA);
+  await seedPermissions(db, tenantB);
 
   // Act as the authenticated role for all subsequent (app) queries.
   await db.exec(`SET ROLE authenticated;`);

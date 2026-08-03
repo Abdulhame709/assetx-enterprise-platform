@@ -6,6 +6,8 @@ export interface RequestUser {
   username: string;
   tenant_id: string;
   role: string;
+  roles: string[];
+  permissions: string[];
   session_id: string;
 }
 

@@ -17,6 +17,7 @@ import { UsersController } from './api/users/users.controller';
 import { TenantController } from './api/tenant/tenant.controller';
 import { AuthGuard } from './common/guards/auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PermissionGuard } from './common/guards/permission.guard';
 import { AssetService } from './application/asset.service';
 import { AssetRepository } from './infrastructure/repositories/asset.repository';
 import { AssetController } from './api/assets/asset.controller';
@@ -120,6 +121,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
       inject: [TOKEN_MANAGER],
     },
     RolesGuard,
+    PermissionGuard,
   ],
   controllers: [
     AuthController, UsersController, TenantController, AssetController,

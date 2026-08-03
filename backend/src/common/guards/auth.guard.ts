@@ -22,6 +22,8 @@ export class AuthGuard implements CanActivate {
         username: payload.username,
         tenant_id: payload.tenant_id,
         role: payload.role,
+        roles: payload.roles ?? [],
+        permissions: payload.permissions ?? [],
         session_id: payload.session_id,
       };
       return true;

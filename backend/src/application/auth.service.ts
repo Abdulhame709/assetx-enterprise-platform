@@ -68,6 +68,7 @@ export class AuthService {
 
     const roleNames = await this.users.findRoleNames(user.id);
     const role = roleNames[0] ?? 'Employee';
+    const permissions = await this.users.findPermissionKeys(user.id);
     const sessionId = randomUUID();
     this.sessions.set(sessionId, user.id);
 
@@ -76,6 +77,8 @@ export class AuthService {
       username: user.username,
       tenant_id: user.tenant_id,
       role,
+      roles: roleNames.length ? roleNames : ['Employee'],
+      permissions,
       session_id: sessionId,
     };
     await this.users.updateLastLogin(user.id);
@@ -103,6 +106,8 @@ export class AuthService {
       username: payload.username,
       tenant_id: payload.tenant_id,
       role: payload.role,
+      roles: payload.roles ?? [],
+      permissions: payload.permissions ?? [],
       session_id: payload.session_id,
     };
     return { accessToken: this.tokens.signAccessToken(clean) };

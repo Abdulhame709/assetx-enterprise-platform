@@ -21,7 +21,7 @@ describe('Security — tokens, hashing, isolation', () => {
   it('access token is rejected with a wrong secret', () => {
     const other = new JwtTokenManager('wrong-access-secret', 'wrong-refresh-secret');
     const token = h.tokens.signAccessToken({
-      sub: 'u1', username: 'x', tenant_id: h.tenantA, role: 'Employee', session_id: 's1',
+      sub: 'u1', username: 'x', tenant_id: h.tenantA, role: 'Employee', roles: ['Employee'], permissions: [], session_id: 's1',
     });
     expect(() => other.verifyAccessToken(token)).toThrow();
   });
@@ -29,7 +29,7 @@ describe('Security — tokens, hashing, isolation', () => {
   it('access token (15m) is valid; expired token is rejected', () => {
     const short = new JwtTokenManager('sec', 'ref', '1ms');
     const token = short.signAccessToken({
-      sub: 'u1', username: 'x', tenant_id: h.tenantA, role: 'Employee', session_id: 's1',
+      sub: 'u1', username: 'x', tenant_id: h.tenantA, role: 'Employee', roles: ['Employee'], permissions: [], session_id: 's1',
     });
     // wait for expiry
     return new Promise<void>((resolve) => {
