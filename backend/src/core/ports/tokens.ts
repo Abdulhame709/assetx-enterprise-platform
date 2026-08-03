@@ -15,3 +15,4 @@ export const CYCLE_PORT = 'CYCLE_PORT';
 export const RECORD_PORT = 'RECORD_PORT';
 export const RESULT_PORT = 'RESULT_PORT';
 export const MOVEMENT_PORT = 'MOVEMENT_PORT';
+export const REPORTING_PORT = 'REPORTING_PORT';

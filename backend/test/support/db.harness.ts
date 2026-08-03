@@ -28,6 +28,8 @@ import { RecordService } from '../../src/application/record.service';
 import { InventoryResultService } from '../../src/application/inventory-result.service';
 import { MovementRepository } from '../../src/infrastructure/repositories/movement.repository';
 import { MovementService } from '../../src/application/movement.service';
+import { ReportingRepository } from '../../src/infrastructure/repositories/reporting.repository';
+import { ReportingService } from '../../src/application/reporting.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -48,6 +50,7 @@ export interface Harness {
   records: RecordService;
   inventoryResult: InventoryResultService;
   movements: MovementService;
+  reporting: ReportingService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -142,6 +145,7 @@ export async function createHarness(): Promise<Harness> {
   const records = new RecordService(cycleRepo, recordRepo, db);
   const inventoryResult = new InventoryResultService(cycleRepo, resultRepo, db);
   const movements = new MovementService(new MovementRepository(db), assetRepo, db);
+  const reporting = new ReportingService(new ReportingRepository(db), db);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, tenantA, tenantB, refA, refB };
 }
