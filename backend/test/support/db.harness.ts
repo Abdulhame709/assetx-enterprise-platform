@@ -39,6 +39,8 @@ import { EventBus } from '../../src/core/events/event-bus';
 import { NotificationRepository } from '../../src/infrastructure/repositories/notification.repository';
 import { NotificationService } from '../../src/application/notification.service';
 import { TemplateRenderer } from '../../src/application/template-renderer.service';
+import { SSEManager } from '../../src/common/sse/sse-manager';
+import { RealtimeService } from '../../src/application/realtime.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -63,6 +65,8 @@ export interface Harness {
   audit: AuditService;
   compliance: ComplianceService;
   notificationService: NotificationService;
+  realtime: RealtimeService;
+  sse: SSEManager;
   bus: EventBus;
   tenantA: string;
   tenantB: string;
@@ -157,6 +161,8 @@ export async function createHarness(): Promise<Harness> {
   const bus = new EventBus();
   const notificationService = new NotificationService(bus, new NotificationRepository(db), db, new TemplateRenderer());
   await notificationService.onModuleInit();
+  const sse = new SSEManager();
+  const realtime = new RealtimeService(bus, sse);
   const auth = new AuthService(db, repo, hasher, tokens, audit);
   const users = new UsersService(repo);
   const assetRepo = new AssetRepository(db);
@@ -175,5 +181,5 @@ export async function createHarness(): Promise<Harness> {
   const reporting = new ReportingService(new ReportingRepository(db), db);
   const compliance = new ComplianceService(db, audit, bus);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, bus, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, tenantA, tenantB, refA, refB };
 }

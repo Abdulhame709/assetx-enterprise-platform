@@ -57,6 +57,9 @@ import { EventBus } from './core/events/event-bus';
 import { NotificationRepository } from './infrastructure/repositories/notification.repository';
 import { NotificationService } from './application/notification.service';
 import { TemplateRenderer } from './application/template-renderer.service';
+import { SSEManager } from './common/sse/sse-manager';
+import { RealtimeService } from './application/realtime.service';
+import { NotificationController } from './api/notifications/notification.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -75,6 +78,7 @@ import {
   AUDIT_PORT,
   EVENT_BUS,
   NOTIFICATION_PORT,
+  REALTIME_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -129,8 +133,11 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     ComplianceService,
     { provide: EVENT_BUS, useClass: EventBus },
     { provide: NOTIFICATION_PORT, useClass: NotificationRepository },
+    { provide: REALTIME_PORT, useClass: SSEManager },
     TemplateRenderer,
     NotificationService,
+    SSEManager,
+    RealtimeService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -152,6 +159,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
+    NotificationController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })
