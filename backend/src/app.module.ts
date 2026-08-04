@@ -90,6 +90,7 @@ import { LifecycleStateConfig } from './application/lifecycle/lifecycle-state.co
 import { AssetLifecycleSnapshotAdapter } from './application/lifecycle/asset-lifecycle-snapshot.adapter';
 import { LifecycleEventService } from './application/lifecycle/lifecycle-event.service';
 import { LifecycleEventSubscriber } from './application/lifecycle/lifecycle-event.subscriber';
+import { WorkflowEngineService } from './application/workflow-engine.service';
 import { SearchQueryBuilder } from './application/search/search-query-builder';
 import { AssetsSearchProvider } from './application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from './application/search/providers/movements-search.provider';
@@ -216,6 +217,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     AssetLifecycleSnapshotAdapter,
     LifecycleEventService,
     LifecycleEventSubscriber,
+    WorkflowEngineService,
     ScheduledReportService,
     ReportBuilderService,
     ReportTemplateService,
