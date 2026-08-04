@@ -52,6 +52,13 @@ import { InventoryExportProvider } from '../../src/application/export/providers/
 import { AuditExportProvider } from '../../src/application/export/providers/audit-export.provider';
 import { DashboardExportProvider } from '../../src/application/export/providers/dashboard-export.provider';
 import { ExportService } from '../../src/application/export.service';
+import { ExportPipelineService } from '../../src/application/export/export-pipeline.service';
+import { ExportProfileRegistry } from '../../src/application/export/export-profile.registry';
+import { ExportMetricsService } from '../../src/application/export/export-metrics.service';
+import { CsvExportStrategy } from '../../src/infrastructure/export/strategies/csv-export.strategy';
+import { ExcelExportStrategy } from '../../src/infrastructure/export/strategies/excel-export.strategy';
+import { PdfExportStrategy } from '../../src/infrastructure/export/strategies/pdf-export.strategy';
+import { ExportStrategyFactory } from '../../src/infrastructure/export/strategies/export-strategy.factory';
 import { SearchQueryBuilder } from '../../src/application/search/search-query-builder';
 import { AssetsSearchProvider } from '../../src/application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from '../../src/application/search/providers/movements-search.provider';
@@ -93,6 +100,10 @@ export interface Harness {
   sse: SSEManager;
   bus: EventBus;
   exportService: ExportService;
+  exportStrategyFactory: ExportStrategyFactory;
+  exportProfiles: ExportProfileRegistry;
+  exportMetrics: ExportMetricsService;
+  exportPipeline: ExportPipelineService;
   scheduledReports: ScheduledReportService;
   reportBuilder: ReportBuilderService;
   reportTemplates: ReportTemplateService;
@@ -213,9 +224,18 @@ export async function createHarness(): Promise<Harness> {
   const movements = new MovementService(new MovementRepository(db), assetRepo, db, audit, bus);
   const reporting = new ReportingService(new ReportingRepository(db), db);
   const compliance = new ComplianceService(db, audit, bus);
+  const csvStrategy = new CsvExportStrategy(new CsvGenerator());
+  const excelStrategy = new ExcelExportStrategy(new ExcelGenerator());
+  const pdfStrategy = new PdfExportStrategy(new PdfGenerator());
+  const exportStrategyFactory = new ExportStrategyFactory([csvStrategy, excelStrategy, pdfStrategy]);
+  const exportProfiles = new ExportProfileRegistry();
+  const exportMetrics = new ExportMetricsService();
+  const exportPipeline = new ExportPipelineService(bus, exportMetrics, new ExportDataAdapter());
   const exportService = new ExportService(
-    new FileGeneratorFactory(new CsvGenerator(), new ExcelGenerator(), new PdfGenerator()),
-    new ExportDataAdapter(),
+    exportStrategyFactory,
+    exportPipeline,
+    exportProfiles,
+    exportMetrics,
     audit,
     bus,
     [
@@ -243,5 +263,5 @@ export async function createHarness(): Promise<Harness> {
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

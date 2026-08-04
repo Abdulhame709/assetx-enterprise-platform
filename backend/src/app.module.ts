@@ -78,6 +78,13 @@ import { AuditExportProvider } from './application/export/providers/audit-export
 import { DashboardExportProvider } from './application/export/providers/dashboard-export.provider';
 import { ExportService } from './application/export.service';
 import { ExportController } from './api/export/export.controller';
+import { ExportPipelineService } from './application/export/export-pipeline.service';
+import { ExportProfileRegistry } from './application/export/export-profile.registry';
+import { ExportMetricsService } from './application/export/export-metrics.service';
+import { CsvExportStrategy } from './infrastructure/export/strategies/csv-export.strategy';
+import { ExcelExportStrategy } from './infrastructure/export/strategies/excel-export.strategy';
+import { PdfExportStrategy } from './infrastructure/export/strategies/pdf-export.strategy';
+import { ExportStrategyFactory } from './infrastructure/export/strategies/export-strategy.factory';
 import { SearchQueryBuilder } from './application/search/search-query-builder';
 import { AssetsSearchProvider } from './application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from './application/search/providers/movements-search.provider';
@@ -107,6 +114,7 @@ import {
   NOTIFICATION_PORT,
   REALTIME_PORT,
   EXPORT_PROVIDERS,
+  EXPORT_STRATEGIES,
   SEARCH_PROVIDERS,
   SAVED_SEARCH_PORT,
 } from './core/ports/tokens';
@@ -185,6 +193,18 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
       useFactory: (assets, movements, inventory, audit, dashboard) => [assets, movements, inventory, audit, dashboard],
       inject: [AssetsExportProvider, MovementsExportProvider, InventoryExportProvider, AuditExportProvider, DashboardExportProvider],
     },
+    CsvExportStrategy,
+    ExcelExportStrategy,
+    PdfExportStrategy,
+    {
+      provide: EXPORT_STRATEGIES,
+      useFactory: (csv, excel, pdf) => [csv, excel, pdf],
+      inject: [CsvExportStrategy, ExcelExportStrategy, PdfExportStrategy],
+    },
+    ExportStrategyFactory,
+    ExportProfileRegistry,
+    ExportMetricsService,
+    ExportPipelineService,
     ExportService,
     ScheduledReportService,
     ReportBuilderService,

@@ -1,20 +1,26 @@
 /**
- * ExportService — application use case for the Export Engine.
- * Orchestrates: permission check → provider data → adapter → generator → stream.
- * Contains NO SQL and NO format-specific logic. Always returns a Readable stream.
- * Reference: Phase 11.3
+ * ExportService — application use case / single orchestration point for the
+ * Export Framework (Phase 11.3 · Task T8).
+ * Orchestrates: permission/provider resolution → lifecycle events → unified
+ * pipeline (Prepare→Transform→Format→Write→Stream) via an ExportStrategy →
+ * metrics → audit. Contains NO SQL and NO format-specific logic. Always returns
+ * a Readable stream. Backward compatible: the public generate() contract is
+ * unchanged; existing integrations keep working.
+ * Reference: Phase 11.3 · Task T8 — Enterprise Export Framework.
  */
 import { Inject, Injectable } from '@nestjs/common';
 import { ExportPort } from '../core/ports/export.port';
 import { ExportProvider } from '../core/ports/export-provider.port';
 import { ExportRequest, ExportResult, ExportMetadata, ExportMode } from '../core/entities/export.entity';
-import { FileGeneratorFactory } from '../infrastructure/export/file-generator.factory';
-import { ExportDataAdapter } from './export/adapters/export-data.adapter';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
 import { EventBus } from '../core/events/event-bus';
 import { DOMAIN_EVENTS } from '../core/events/event-types';
 import { EVENT_BUS, EXPORT_PROVIDERS } from '../core/ports/tokens';
+import { ExportStrategyFactory } from '../infrastructure/export/strategies/export-strategy.factory';
+import { ExportPipelineService } from './export/export-pipeline.service';
+import { ExportProfileRegistry } from './export/export-profile.registry';
+import { ExportMetricsService } from './export/export-metrics.service';
 
 @Injectable()
 export class ExportService implements ExportPort {
@@ -22,8 +28,10 @@ export class ExportService implements ExportPort {
   private readonly providers = new Map<string, ExportProvider>();
 
   constructor(
-    private readonly factory: FileGeneratorFactory,
-    private readonly adapter: ExportDataAdapter,
+    private readonly strategyFactory: ExportStrategyFactory,
+    private readonly pipeline: ExportPipelineService,
+    private readonly profiles: ExportProfileRegistry,
+    private readonly metrics: ExportMetricsService,
     private readonly audit: AuditService,
     @Inject(EVENT_BUS) private readonly bus: EventBus,
     @Inject(EXPORT_PROVIDERS) providers: ExportProvider[],
@@ -37,7 +45,7 @@ export class ExportService implements ExportPort {
     const provider = this.providers.get(req.resource);
     if (!provider) throw new Error('UNSUPPORTED_EXPORT_RESOURCE');
 
-    // Audit: export started
+    // Audit + lifecycle: export started
     await this.audit.log({
       tenant_id: req.tenant_id,
       userId: req.userId,
@@ -46,31 +54,43 @@ export class ExportService implements ExportPort {
       entityId: req.resource,
       metadata: { resource: req.resource, format: req.format, mode },
     }).catch(() => undefined);
+    this.bus.publish({
+      event: DOMAIN_EVENTS.EXPORT_STARTED,
+      tenant_id: req.tenant_id,
+      userId: req.userId,
+      entityId: req.resource,
+      payload: { resource: req.resource, format: req.format, mode },
+    });
 
     try {
-      // 1. Fetch raw data via the provider
-      const { rows, total } = await provider.getData(req.tenant_id, req.options);
-      // 2. Adapt to uniform export rows
-      const adapted = this.adapter.toRows(rows);
-      // 3. Select generator via factory
-      const generator = this.factory.get(req.format);
-      // 4. Generate stream
-      const stream = generator.generate(adapted, req.options);
-
-      const duration = Date.now() - started;
-      const metadata: ExportMetadata = {
+      // Resolve strategy (Strategy Pattern) + profile (audience config).
+      const strategy = this.strategyFactory.get(req.format);
+      const profile = this.profiles.get(req.options?.profile);
+      const options = this.profiles.apply(req.options ?? {}, profile);
+      const metric = this.metrics.start({
+        tenant: req.tenant_id,
+        user: req.userId,
         resource: req.resource,
         format: req.format,
-        rows: total,
-        size: 0, // size computed downstream by caller/stream
-        duration,
-        user: req.userId,
-        tenant: req.tenant_id,
-        mode,
-        generated_at: new Date().toISOString(),
-      };
+        profile: profile?.id,
+      });
 
-      // Audit: export completed
+      // Unified pipeline: Prepare → Transform → Format → Write → Stream.
+      const res = await this.pipeline.run({
+        tenant: req.tenant_id,
+        user: req.userId,
+        resource: req.resource,
+        provider,
+        strategy,
+        profile,
+        options,
+        metricId: metric.id,
+        mode,
+      });
+
+      const metadata: ExportMetadata = { ...res.metadata, duration: Date.now() - started };
+
+      // Audit: export completed (synchronous for backward compatibility).
       await this.audit.log({
         tenant_id: req.tenant_id,
         userId: req.userId,
@@ -80,33 +100,30 @@ export class ExportService implements ExportPort {
         metadata: { ...metadata },
       }).catch(() => undefined);
 
-      // Notify on large exports via EventBus (independent EXPORT_COMPLETED event)
-      if (total >= 1000) {
-        this.bus.publish({
-          event: DOMAIN_EVENTS.EXPORT_COMPLETED,
-          tenant_id: req.tenant_id,
-          userId: req.userId,
-          entityId: req.resource,
-          payload: { resource: req.resource, format: req.format, rows: total, duration },
-        });
-      }
-
       return {
-        stream,
+        stream: res.stream,
         format: req.format,
-        filename: `${req.resource}_${Date.now()}.${generator.getFileExtension()}`,
-        mimeType: generator.getMimeType(),
+        filename: `${req.resource}_${Date.now()}.${strategy.getFileExtension()}`,
+        mimeType: strategy.getMimeType(),
         metadata,
       };
     } catch (err) {
+      const reason = (err as Error).message;
       await this.audit.log({
         tenant_id: req.tenant_id,
         userId: req.userId,
         action: AUDIT_EVENTS.EXPORT_FAILED,
         entity: 'export',
         entityId: req.resource,
-        metadata: { resource: req.resource, format: req.format, reason: (err as Error).message },
+        metadata: { resource: req.resource, format: req.format, reason },
       }).catch(() => undefined);
+      this.bus.publish({
+        event: DOMAIN_EVENTS.EXPORT_FAILED,
+        tenant_id: req.tenant_id,
+        userId: req.userId,
+        entityId: req.resource,
+        payload: { resource: req.resource, format: req.format, reason },
+      });
       throw err;
     }
   }

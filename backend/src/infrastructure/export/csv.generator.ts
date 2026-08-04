@@ -6,6 +6,7 @@ import { Injectable } from '@nestjs/common';
 import { Readable } from 'stream';
 import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { FileGenerator } from './file-generator.interface';
+import { resolveColumnPlan } from './column-plan';
 
 @Injectable()
 export class CsvGenerator implements FileGenerator {
@@ -16,14 +17,16 @@ export class CsvGenerator implements FileGenerator {
 
   generate(data: unknown[], options?: ExportOptions): Readable {
     const includeHeaders = options?.includeHeaders ?? true;
-    const headerKeys = data.length > 0 ? this.keysOf(data[0]) : [];
+    const plan = resolveColumnPlan(data, options);
+    const headerKeys = plan.keys;
+    const headerLabels = plan.labels;
     let index = 0;
     const self = this;
 
     const stream = new Readable({
       read() {
         if (index === 0 && includeHeaders) {
-          this.push(self.row(headerKeys));
+          this.push(self.row(headerLabels));
         }
         if (index < data.length) {
           const row = data[index++];
@@ -34,11 +37,6 @@ export class CsvGenerator implements FileGenerator {
       },
     });
     return stream;
-  }
-
-  private keysOf(obj: unknown): string[] {
-    if (obj && typeof obj === 'object') return Object.keys(obj as Record<string, unknown>);
-    return [];
   }
 
   private valuesOf(obj: unknown, keys: string[]): unknown[] {

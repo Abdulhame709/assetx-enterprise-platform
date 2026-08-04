@@ -1,7 +1,8 @@
 /**
  * Export domain entities — ExportRequest/Result/Format/Options/Metadata/Mode.
- * Reference: Phase 11.3 · Clean Architecture (Domain layer)
+ * Reference: Phase 11.3 · Task T8 · Clean Architecture (Domain layer)
  */
+import { ExportProfileId } from './export-profile.entity';
 
 export type ExportFormat = 'csv' | 'xlsx' | 'pdf';
 
@@ -24,6 +25,21 @@ export interface ExportOptions {
   includeHeaders?: boolean;
   /** presentation template for PDF (presentation-only); optional */
   template?: import('./report-template.entity').ReportTemplate;
+  /** ordered columns (profile-driven) — generators use these for headers/order */
+  columns?: ExportColumn[];
+  /** export profile id (Task T8) — resolved by ExportProfileRegistry */
+  profile?: ExportProfileId;
+  /** page size hint for paged streaming (Task T8; extension point) */
+  pageSize?: number;
+  /** cancellation signal (Task T8; prepared extension point — not yet enforced) */
+  signal?: AbortSignal;
+}
+
+/** A single ordered export column (key + optional display label). */
+export interface ExportColumn {
+  key: string;
+  label?: string;
+  order?: number;
 }
 
 export interface ExportRequest {

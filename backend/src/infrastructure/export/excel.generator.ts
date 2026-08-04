@@ -8,6 +8,7 @@ import { Readable } from 'stream';
 import * as ExcelJS from 'exceljs';
 import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { FileGenerator } from './file-generator.interface';
+import { resolveColumnPlan } from './column-plan';
 
 @Injectable()
 export class ExcelGenerator implements FileGenerator {
@@ -20,10 +21,12 @@ export class ExcelGenerator implements FileGenerator {
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Export');
     const includeHeaders = options?.includeHeaders ?? true;
-    const headerKeys = data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
+    const plan = resolveColumnPlan(data, options);
+    const headerKeys = plan.keys;
+    const headerLabels = plan.labels;
 
     if (includeHeaders && headerKeys.length > 0) {
-      sheet.addRow(headerKeys);
+      sheet.addRow(headerLabels);
     }
     for (const row of data) {
       const rec = (row ?? {}) as Record<string, unknown>;

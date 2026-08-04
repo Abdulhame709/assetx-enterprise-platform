@@ -12,6 +12,7 @@ import PDFKit = require('pdfkit');
 import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { ReportTemplate } from '../../core/entities/report-template.entity';
 import { FileGenerator } from './file-generator.interface';
+import { resolveColumnPlan } from './column-plan';
 
 const PAGE_DIMS: Record<string, [number, number]> = {
   A4: [595.28, 841.89], A3: [841.89, 1190.55], LETTER: [612, 792], LEGAL: [612, 1008],
@@ -85,7 +86,9 @@ export class PdfGenerator implements FileGenerator {
 
   private renderBody(doc: PDFKit.PDFDocument, data: unknown[], options: ExportOptions | undefined, tpl: ReportTemplate | undefined, colors: NonNullable<ReportTemplate["colors"]>, typo: NonNullable<ReportTemplate["typography"]>, contentWidth: number, left: number): void {
     const includeHeaders = options?.includeHeaders ?? true;
-    const headerKeys = data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
+    const plan = resolveColumnPlan(data, options);
+    const headerKeys = plan.keys;
+    const headerLabels = plan.labels;
     const colWidth = headerKeys.length > 0 ? Math.floor(contentWidth / headerKeys.length) : contentWidth;
     const table = tpl?.table ?? {};
     const rowHeight = table.rowHeight ?? 16;
@@ -107,7 +110,7 @@ export class PdfGenerator implements FileGenerator {
       doc.moveDown(rowHeight / 2);
     };
 
-    if (includeHeaders && headerKeys.length > 0) drawRow(headerKeys, true, 0);
+    if (includeHeaders && headerKeys.length > 0) drawRow(headerLabels, true, 0);
     data.forEach((row, i) => {
       const rec = (row ?? {}) as Record<string, unknown>;
       drawRow(headerKeys.map((k) => String(rec[k] ?? '')), false, i);
