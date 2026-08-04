@@ -63,6 +63,7 @@ import { IntegrityCheckerService } from '../../src/application/integrity-checker
 import { ScheduledReportService } from '../../src/application/scheduled-report.service';
 import { ReportBuilderService } from '../../src/application/report-builder.service';
 import { ReportTemplateService } from '../../src/application/report-template.service';
+import { AnalyticsService } from '../../src/application/analytics.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -95,6 +96,7 @@ export interface Harness {
   scheduledReports: ScheduledReportService;
   reportBuilder: ReportBuilderService;
   reportTemplates: ReportTemplateService;
+  analytics: AnalyticsService;
   searchService: SearchService;
   savedSearches: SavedSearchService;
   tenantA: string;
@@ -239,6 +241,7 @@ export async function createHarness(): Promise<Harness> {
   const scheduledReports = new ScheduledReportService(exportService, bus);
   const reportBuilder = new ReportBuilderService();
   const reportTemplates = new ReportTemplateService();
+  const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, scheduledReports, reportBuilder, reportTemplates, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

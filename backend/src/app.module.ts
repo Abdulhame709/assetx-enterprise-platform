@@ -9,6 +9,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ScheduledReportService } from './application/scheduled-report.service';
 import { ReportBuilderService } from './application/report-builder.service';
 import { ReportTemplateService } from './application/report-template.service';
+import { AnalyticsService } from './application/analytics.service';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDatabase } from './infrastructure/database/pglite.database';
 import { initLocalDatabase } from './bootstrap/db-init';
@@ -188,6 +189,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     ScheduledReportService,
     ReportBuilderService,
     ReportTemplateService,
+    AnalyticsService,
     SearchQueryBuilder,
     AssetsSearchProvider,
     MovementsSearchProvider,
