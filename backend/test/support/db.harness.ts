@@ -59,6 +59,9 @@ import { CsvExportStrategy } from '../../src/infrastructure/export/strategies/cs
 import { ExcelExportStrategy } from '../../src/infrastructure/export/strategies/excel-export.strategy';
 import { PdfExportStrategy } from '../../src/infrastructure/export/strategies/pdf-export.strategy';
 import { ExportStrategyFactory } from '../../src/infrastructure/export/strategies/export-strategy.factory';
+import { AssetLifecycleStateMachineService } from '../../src/application/lifecycle-state-machine.service';
+import { LifecycleStateConfig } from '../../src/application/lifecycle/lifecycle-state.config';
+import { AssetLifecycleSnapshotAdapter } from '../../src/application/lifecycle/asset-lifecycle-snapshot.adapter';
 import { SearchQueryBuilder } from '../../src/application/search/search-query-builder';
 import { AssetsSearchProvider } from '../../src/application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from '../../src/application/search/providers/movements-search.provider';
@@ -104,6 +107,9 @@ export interface Harness {
   exportProfiles: ExportProfileRegistry;
   exportMetrics: ExportMetricsService;
   exportPipeline: ExportPipelineService;
+  lifecycle: AssetLifecycleStateMachineService;
+  lifecycleConfig: LifecycleStateConfig;
+  lifecycleAdapter: AssetLifecycleSnapshotAdapter;
   scheduledReports: ScheduledReportService;
   reportBuilder: ReportBuilderService;
   reportTemplates: ReportTemplateService;
@@ -258,10 +264,13 @@ export async function createHarness(): Promise<Harness> {
   );
   const savedSearches = new SavedSearchService(new SavedSearchRepository(db), db, audit);
   const integrity = new IntegrityCheckerService(db);
+  const lifecycleConfig = new LifecycleStateConfig();
+  const lifecycle = new AssetLifecycleStateMachineService(lifecycleConfig);
+  const lifecycleAdapter = new AssetLifecycleSnapshotAdapter(db);
   const scheduledReports = new ScheduledReportService(exportService, bus);
   const reportBuilder = new ReportBuilderService();
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

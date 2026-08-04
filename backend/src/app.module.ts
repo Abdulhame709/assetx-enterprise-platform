@@ -85,6 +85,9 @@ import { CsvExportStrategy } from './infrastructure/export/strategies/csv-export
 import { ExcelExportStrategy } from './infrastructure/export/strategies/excel-export.strategy';
 import { PdfExportStrategy } from './infrastructure/export/strategies/pdf-export.strategy';
 import { ExportStrategyFactory } from './infrastructure/export/strategies/export-strategy.factory';
+import { AssetLifecycleStateMachineService } from './application/lifecycle-state-machine.service';
+import { LifecycleStateConfig } from './application/lifecycle/lifecycle-state.config';
+import { AssetLifecycleSnapshotAdapter } from './application/lifecycle/asset-lifecycle-snapshot.adapter';
 import { SearchQueryBuilder } from './application/search/search-query-builder';
 import { AssetsSearchProvider } from './application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from './application/search/providers/movements-search.provider';
@@ -206,6 +209,9 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     ExportMetricsService,
     ExportPipelineService,
     ExportService,
+    LifecycleStateConfig,
+    AssetLifecycleStateMachineService,
+    AssetLifecycleSnapshotAdapter,
     ScheduledReportService,
     ReportBuilderService,
     ReportTemplateService,
