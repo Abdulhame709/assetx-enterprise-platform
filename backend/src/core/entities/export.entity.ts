@@ -22,6 +22,8 @@ export interface ExportOptions {
   offset?: number;
   /** whether to include a header row (CSV/Excel) */
   includeHeaders?: boolean;
+  /** presentation template for PDF (presentation-only); optional */
+  template?: import('./report-template.entity').ReportTemplate;
 }
 
 export interface ExportRequest {

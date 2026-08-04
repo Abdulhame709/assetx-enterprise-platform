@@ -10,6 +10,13 @@ export interface ReportColumn {
   field: string;
   /** display label (defaults to field) */
   label?: string;
+  /**
+   * EXTENSION POINT (not implemented): computed-column expression, e.g.
+   *   age = today - purchase_date, book_value = price - (price*rate*age), etc.
+   * Reserved for future — do not populate yet; see Technical Debt Register.
+   * @TODO Task: computed columns
+   */
+  expression?: string;
 }
 
 export type ReportFilterOperator = 'eq' | 'in' | 'contains' | 'range';
