@@ -52,6 +52,11 @@ import { InventoryExportProvider } from '../../src/application/export/providers/
 import { AuditExportProvider } from '../../src/application/export/providers/audit-export.provider';
 import { DashboardExportProvider } from '../../src/application/export/providers/dashboard-export.provider';
 import { ExportService } from '../../src/application/export.service';
+import { SearchQueryBuilder } from '../../src/application/search/search-query-builder';
+import { AssetsSearchProvider } from '../../src/application/search/providers/assets-search.provider';
+import { MovementsSearchProvider } from '../../src/application/search/providers/movements-search.provider';
+import { AuditSearchProvider } from '../../src/application/search/providers/audit-search.provider';
+import { SearchService } from '../../src/application/search.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -80,6 +85,7 @@ export interface Harness {
   sse: SSEManager;
   bus: EventBus;
   exportService: ExportService;
+  searchService: SearchService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -206,5 +212,15 @@ export async function createHarness(): Promise<Harness> {
     ],
   );
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, exportService, tenantA, tenantB, refA, refB };
+  const searchService = new SearchService(
+    new SearchQueryBuilder(),
+    db,
+    [
+      new AssetsSearchProvider(assetRepo),
+      new MovementsSearchProvider(new MovementRepository(db)),
+      new AuditSearchProvider(new AuditRepository(db)),
+    ],
+  );
+
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, exportService, searchService, tenantA, tenantB, refA, refB };
 }

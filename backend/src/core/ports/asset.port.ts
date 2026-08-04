@@ -45,6 +45,17 @@ export interface AssetFilter {
   location_id?: string; // includes descendants via path prefix
   category_id?: string;
   employee_id?: string;
+  /** advanced search fields */
+  barcode?: string;
+  serial_number?: string;
+  reference_number?: string;
+  purchase_date_from?: string;
+  purchase_date_to?: string;
+  price_from?: number;
+  price_to?: number;
+  is_active?: boolean;
+  sortField?: string;
+  sortDir?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }
@@ -54,6 +65,8 @@ export interface AssetPort {
   update(id: string, input: UpdateAssetInput): Promise<AssetSummary | null>;
   findById(id: string, tenantId: string): Promise<Asset | null>;
   search(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }>;
+  /** advanced search with dynamic filters + sorting */
+  searchAdvanced(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }>;
   updateStatus(id: string, tenantId: string, statusId: string): Promise<AssetSummary | null>;
   /** Generate the next base asset code for a year (BR-CODE-001). */
   nextBaseCode(year: number): Promise<string>;

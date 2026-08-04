@@ -72,6 +72,12 @@ import { AuditExportProvider } from './application/export/providers/audit-export
 import { DashboardExportProvider } from './application/export/providers/dashboard-export.provider';
 import { ExportService } from './application/export.service';
 import { ExportController } from './api/export/export.controller';
+import { SearchQueryBuilder } from './application/search/search-query-builder';
+import { AssetsSearchProvider } from './application/search/providers/assets-search.provider';
+import { MovementsSearchProvider } from './application/search/providers/movements-search.provider';
+import { AuditSearchProvider } from './application/search/providers/audit-search.provider';
+import { SearchService } from './application/search.service';
+import { SearchController } from './api/search/search.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -92,6 +98,7 @@ import {
   NOTIFICATION_PORT,
   REALTIME_PORT,
   EXPORT_PROVIDERS,
+  SEARCH_PROVIDERS,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -167,6 +174,16 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
       inject: [AssetsExportProvider, MovementsExportProvider, InventoryExportProvider, AuditExportProvider, DashboardExportProvider],
     },
     ExportService,
+    SearchQueryBuilder,
+    AssetsSearchProvider,
+    MovementsSearchProvider,
+    AuditSearchProvider,
+    {
+      provide: SEARCH_PROVIDERS,
+      useFactory: (assets, movements, audit) => [assets, movements, audit],
+      inject: [AssetsSearchProvider, MovementsSearchProvider, AuditSearchProvider],
+    },
+    SearchService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -188,7 +205,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
-    NotificationController, ExportController,
+    NotificationController, ExportController, SearchController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })

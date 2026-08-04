@@ -26,6 +26,17 @@ export interface MovementPort {
   findById(id: string, tenantId: string): Promise<AssetMovement | null>;
   listByAsset(assetId: string, tenantId: string): Promise<AssetMovement[]>;
   list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType }): Promise<AssetMovement[]>;
+  /** advanced search with date/user filters + pagination + sorting (Phase 11.4) */
+  searchAdvanced(tenantId: string, q: {
+    status?: MovementStatus;
+    movement_type?: MovementType;
+    performed_by?: string;
+    asset_id?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ items: AssetMovement[]; total: number }>;
   setStatus(id: string, tenantId: string, status: MovementStatus, approverId: string): Promise<AssetMovement | null>;
   /** Whether there is a pending movement of the same type for the asset (validation). */
   hasPending(id: string, assetId: string, tenantId: string, type: MovementType, excludeId?: string): Promise<boolean>;

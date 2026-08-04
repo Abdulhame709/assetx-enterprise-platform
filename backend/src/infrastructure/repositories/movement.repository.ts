@@ -61,6 +61,37 @@ export class MovementRepository implements MovementPort {
     return rows;
   }
 
+  /** Advanced search with date/user filters + pagination (Phase 11.4). */
+  async searchAdvanced(tenantId: string, q: {
+    status?: MovementStatus;
+    movement_type?: MovementType;
+    performed_by?: string;
+    asset_id?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{ items: AssetMovement[]; total: number }> {
+    const page = q.page ?? 1;
+    const limit = q.limit ?? 20;
+    const offset = (page - 1) * limit;
+    const params: unknown[] = [tenantId];
+    let where = `tenant_id = $1`;
+    let idx = 2;
+    if (q.status) { where += ` AND status = $${idx}`; params.push(q.status); idx++; }
+    if (q.movement_type) { where += ` AND movement_type = $${idx}::movement_type`; params.push(q.movement_type); idx++; }
+    if (q.performed_by) { where += ` AND performed_by = $${idx}::uuid`; params.push(q.performed_by); idx++; }
+    if (q.asset_id) { where += ` AND asset_id = $${idx}::uuid`; params.push(q.asset_id); idx++; }
+    if (q.dateFrom) { where += ` AND created_at >= $${idx}::timestamptz`; params.push(q.dateFrom); idx++; }
+    if (q.dateTo) { where += ` AND created_at <= $${idx}::timestamptz`; params.push(q.dateTo); idx++; }
+    const { rows } = await this.db.query<AssetMovement>(
+      `SELECT * FROM asset_movements WHERE ${where} ORDER BY created_at DESC LIMIT $${idx} OFFSET $${idx+1}`,
+      [...params, limit, offset],
+    );
+    const { rows: countRows } = await this.db.query<{ c: string }>(`SELECT count(*) AS c FROM asset_movements WHERE ${where}`, params);
+    return { items: rows, total: Number(countRows[0]?.c ?? 0) };
+  }
+
   async setStatus(id: string, tenantId: string, status: MovementStatus, approverId: string): Promise<AssetMovement | null> {
     const { rows } = await this.db.query<AssetMovement>(
       `UPDATE asset_movements SET

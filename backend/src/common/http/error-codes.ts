@@ -63,4 +63,6 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   // Phase 11.3 Export
   UNSUPPORTED_EXPORT_FORMAT: { http: 400, code: 'VALIDATION_ERROR' },
   UNSUPPORTED_EXPORT_RESOURCE: { http: 400, code: 'VALIDATION_ERROR' },
+  // Phase 11.4 Search
+  UNSUPPORTED_SEARCH_RESOURCE: { http: 400, code: 'VALIDATION_ERROR' },
 };

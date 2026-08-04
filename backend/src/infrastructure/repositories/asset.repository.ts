@@ -139,6 +139,55 @@ export class AssetRepository implements AssetPort {
     };
   }
 
+  /** Advanced search with dynamic filters + sorting (Phase 11.4). */
+  async searchAdvanced(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }> {
+    const page = filter.page ?? 1;
+    const limit = filter.limit ?? 20;
+    const offset = (page - 1) * limit;
+    const params: unknown[] = [filter.tenant_id];
+    let where = `WHERE tenant_id = $1`;
+    let idx = 2;
+
+    if (filter.is_active !== undefined) {
+      where += ` AND is_active = $${idx}`; params.push(filter.is_active); idx++;
+    } else {
+      where += ` AND is_active = true`;
+    }
+    if (filter.q) {
+      where += ` AND (name ILIKE $${idx} OR full_asset_code ILIKE $${idx} OR base_asset_code ILIKE $${idx}
+        OR serial_number ILIKE $${idx} OR barcode ILIKE $${idx} OR reference_number ILIKE $${idx})`;
+      params.push(`%${filter.q}%`); idx++;
+    }
+    if (filter.status_id) { where += ` AND status_id = $${idx}`; params.push(filter.status_id); idx++; }
+    if (filter.category_id) { where += ` AND category_id = $${idx}`; params.push(filter.category_id); idx++; }
+    if (filter.employee_id) { where += ` AND employee_id = $${idx}`; params.push(filter.employee_id); idx++; }
+    if (filter.barcode) { where += ` AND barcode ILIKE $${idx}`; params.push(`%${filter.barcode}%`); idx++; }
+    if (filter.serial_number) { where += ` AND serial_number ILIKE $${idx}`; params.push(`%${filter.serial_number}%`); idx++; }
+    if (filter.reference_number) { where += ` AND reference_number ILIKE $${idx}`; params.push(`%${filter.reference_number}%`); idx++; }
+    if (filter.purchase_date_from) { where += ` AND purchase_date >= $${idx}::date`; params.push(filter.purchase_date_from); idx++; }
+    if (filter.purchase_date_to) { where += ` AND purchase_date <= $${idx}::date`; params.push(filter.purchase_date_to); idx++; }
+    if (filter.price_from !== undefined) { where += ` AND purchase_price >= $${idx}`; params.push(filter.price_from); idx++; }
+    if (filter.price_to !== undefined) { where += ` AND purchase_price <= $${idx}`; params.push(filter.price_to); idx++; }
+    if (filter.location_id) {
+      where += ` AND location_id IN (SELECT id FROM locations WHERE tenant_id = $1 AND path <@ (SELECT path FROM locations WHERE id = $${idx}))`;
+      params.push(filter.location_id); idx++;
+    }
+
+    const sortField = this.safeSort(filter.sortField ?? 'name');
+    const sortDir = filter.sortDir === 'desc' ? 'DESC' : 'ASC';
+    const { rows } = await this.db.query<Asset>(
+      `SELECT * FROM assets ${where} ORDER BY ${sortField} ${sortDir} LIMIT $${idx} OFFSET $${idx+1}`,
+      [...params, limit, offset],
+    );
+    const { rows: countRows } = await this.db.query<{ c: string }>(`SELECT count(*) AS c FROM assets ${where}`, params);
+    return { items: rows.map((r) => this.toSummary(r)), total: Number(countRows[0]?.c ?? 0) };
+  }
+
+  private safeSort(field: string): string {
+    const allowed = ['name', 'full_asset_code', 'purchase_date', 'purchase_price', 'created_at', 'quantity'];
+    return allowed.includes(field) ? field : 'name';
+  }
+
   async updateStatus(id: string, tenantId: string, statusId: string): Promise<AssetSummary | null> {
     const { rows } = await this.db.query<Asset>(
       `UPDATE assets SET status_id = $3, updated_at = now()
