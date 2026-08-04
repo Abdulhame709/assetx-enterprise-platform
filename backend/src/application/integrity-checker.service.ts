@@ -9,7 +9,22 @@ import { DatabasePort } from '../core/ports/database.port';
 import { IntegrityCheck, IntegrityResult, IntegrityStatus } from '../core/entities/integrity.entity';
 import { DATABASE_PORT } from '../core/ports/tokens';
 
-/** Single source of truth for check weights (easily extended). */
+/**
+ * Integrity scoring policy (Composite Score).
+ *
+ * The score is NOT a plain sum of independent problems; it reflects severity.
+ * A single asset can lose points for BOTH its composite severity (orphan_asset)
+ * AND each individual quality issue it has (missing owner/location/barcode/
+ * category). This double-counting is intentional: it surfaces that one asset can
+ * carry multiple distinct defects, weighted by how severe each is.
+ *
+ *   orphan_asset    = Severe composite issue (missing location OR status OR owner)
+ *   missing_*       = Individual quality issues
+ *   duplicate_asset = Data-quality issue (same logical asset registered >1 time)
+ *
+ * This is an explicit design decision (approved in review); change it only via
+ * an RFC/ADR — do not silently treat it as a sum of independent problems.
+ */
 export const INTEGRITY_WEIGHTS = {
   orphan_asset: 30,
   missing_barcode: 15,

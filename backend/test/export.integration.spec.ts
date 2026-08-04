@@ -5,6 +5,16 @@
  */
 import { createHarness, Harness } from './support/db.harness';
 import { AUDIT_EVENTS } from '../src/core/constants/audit-events';
+import { PdfGenerator } from '../src/infrastructure/export/pdf.generator';
+
+function collect(stream: NodeJS.ReadableStream): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    stream.on('data', (c) => (data += c.toString()));
+    stream.on('end', () => resolve(data));
+    stream.on('error', reject);
+  });
+}
 
 describe('Export Engine — integration (Phase 11.3)', () => {
   let h: Harness;
@@ -18,15 +28,6 @@ describe('Export Engine — integration (Phase 11.3)', () => {
     await h.assets.create({ tenant_id: h.tenantA, name: 'ExportAsset1', category_id: h.refA.category, location_id: h.refA.location, status_id: h.refA.status });
     await h.assets.create({ tenant_id: h.tenantA, name: 'ExportAsset2', category_id: h.refA.category, location_id: h.refA.location, status_id: h.refA.status });
   });
-
-  function collect(stream: NodeJS.ReadableStream): Promise<string> {
-    return new Promise((resolve, reject) => {
-      let data = '';
-      stream.on('data', (c) => (data += c.toString()));
-      stream.on('end', () => resolve(data));
-      stream.on('error', reject);
-    });
-  }
 
   it('CSV — exports assets as a stream with header + rows', async () => {
     const result = await h.exportService.generate({
@@ -85,5 +86,24 @@ describe('Export Engine — integration (Phase 11.3)', () => {
     await expect(
       h.exportService.generate({ tenant_id: h.tenantA, userId: userA, resource: 'unknown' as never, format: 'csv' }),
     ).rejects.toThrow('UNSUPPORTED_EXPORT_RESOURCE');
+  });
+});
+
+describe('PDF advanced formatting — integration', () => {
+  it('produces a valid multi-page PDF with many rows (exercises pagination + footer)', async () => {
+    const rows = Array.from({ length: 80 }, (_, i) => ({
+      name: `Asset-${i}`, code: `A-${i}`, status: 'Good', location: `Loc-${i % 5}`,
+    }));
+    const gen = new PdfGenerator();
+    const stream = gen.generate(rows, { includeHeaders: true });
+    expect(gen.getMimeType()).toBe('application/pdf');
+    expect(gen.getFileExtension()).toBe('pdf');
+    const data = await collect(stream);
+    const buf = Buffer.from(data, 'binary');
+    // PDF magic header
+    expect(buf.subarray(0, 5).toString()).toBe('%PDF-');
+    // Many rows => > 1 page => contains multiple page objects
+    const pages = buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? [];
+    expect(pages.length).toBeGreaterThan(1);
   });
 });
