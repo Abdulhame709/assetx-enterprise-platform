@@ -72,6 +72,16 @@ export class ComplianceService {
       [tenantId]);
     checks.push(this.warn('users_without_permissions', Number(noPermUsers.rows[0]?.c ?? 0)));
 
+    // 7. Assets without a barcode (Phase 11 — Compliance Expansion)
+    const noBarcode = await this.db.query<{ c: string }>(
+      `SELECT count(*) AS c FROM assets WHERE tenant_id=$1 AND is_active=true AND (barcode IS NULL OR barcode = '')`, [tenantId]);
+    checks.push(this.warn('assets_without_barcode', Number(noBarcode.rows[0]?.c ?? 0)));
+
+    // 8. Assets without a category (Phase 11 — Compliance Expansion)
+    const noCategory = await this.db.query<{ c: string }>(
+      `SELECT count(*) AS c FROM assets WHERE tenant_id=$1 AND is_active=true AND category_id IS NULL`, [tenantId]);
+    checks.push(this.warn('assets_without_category', Number(noCategory.rows[0]?.c ?? 0)));
+
     const overall = checks.some((c) => c.status === 'WARNING') ? 'WARNING' : 'OK';
     if (overall === 'WARNING') {
       await this.audit.log({

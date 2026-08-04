@@ -79,6 +79,23 @@ describe('Audit & Compliance — integration (Phase 10)', () => {
     expect(checks['open_inventory_cycles']).toBeDefined();
   });
 
+  it('compliance flags assets without barcode and without category', async () => {
+    // insert an active asset with no barcode and no category
+    await h.db.setTenant(h.tenantA);
+    await h.db.query(
+      `INSERT INTO assets (tenant_id, name, base_asset_code, full_asset_code, quantity, status_id, location_id, is_active)
+       VALUES ($1,'NoBarcode','2099-0100','2099-0100@nb',1,$2,$3,true)`,
+      [h.tenantA, h.refA.status, h.refA.location],
+    );
+    const health = await h.compliance.health(h.tenantA);
+    const noBarcode = health.checks.find((c) => c.check === 'assets_without_barcode');
+    const noCategory = health.checks.find((c) => c.check === 'assets_without_category');
+    expect(noBarcode!.count).toBeGreaterThanOrEqual(1);
+    expect(noBarcode!.status).toBe('WARNING');
+    expect(noCategory!.count).toBeGreaterThanOrEqual(1);
+    expect(noCategory!.status).toBe('WARNING');
+  });
+
   it('compliance flags an asset without a location', async () => {
     // insert an asset directly with null location (bypassing service validation)
     await h.db.setTenant(h.tenantA);
