@@ -34,6 +34,26 @@ export class AssetLifecycleSnapshotAdapter {
     };
   }
 
+  /**
+   * Build a snapshot directly from an asset id (reads the minimal fields).
+   * Read-only; used by the Lifecycle Event subscriber (Task L2).
+   */
+  async fromAssetId(assetId: string, tenantId: string): Promise<AssetLifecycleSnapshot> {
+    await this.db.setTenant(tenantId);
+    const res = await this.db.query<{ is_active: boolean; employee_id: string | null }>(
+      `SELECT is_active, employee_id FROM assets WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [assetId, tenantId],
+    );
+    const asset = res.rows[0];
+    if (!asset) throw new Error('ASSET_NOT_FOUND');
+    const latest = await this.fetchLatestApprovedMovementType(assetId, tenantId);
+    return {
+      isActive: asset.is_active,
+      employeeId: asset.employee_id,
+      latestMovementType: latest,
+    };
+  }
+
   /** Read-only query for the most recent approved movement type of an asset. */
   private async fetchLatestApprovedMovementType(assetId: string, tenantId: string): Promise<MovementType | null> {
     const res = await this.db.query<{ movement_type: MovementType }>(

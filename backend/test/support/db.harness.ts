@@ -62,6 +62,8 @@ import { ExportStrategyFactory } from '../../src/infrastructure/export/strategie
 import { AssetLifecycleStateMachineService } from '../../src/application/lifecycle-state-machine.service';
 import { LifecycleStateConfig } from '../../src/application/lifecycle/lifecycle-state.config';
 import { AssetLifecycleSnapshotAdapter } from '../../src/application/lifecycle/asset-lifecycle-snapshot.adapter';
+import { LifecycleEventService } from '../../src/application/lifecycle/lifecycle-event.service';
+import { LifecycleEventSubscriber } from '../../src/application/lifecycle/lifecycle-event.subscriber';
 import { SearchQueryBuilder } from '../../src/application/search/search-query-builder';
 import { AssetsSearchProvider } from '../../src/application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from '../../src/application/search/providers/movements-search.provider';
@@ -110,6 +112,7 @@ export interface Harness {
   lifecycle: AssetLifecycleStateMachineService;
   lifecycleConfig: LifecycleStateConfig;
   lifecycleAdapter: AssetLifecycleSnapshotAdapter;
+  lifecycleEvents: LifecycleEventService;
   scheduledReports: ScheduledReportService;
   reportBuilder: ReportBuilderService;
   reportTemplates: ReportTemplateService;
@@ -267,10 +270,13 @@ export async function createHarness(): Promise<Harness> {
   const lifecycleConfig = new LifecycleStateConfig();
   const lifecycle = new AssetLifecycleStateMachineService(lifecycleConfig);
   const lifecycleAdapter = new AssetLifecycleSnapshotAdapter(db);
+  const lifecycleEvents = new LifecycleEventService(bus);
+  const lifecycleSubscriber = new LifecycleEventSubscriber(bus, lifecycle, lifecycleAdapter, lifecycleEvents);
+  lifecycleSubscriber.onModuleInit();
   const scheduledReports = new ScheduledReportService(exportService, bus);
   const reportBuilder = new ReportBuilderService();
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleEvents, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

@@ -88,6 +88,8 @@ import { ExportStrategyFactory } from './infrastructure/export/strategies/export
 import { AssetLifecycleStateMachineService } from './application/lifecycle-state-machine.service';
 import { LifecycleStateConfig } from './application/lifecycle/lifecycle-state.config';
 import { AssetLifecycleSnapshotAdapter } from './application/lifecycle/asset-lifecycle-snapshot.adapter';
+import { LifecycleEventService } from './application/lifecycle/lifecycle-event.service';
+import { LifecycleEventSubscriber } from './application/lifecycle/lifecycle-event.subscriber';
 import { SearchQueryBuilder } from './application/search/search-query-builder';
 import { AssetsSearchProvider } from './application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from './application/search/providers/movements-search.provider';
@@ -212,6 +214,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     LifecycleStateConfig,
     AssetLifecycleStateMachineService,
     AssetLifecycleSnapshotAdapter,
+    LifecycleEventService,
+    LifecycleEventSubscriber,
     ScheduledReportService,
     ReportBuilderService,
     ReportTemplateService,
