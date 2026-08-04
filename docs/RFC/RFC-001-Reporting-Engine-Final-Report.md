@@ -159,4 +159,24 @@
 
 ---
 
+## 8) Executive Metrics (مؤشرات الإغلاق الموجزة)
+
+| Metric | Value |
+|---|---|
+| Tasks Completed | **8 / 8** |
+| New Services | **8** (IntegrityChecker, ScheduledReport, ReportBuilder, ReportTemplate, Analytics, ExportPipeline, ExportProfileRegistry, ExportMetrics) |
+| New Domain Models | **6** (integrity, report, report-template, analytics, export-profile, export-metric) |
+| New Ports | **2** (ReportScheduler, ExportStrategy) |
+| New Strategies | **3** (Csv / Excel / Pdf) + 1 Factory |
+| New Events | **4** (REPORT_GENERATED, EXPORT_STARTED, EXPORT_PROGRESS, EXPORT_FAILED) |
+| New Test Suites | **6** |
+| New Tests (E-2 dedicated) | **41** |
+| Total Passing Tests (project) | **189** (all green) |
+| Breaking Changes | **0** |
+| Database Migrations | **0** |
+| API Breaking Changes | **0** |
+| Architecture Compliance | **100%** |
+
+---
+
 *أُنجز تحت Incremental Development: 8 Tasks (T1–T8)، كلها Approved؛ أُوقف بعد T8 ولا يُبدَأ Epic جديد إلا بطلب صريح.*
