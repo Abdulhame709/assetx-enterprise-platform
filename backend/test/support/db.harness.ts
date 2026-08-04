@@ -65,6 +65,7 @@ import { AssetLifecycleSnapshotAdapter } from '../../src/application/lifecycle/a
 import { LifecycleEventService } from '../../src/application/lifecycle/lifecycle-event.service';
 import { LifecycleEventSubscriber } from '../../src/application/lifecycle/lifecycle-event.subscriber';
 import { WorkflowEngineService } from '../../src/application/workflow-engine.service';
+import { BusinessRulesEngineService } from '../../src/application/business-rules-engine.service';
 import { SearchQueryBuilder } from '../../src/application/search/search-query-builder';
 import { AssetsSearchProvider } from '../../src/application/search/providers/assets-search.provider';
 import { MovementsSearchProvider } from '../../src/application/search/providers/movements-search.provider';
@@ -115,6 +116,7 @@ export interface Harness {
   lifecycleAdapter: AssetLifecycleSnapshotAdapter;
   lifecycleEvents: LifecycleEventService;
   workflow: WorkflowEngineService;
+  rules: BusinessRulesEngineService;
   scheduledReports: ScheduledReportService;
   reportBuilder: ReportBuilderService;
   reportTemplates: ReportTemplateService;
@@ -276,10 +278,11 @@ export async function createHarness(): Promise<Harness> {
   const lifecycleSubscriber = new LifecycleEventSubscriber(bus, lifecycle, lifecycleAdapter, lifecycleEvents);
   lifecycleSubscriber.onModuleInit();
   const workflow = new WorkflowEngineService();
+  const rules = new BusinessRulesEngineService();
   const scheduledReports = new ScheduledReportService(exportService, bus);
   const reportBuilder = new ReportBuilderService();
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleEvents, workflow, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }
