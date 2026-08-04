@@ -109,3 +109,62 @@ describe('Audit & Compliance — E2E HTTP', () => {
     expect(events.status).toBe(200);
   });
 });
+
+describe('Compliance integrity endpoint — E2E', () => {
+  let app2: INestApplication;
+  let baseUrl2: string;
+  let demo: string;
+  let db2!: DatabasePort;
+
+  beforeAll(async () => {
+    const pg = new PGlite();
+    await initLocalDatabase(pg);
+    const localDb = new PGliteDatabase(pg);
+    const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(DATABASE_PORT)
+      .useValue(localDb)
+      .compile();
+    app2 = moduleRef.createNestApplication();
+    app2.useGlobalFilters(new HttpExceptionFilter());
+    await app2.init();
+    await app2.listen(0);
+    baseUrl2 = `http://127.0.0.1:${(app2.getHttpServer().address() as { port: number }).port}`;
+    demo = '00000000-0000-4000-8000-000000000001';
+    db2 = app2.get<DatabasePort>(DATABASE_PORT);
+  });
+
+  afterAll(async () => { await app2.close(); });
+
+  function req(method: string, path: string, token?: string) {
+    return new Promise<{ status: number; json: any }>((resolve) => {
+      const r = http.request(`${baseUrl2}${path}`, { method, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } }, (res) => {
+        let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => {
+          let j: any = null; try { j = JSON.parse(d); } catch { j = d; }
+          resolve({ status: res.statusCode ?? 0, json: j });
+        });
+      });
+      r.end();
+    });
+  }
+  async function login(u: string, p: string): Promise<string> {
+    const r = await new Promise<any>((resolve) => {
+      const rq = http.request(`${baseUrl2}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
+        let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => resolve(JSON.parse(d)));
+      });
+      rq.write(JSON.stringify({ username: u, password: p })); rq.end();
+    });
+    return r.accessToken;
+  }
+
+  it('admin can read /compliance/integrity (200 with score 0-100); unauth 401', async () => {
+    const token = await login('admin', 'AdminPass123');
+    const res = await req('GET', '/compliance/integrity', token);
+    expect(res.status).toBe(200);
+    expect(typeof res.json.score).toBe('number');
+    expect(res.json.score).toBeGreaterThanOrEqual(0);
+    expect(res.json.score).toBeLessThanOrEqual(100);
+    expect(Array.isArray(res.json.checks)).toBe(true);
+    const noAuth = await req('GET', '/compliance/integrity');
+    expect(noAuth.status).toBe(401);
+  });
+});

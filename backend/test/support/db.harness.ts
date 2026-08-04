@@ -59,6 +59,7 @@ import { AuditSearchProvider } from '../../src/application/search/providers/audi
 import { SearchService } from '../../src/application/search.service';
 import { SavedSearchRepository } from '../../src/infrastructure/repositories/saved-search.repository';
 import { SavedSearchService } from '../../src/application/saved-search.service';
+import { IntegrityCheckerService } from '../../src/application/integrity-checker.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -82,6 +83,7 @@ export interface Harness {
   reporting: ReportingService;
   audit: AuditService;
   compliance: ComplianceService;
+  integrity: IntegrityCheckerService;
   notificationService: NotificationService;
   realtime: RealtimeService;
   sse: SSEManager;
@@ -227,6 +229,7 @@ export async function createHarness(): Promise<Harness> {
     ],
   );
   const savedSearches = new SavedSearchService(new SavedSearchRepository(db), db, audit);
+  const integrity = new IntegrityCheckerService(db);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, exportService, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

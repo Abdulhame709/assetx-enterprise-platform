@@ -5,6 +5,7 @@
  */
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ComplianceService } from '../../application/compliance.service';
+import { IntegrityCheckerService } from '../../application/integrity-checker.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
@@ -14,11 +15,20 @@ import { CurrentUser, RequestUser } from '../../common/decorators/current-user.d
 @Controller('compliance')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class ComplianceController {
-  constructor(private readonly compliance: ComplianceService) {}
+  constructor(
+    private readonly compliance: ComplianceService,
+    private readonly integrity: IntegrityCheckerService,
+  ) {}
 
   @Get('health')
   @RequirePermission('compliance.view')
   health(@CurrentUser() current: RequestUser) {
     return this.compliance.health(current.tenant_id);
+  }
+
+  @Get('integrity')
+  @RequirePermission('compliance.view')
+  integrityCheck(@CurrentUser() current: RequestUser) {
+    return this.integrity.check(current.tenant_id);
   }
 }
