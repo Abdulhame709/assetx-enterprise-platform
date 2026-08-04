@@ -27,6 +27,8 @@ import { PermissionGuard } from './common/guards/permission.guard';
 import { AssetService } from './application/asset.service';
 import { AssetRepository } from './infrastructure/repositories/asset.repository';
 import { AssetController } from './api/assets/asset.controller';
+import { AssetAnalyticsController } from './api/assets/asset-analytics.controller';
+import { LifecycleController } from './api/lifecycle/lifecycle.controller';
 import { LocationService } from './application/location.service';
 import { LocationRepository } from './infrastructure/repositories/location.repository';
 import { LocationController } from './api/locations/location.controller';
@@ -86,6 +88,8 @@ import { ExcelExportStrategy } from './infrastructure/export/strategies/excel-ex
 import { PdfExportStrategy } from './infrastructure/export/strategies/pdf-export.strategy';
 import { ExportStrategyFactory } from './infrastructure/export/strategies/export-strategy.factory';
 import { AssetLifecycleStateMachineService } from './application/lifecycle-state-machine.service';
+import { LifecycleReadService } from './application/lifecycle-read.service';
+import { AssetAnalyticsService } from './application/asset-analytics.service';
 import { LifecycleStateConfig } from './application/lifecycle/lifecycle-state.config';
 import { AssetLifecycleSnapshotAdapter } from './application/lifecycle/asset-lifecycle-snapshot.adapter';
 import { LifecycleEventService } from './application/lifecycle/lifecycle-event.service';
@@ -216,6 +220,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     LifecycleStateConfig,
     AssetLifecycleStateMachineService,
     AssetLifecycleSnapshotAdapter,
+    LifecycleReadService,
+    AssetAnalyticsService,
     LifecycleEventService,
     LifecycleEventSubscriber,
     WorkflowEngineService,
@@ -254,7 +260,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     },
   ],
   controllers: [
-    AuthController, UsersController, TenantController, AssetController,
+    AuthController, UsersController, TenantController, AssetController, AssetAnalyticsController, LifecycleController,
     LocationController, CategoryController, ModelController, EmployeeController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
     NotificationController, ExportController, SearchController, SavedSearchController,

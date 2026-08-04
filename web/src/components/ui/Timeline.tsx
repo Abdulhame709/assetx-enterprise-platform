@@ -5,7 +5,7 @@ import { BadgeTone } from './Badge';
 export interface TimelineEntry {
   id: string;
   title: ReactNode;
-  meta?: string;
+  meta?: ReactNode;
   tone?: BadgeTone;
   description?: ReactNode;
   time?: string;

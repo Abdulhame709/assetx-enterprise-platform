@@ -60,6 +60,8 @@ import { ExcelExportStrategy } from '../../src/infrastructure/export/strategies/
 import { PdfExportStrategy } from '../../src/infrastructure/export/strategies/pdf-export.strategy';
 import { ExportStrategyFactory } from '../../src/infrastructure/export/strategies/export-strategy.factory';
 import { AssetLifecycleStateMachineService } from '../../src/application/lifecycle-state-machine.service';
+import { LifecycleReadService } from '../../src/application/lifecycle-read.service';
+import { AssetAnalyticsService } from '../../src/application/asset-analytics.service';
 import { LifecycleStateConfig } from '../../src/application/lifecycle/lifecycle-state.config';
 import { AssetLifecycleSnapshotAdapter } from '../../src/application/lifecycle/asset-lifecycle-snapshot.adapter';
 import { LifecycleEventService } from '../../src/application/lifecycle/lifecycle-event.service';
@@ -114,6 +116,8 @@ export interface Harness {
   lifecycle: AssetLifecycleStateMachineService;
   lifecycleConfig: LifecycleStateConfig;
   lifecycleAdapter: AssetLifecycleSnapshotAdapter;
+  lifecycleRead: LifecycleReadService;
+  assetAnalytics: AssetAnalyticsService;
   lifecycleEvents: LifecycleEventService;
   workflow: WorkflowEngineService;
   rules: BusinessRulesEngineService;
@@ -277,6 +281,8 @@ export async function createHarness(): Promise<Harness> {
   const lifecycleEvents = new LifecycleEventService(bus);
   const lifecycleSubscriber = new LifecycleEventSubscriber(bus, lifecycle, lifecycleAdapter, lifecycleEvents);
   lifecycleSubscriber.onModuleInit();
+  const lifecycleRead = new LifecycleReadService(lifecycle, lifecycleAdapter);
+  const assetAnalytics = new AssetAnalyticsService(db);
   const workflow = new WorkflowEngineService();
   const rules = new BusinessRulesEngineService();
   const scheduledReports = new ScheduledReportService(exportService, bus);
@@ -284,5 +290,5 @@ export async function createHarness(): Promise<Harness> {
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

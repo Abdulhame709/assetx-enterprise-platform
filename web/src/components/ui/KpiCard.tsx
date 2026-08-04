@@ -9,7 +9,7 @@ interface KpiCardProps {
   icon?: LucideIcon;
   delta?: number;
   deltaLabel?: string;
-  tone?: 'success' | 'danger' | 'warning' | 'info' | 'neutral';
+  tone?: 'success' | 'danger' | 'warning' | 'info' | 'neutral' | 'brand';
 }
 
 /** KpiCard — summary card for dashboards (label + value + optional trend). */
@@ -20,6 +20,7 @@ export function KpiCard({ label, value, icon: Icon, delta, deltaLabel, tone = 'n
     warning: 'bg-warning/10 text-warning',
     info: 'bg-info/10 text-info',
     neutral: 'bg-surface-muted text-ink-muted',
+    brand: 'bg-brand-soft text-brand',
   };
   return (
     <Card className="flex items-start justify-between gap-3">
