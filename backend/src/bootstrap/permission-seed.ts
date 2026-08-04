@@ -18,7 +18,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
     'notification.view', 'notification.manage',
-    'search.global',
+    'search.global', 'search.save',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
     'category.view', 'category.create', 'category.update', 'category.delete',
@@ -30,7 +30,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
     'export.assets', 'export.movements', 'export.inventory', 'export.dashboard',
-    'notification.view', 'search.global',
+    'notification.view', 'search.global', 'search.save',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
     'category.view', 'category.create', 'category.update', 'category.delete',
@@ -43,13 +43,13 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'export.assets', 'export.movements', 'export.inventory', 'export.audit', 'export.dashboard',
     'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
-    'notification.view', 'search.global',
+    'notification.view', 'search.global', 'search.save',
     // Master Data (read only)
     'location.view', 'category.view', 'model.view', 'employee.view',
   ],
   'Department Manager': [
     'asset.view', 'movement.view', 'inventory.view', 'dashboard.view',
-    'notification.view', 'search.global',
+    'notification.view', 'search.global', 'search.save',
     'location.view', 'category.view', 'model.view', 'employee.view',
   ],
   'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view', 'notification.view'],

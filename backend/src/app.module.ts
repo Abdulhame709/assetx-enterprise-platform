@@ -78,6 +78,9 @@ import { MovementsSearchProvider } from './application/search/providers/movement
 import { AuditSearchProvider } from './application/search/providers/audit-search.provider';
 import { SearchService } from './application/search.service';
 import { SearchController } from './api/search/search.controller';
+import { SavedSearchRepository } from './infrastructure/repositories/saved-search.repository';
+import { SavedSearchService } from './application/saved-search.service';
+import { SavedSearchController } from './api/search/saved-search.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -99,6 +102,7 @@ import {
   REALTIME_PORT,
   EXPORT_PROVIDERS,
   SEARCH_PROVIDERS,
+  SAVED_SEARCH_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -184,6 +188,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
       inject: [AssetsSearchProvider, MovementsSearchProvider, AuditSearchProvider],
     },
     SearchService,
+    { provide: SAVED_SEARCH_PORT, useClass: SavedSearchRepository },
+    SavedSearchService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -205,7 +211,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     AuthController, UsersController, TenantController, AssetController,
     LocationController, CategoryController, ModelController, EmployeeController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
-    NotificationController, ExportController, SearchController,
+    NotificationController, ExportController, SearchController, SavedSearchController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })

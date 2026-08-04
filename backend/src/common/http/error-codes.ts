@@ -65,4 +65,11 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   UNSUPPORTED_EXPORT_RESOURCE: { http: 400, code: 'VALIDATION_ERROR' },
   // Phase 11.4 Search
   UNSUPPORTED_SEARCH_RESOURCE: { http: 400, code: 'VALIDATION_ERROR' },
+  // Phase 11.4 Saved Searches (ADR-011)
+  INVALID_SAVED_SEARCH_NAME: { http: 400, code: 'VALIDATION_ERROR' },
+  INVALID_SAVED_SEARCH_RESOURCE: { http: 400, code: 'VALIDATION_ERROR' },
+  SAVED_SEARCH_PAYLOAD_TOO_LARGE: { http: 400, code: 'VALIDATION_ERROR' },
+  SAVED_SEARCH_NAME_EXISTS: { http: 409, code: 'CONFLICT' },
+  SAVED_SEARCH_LIMIT_EXCEEDED: { http: 409, code: 'CONFLICT' },
+  SAVED_SEARCH_NOT_FOUND: { http: 404, code: 'NOT_FOUND' },
 };

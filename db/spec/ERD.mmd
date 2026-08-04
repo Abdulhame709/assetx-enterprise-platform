@@ -51,4 +51,7 @@ erDiagram
     notification_templates ||--o{ notifications : templated
     notification_channels ||--o{ notifications : channel_used
 
+    tenants ||--o{ saved_searches : owns
+    users ||--o{ saved_searches : creates
+
     %% Computed view: v_inventory_result derived from inventory_records

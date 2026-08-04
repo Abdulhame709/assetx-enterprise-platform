@@ -57,6 +57,8 @@ import { AssetsSearchProvider } from '../../src/application/search/providers/ass
 import { MovementsSearchProvider } from '../../src/application/search/providers/movements-search.provider';
 import { AuditSearchProvider } from '../../src/application/search/providers/audit-search.provider';
 import { SearchService } from '../../src/application/search.service';
+import { SavedSearchRepository } from '../../src/infrastructure/repositories/saved-search.repository';
+import { SavedSearchService } from '../../src/application/saved-search.service';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -86,6 +88,7 @@ export interface Harness {
   bus: EventBus;
   exportService: ExportService;
   searchService: SearchService;
+  savedSearches: SavedSearchService;
   tenantA: string;
   tenantB: string;
   /** Reference data for tenant A: statuses/locations/categories used by asset tests. */
@@ -105,6 +108,8 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(migration001);
   const migration002 = fs.readFileSync(path.join(migrationsDir, '002_movement_lifecycle.sql'), 'utf8');
   await db.exec(migration002);
+  const migration003 = fs.readFileSync(path.join(migrationsDir, '003_saved_searches.sql'), 'utf8');
+  await db.exec(migration003);
 
   // Create a non-owner 'authenticated' role and grant table access.
   // This mirrors the Supabase production model where the API connects as a
@@ -221,6 +226,7 @@ export async function createHarness(): Promise<Harness> {
       new AuditSearchProvider(new AuditRepository(db)),
     ],
   );
+  const savedSearches = new SavedSearchService(new SavedSearchRepository(db), db, audit);
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, exportService, searchService, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, notificationService, realtime, sse, bus, exportService, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

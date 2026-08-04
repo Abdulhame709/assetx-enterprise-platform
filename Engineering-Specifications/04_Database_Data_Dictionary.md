@@ -514,6 +514,29 @@ Each column is described by: **FLD ID · Name · Type · Null · Default · PK/F
 
 ---
 
+### 3.25 TB-SAVED-SEARCH — `saved_searches` (ADR-011)
+
+**Overview:** Table ID `TB-SAVED-SEARCH` · Entity `ENT-SAVED-SEARCH` · BC `BC-SEARCH` · RLS tenant + user scoped.
+
+**Columns:**
+
+| FLD | Column | Type | Null | Default | PK/FK | Unique | Index | Description |
+|---|---|---|---|---|---|---|---|---|
+| `FLD-SS-ID` | `id` | UUID | No | gen_random_uuid() | PK | Yes | — | Technical ID |
+| `FLD-SS-TENANT` | `tenant_id` | UUID | No | — | FK→tenants | — | B-Tree | RLS scope |
+| `FLD-SS-USER` | `user_id` | UUID | No | — | FK→users | — | B-Tree | Owner |
+| `FLD-SS-NAME` | `name` | TEXT | No | — | — | Yes (per user) | — | ≤ 80 chars |
+| `FLD-SS-RESOURCE` | `resource` | TEXT | No | — | — | — | B-Tree | assets/movements/audit |
+| `FLD-SS-FILTERS` | `filters` | JSONB | No | — | — | — | — | persisted SearchQuery filters (≤ 4KB) |
+| `FLD-SS-DEFAULT` | `is_default` | BOOLEAN | No | false | — | partial (per user) | — | max 1 per user |
+| `FLD-SS-VERSION` | `version` | INT | No | 1 | — | — | — | filter-schema version (ADR-011 §4) |
+| `FLD-SS-CREATEDAT` | `created_at` | TIMESTAMPTZ | No | now() | — | — | — | |
+| `FLD-SS-UPDATEDAT` | `updated_at` | TIMESTAMPTZ | No | now() | — | — | — | |
+
+> Constraints: `UNIQUE(tenant_id, user_id, name)`; partial index on `is_default` per user. RLS enabled (tenant isolation via `current_tenant_id()`); user ownership enforced in service layer.
+
+---
+
 ## 4. Data Classification Matrix
 
 Per Security (DOC-13) and AAB §11W:
@@ -573,6 +596,7 @@ Per Security (DOC-13) and AAB §11W:
 | ENT-AUDIT | TB-AUDIT | FLD-AUDIT-ACTION |
 | ENT-NOTIFICATION | TB-NOTIFICATION | FLD-NOTIF-USER, CHANNEL |
 | ENT-SETTINGS | TB-SETTINGS | FLD-SET-KEY |
+| ENT-SAVED-SEARCH | TB-SAVED-SEARCH | FLD-SS-NAME, FLD-SS-RESOURCE |
 
 ---
 

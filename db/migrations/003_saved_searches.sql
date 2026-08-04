@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS saved_searches (
   resource    text NOT NULL,                 -- assets | movements | audit
   filters     jsonb NOT NULL,                -- persisted SearchQuery filters
   is_default  boolean NOT NULL DEFAULT false,
+  version     int NOT NULL DEFAULT 1,        -- filter-schema version (ADR-011 §4)
   created_at  timestamptz NOT NULL DEFAULT now(),
   updated_at  timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT saved_searches_unique_name UNIQUE (tenant_id, user_id, name)

@@ -19,6 +19,8 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
   await db.exec(migration001);
   const migration002 = fs.readFileSync(path.join(migrationsDir, '002_movement_lifecycle.sql'), 'utf8');
   await db.exec(migration002);
+  const migration003 = fs.readFileSync(path.join(migrationsDir, '003_saved_searches.sql'), 'utf8');
+  await db.exec(migration003);
 
   // Create a demo tenant (deterministic UUID for local tooling) so auth endpoints
   // have a known tenant to bind to.
