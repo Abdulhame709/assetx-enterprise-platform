@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   AssetX Design System Tokens
+   Reference: UI-UX/UI_UX_Specification.md §3.1
+   Colors: primary, secondary, success, warning, danger, neutral, dark.
+   Typography: type scale + Arabic font support.
+   Spacing scale: 4 / 8 / 12 / 16 / 24.
+   ===================================================================== */
+:root {
+  /* Brand */
+  --ax-primary: 29 78 216;            /* blue-700 */
+  --ax-primary-soft: 219 234 254;     /* blue-100 */
+  --ax-primary-fg: 255 255 255;
+
+  /* Surfaces */
+  --ax-surface: 255 255 255;
+  --ax-surface-raised: 250 250 250;
+  --ax-surface-overlay: 255 255 255;
+  --ax-surface-muted: 243 244 246;
+
+  /* Text */
+  --ax-ink: 17 24 39;                 /* gray-900 */
+  --ax-ink-muted: 107 114 128;        /* gray-500 */
+  --ax-ink-faint: 156 163 175;        /* gray-400 */
+
+  /* Lines */
+  --ax-line: 229 231 235;             /* gray-200 */
+
+  /* Semantic status */
+  --ax-success: 22 163 74;            /* green-600 */
+  --ax-warning: 217 119 6;            /* amber-600 */
+  --ax-danger: 220 38 38;             /* red-600 */
+  --ax-info: 2 132 199;               /* sky-600 */
+
+  /* Radii & shadow */
+  --ax-radius: 8px;
+  --ax-radius-lg: 12px;
+  --ax-radius-xl: 16px;
+  --ax-shadow-card: 0 1px 2px rgb(17 24 39 / 0.06), 0 1px 3px rgb(17 24 39 / 0.08);
+  --ax-shadow-pop: 0 8px 24px rgb(17 24 39 / 0.12);
+
+  /* Typography — Latin + Arabic */
+  --ax-font-sans: 'Inter', 'Segoe UI', 'Tajawal', 'Cairo', system-ui, sans-serif;
+  --ax-font-display: 'Inter', 'Segoe UI', 'Tajawal', 'Cairo', system-ui, sans-serif;
+}
+
+.dark {
+  --ax-primary: 96 165 250;           /* blue-400 */
+  --ax-primary-soft: 30 58 138;       /* blue-900 */
+  --ax-primary-fg: 15 23 42;
+  --ax-surface: 17 24 39;
+  --ax-surface-raised: 24 33 50;
+  --ax-surface-overlay: 30 41 59;
+  --ax-surface-muted: 31 41 55;
+  --ax-ink: 243 244 246;
+  --ax-ink-muted: 156 163 175;
+  --ax-ink-faint: 107 114 128;
+  --ax-line: 55 65 81;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-surface text-ink font-sans;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  /* Arabic support */
+  [dir='rtl'] body {
+    letter-spacing: 0;
+  }
+}
+
+@layer components {
+  .ax-card {
+    @apply bg-surface border border-line rounded-xl shadow-card;
+  }
+  .ax-input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink
+      placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand;
+  }
+  .ax-label {
+    @apply block text-xs font-medium text-ink-muted mb-1;
+  }
+}
