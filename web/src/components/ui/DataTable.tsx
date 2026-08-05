@@ -37,7 +37,7 @@ export function DataTable<T>({
   if (error) return <ErrorState message={error} onRetry={onRetry} />;
   if (rows.length === 0) return empty ? <>{empty}</> : <EmptyState />;
 
-  const alignCls = { left: 'text-left', center: 'text-center', right: 'text-right' };
+  const alignCls = { left: 'text-start', center: 'text-center', right: 'text-end' };
 
   return (
     <div className={cn('overflow-x-auto rounded-xl border border-line', className)}>

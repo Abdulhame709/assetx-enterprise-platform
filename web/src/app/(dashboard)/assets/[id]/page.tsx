@@ -2,13 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowLeft, MoreHorizontal, Pencil, Trash2, ArrowRightLeft, Wrench } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, ArrowRightLeft, Wrench } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge, LifecycleStateBadge, BadgeTone } from '@/components/ui/Badge';
 import { Timeline } from '@/components/ui/Timeline';
-import { Button } from '@/components/ui/Button';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { EmptyState } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/Tabs';

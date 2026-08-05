@@ -5,7 +5,7 @@
  * location, employee, status). Keyboard navigable, accessible (role=listbox).
  */
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 export interface SelectOption {

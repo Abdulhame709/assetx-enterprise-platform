@@ -13,7 +13,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, R
 export type Locale = 'en' | 'ar';
 export type Direction = 'ltr' | 'rtl';
 
-const DIR_KEY = 'assetx.dir.v1';
 const LANG_KEY = 'assetx.lang.v1';
 
 /** Human labels for internal codes (presentation-only; backend untouched). */

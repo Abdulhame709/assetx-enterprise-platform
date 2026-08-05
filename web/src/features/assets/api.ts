@@ -19,6 +19,24 @@ import {
 export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? 'mock';
 export const TOKEN = 'mock.assetx'; // session token placeholder for client-side calls
 
+export interface CategoryOption { value: string; label: string; }
+
+/** Load categories for filters (real backend with mock fallback). */
+export async function getCategories(token?: string | null): Promise<CategoryOption[]> {
+  if (AUTH_MODE !== 'real') return mockCategories();
+  const res = await http.get<{ items: Array<{ id: string; name: string }> }>('/categories', token ?? TOKEN);
+  return (res.items ?? []).map((c) => ({ value: c.id, label: c.name }));
+}
+
+function mockCategories(): CategoryOption[] {
+  return [
+    { value: 'it', label: 'IT' },
+    { value: 'machinery', label: 'Machinery' },
+    { value: 'vehicles', label: 'Vehicles' },
+    { value: 'furniture', label: 'Furniture' },
+  ];
+}
+
 export async function getAnalyticsSummary(token?: string | null): Promise<AssetAnalyticsSummary> {
   if (AUTH_MODE !== 'real') return mockAnalytics();
   return http.get<AssetAnalyticsSummary>('/assets/analytics/summary', token ?? TOKEN);
@@ -64,7 +82,6 @@ export async function getAssetAudit(id: string, token?: string | null): Promise<
 // ---- Mock data (no backend running) ----
 
 const CATEGORIES = ['IT', 'Furniture', 'Vehicles', 'Machinery'];
-const LOCATIONS = ['HQ / IT', 'HQ / Ops', 'Warehouse', 'DC / Rack 3'];
 
 function rnd(n: number) { return Math.floor(Math.random() * n); }
 
@@ -92,7 +109,7 @@ export function mockAnalytics(): AssetAnalyticsSummary {
   };
 }
 
-export function mockSearch(query: AssetQuery): PagedAssets {
+export function mockSearch(_query: AssetQuery): PagedAssets {
   const items: AssetSummary[] = Array.from({ length: 12 }, (_, i) => ({
     id: `mock-${i + 1}`,
     name: `${CATEGORIES[rnd(4)]} Asset ${i + 1}`,

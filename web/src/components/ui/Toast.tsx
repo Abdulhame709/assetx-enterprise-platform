@@ -54,10 +54,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const push = useCallback((tone: ToastTone, title: string, description?: string) => {
-    const id = nextId++;
-    setToasts((prev) => [...prev.slice(-4), { id, tone, title, description }]);
-    const timer = setTimeout(() => dismiss(id), 5000);
-    timers.current.set(id, timer);
+    // Duplicate prevention: if the same tone+title is already visible, refresh it
+    // instead of stacking a duplicate.
+    setToasts((prev) => {
+      const existing = prev.find((t) => t.tone === tone && t.title === title);
+      if (existing) {
+        // reset its auto-dismiss timer
+        const old = timers.current.get(existing.id);
+        if (old) clearTimeout(old);
+        timers.current.set(existing.id, setTimeout(() => dismiss(existing.id), 5000));
+        return prev.map((t) => (t.id === existing.id ? { ...t, description: description ?? t.description } : t));
+      }
+      const id = nextId++;
+      const timer = setTimeout(() => dismiss(id), 5000);
+      timers.current.set(id, timer);
+      return [...prev.slice(-4), { id, tone, title, description }];
+    });
   }, [dismiss]);
 
   const api = useMemo<ToastApi>(() => ({

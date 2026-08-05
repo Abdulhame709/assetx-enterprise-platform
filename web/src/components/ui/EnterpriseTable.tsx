@@ -12,7 +12,6 @@ import { cn } from '@/lib/cn';
 import { Button } from './Button';
 import { TableSkeleton } from './Skeleton';
 import { EmptyState, ErrorState } from './states';
-import { Tooltip } from './Tooltip';
 
 export interface EColumn<T> {
   key: string;

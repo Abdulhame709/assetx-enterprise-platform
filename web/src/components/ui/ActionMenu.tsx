@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
 

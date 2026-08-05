@@ -1,33 +1,38 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { Plus, Pencil, ArrowRightLeft, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EnterpriseTable, EColumn } from '@/components/ui/EnterpriseTable';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { PermissionGate, usePermissionGuard } from '@/components/auth/PermissionGate';
+import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useAssetList } from '@/features/assets/use-assets';
 import { AssetSummary } from '@/features/assets/types';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { getCategories } from '@/features/assets/api';
 import { formatCurrency } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
 export default function AssetsPage() {
   const [q, setQ] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState('full_asset_code');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
-  const { data, status, error, reload } = useAssetList({ q, page, limit: 20 });
-  const can = usePermissionGuard();
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
+  const { data, status, error, reload } = useAssetList({ q, category_id: category ?? undefined, page, limit: 20 });
   const toast = useToast();
   const { confirm } = useConfirm();
   const { label } = useI18n();
+
+  useEffect(() => { void getCategories().then(setCategories).catch(() => undefined); }, []);
 
   const columns: EColumn<AssetSummary>[] = [
     { key: 'full_asset_code', header: 'Code', width: '130px', sortable: true },
@@ -46,8 +51,6 @@ export default function AssetsPage() {
       render: (r) => r.is_active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Inactive</Badge>,
     },
   ];
-
-  const totalPages = Math.max(1, Math.ceil((data?.total ?? 0) / 20));
 
   const onDisposeSelected = async () => {
     if (selected.length === 0) return;
@@ -102,11 +105,21 @@ export default function AssetsPage() {
             onSelectionChange={setSelected}
             defaultHiddenColumns={['quantity']}
             toolbarActions={
-              <PermissionGate permission={PERMISSIONS.ASSET_DISPOSE}>
-                <Button variant="danger" size="sm" disabled={selected.length === 0} onClick={() => void onDisposeSelected()}>
-                  <Trash2 className="h-3.5 w-3.5" /> Dispose ({selected.length})
-                </Button>
-              </PermissionGate>
+              <>
+                <div className="w-40">
+                  <SearchableSelect
+                    options={categories}
+                    value={category}
+                    onChange={(v) => { setCategory(v); setPage(1); }}
+                    placeholder="Category"
+                  />
+                </div>
+                <PermissionGate permission={PERMISSIONS.ASSET_DISPOSE}>
+                  <Button variant="danger" size="sm" disabled={selected.length === 0} onClick={() => void onDisposeSelected()}>
+                    <Trash2 className="h-3.5 w-3.5" /> Dispose ({selected.length})
+                  </Button>
+                </PermissionGate>
+              </>
             }
           />
         </CardBody>
