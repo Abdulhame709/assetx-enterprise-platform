@@ -2,15 +2,17 @@
 
 /**
  * SessionProvider — client-side auth/session/tenant/permission state.
- * Persists the session to localStorage so the shell restores on refresh.
- * In AUTH_MODE=mock it signs in via the P1 demo accounts; in 'real' mode it
- * calls the AssetX backend AuthService.
+ * - AUTH_MODE='real': logs in via the real backend (AuthService + adapter),
+ *   persists the session and the tokens.
+ * - AUTH_MODE='mock': P1 demo accounts (controlled development fallback only).
+ * On restore, re-hydrates the session and syncs the token store.
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthResponse, AuthStatus, LoginInput, Session } from '@/types/auth';
-import { AUTH_MODE, login as realLogin } from './auth-service';
+import { AUTH_MODE, realLogin, realLogout } from './auth-service';
 import { mockLogin } from './mock-session';
 import { hasPermission, PermissionKey } from './permissions';
+import { tokenStore } from './token-store';
 
 const SESSION_KEY = 'assetx.session.v1';
 
@@ -43,7 +45,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
       if (raw) {
-        setSession(JSON.parse(raw) as Session);
+        const s = JSON.parse(raw) as Session;
+        setSession(s);
+        if (s.accessToken) tokenStore.set(s.accessToken, s.refreshToken ?? null);
         setStatus('authenticated');
       } else {
         setStatus('unauthenticated');
@@ -58,6 +62,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     const s = toSession(auth);
     setSession(s);
     setStatus('authenticated');
+    if (s.accessToken) tokenStore.set(s.accessToken, s.refreshToken ?? null);
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     } catch {
@@ -65,7 +70,11 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    if (AUTH_MODE === 'real') {
+      try { await realLogout(); } catch { /* best-effort */ }
+    }
+    tokenStore.clear();
     setSession(null);
     setStatus('unauthenticated');
     try {

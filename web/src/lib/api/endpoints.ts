@@ -1,14 +1,17 @@
 /**
  * Central endpoint registry — maps UI needs to existing backend routes.
- * Keeping endpoints centralized avoids scattering URL strings across modules.
- * Business endpoints are added incrementally when their screens land (P2+).
+ * Keeps endpoint URLs centralized. Aligned with the real backend contract
+ * (Phase PRE-P3.1): /auth/me does not exist on the backend, so it was removed;
+ * /tenant/current is the real tenant-lookup endpoint.
  */
 export const ENDPOINTS = {
   auth: {
     login: '/auth/login',
     register: '/auth/register',
     refresh: '/auth/refresh',
-    me: '/auth/me',
     logout: '/auth/logout',
+  },
+  tenant: {
+    current: '/tenant/current',
   },
 } as const;

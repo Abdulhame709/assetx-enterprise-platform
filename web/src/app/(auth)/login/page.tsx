@@ -8,6 +8,7 @@ import { Field, Input } from '@/components/ui/form';
 import { Button } from '@/components/ui/Button';
 import { useSession } from '@/lib/auth/session-context';
 import { MOCK_ACCOUNTS } from '@/lib/auth/mock-session';
+import { AUTH_MODE } from '@/lib/auth/auth-service';
 
 export default function LoginPage() {
   const { login } = useSession();
@@ -54,16 +55,18 @@ export default function LoginPage() {
         </Button>
       </form>
 
-      <div className="mt-6 rounded-lg bg-surface-muted p-3 text-xs text-ink-muted">
-        <p className="mb-1 font-medium text-ink">Demo accounts (P1 shell)</p>
-        <ul className="space-y-0.5">
-          {Object.entries(MOCK_ACCOUNTS).map(([u, a]) => (
-            <li key={u}>
-              <span className="font-mono">{u}</span> / <span className="font-mono">{a.password}</span> — {a.displayName}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {AUTH_MODE === 'mock' && (
+        <div className="mt-6 rounded-lg bg-surface-muted p-3 text-xs text-ink-muted">
+          <p className="mb-1 font-medium text-ink">Demo accounts (mock mode — development only)</p>
+          <ul className="space-y-0.5">
+            {Object.entries(MOCK_ACCOUNTS).map(([u, a]) => (
+              <li key={u}>
+                <span className="font-mono">{u}</span> / <span className="font-mono">{a.password}</span> — {a.displayName}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Card>
   );
 }

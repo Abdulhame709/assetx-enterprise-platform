@@ -17,14 +17,14 @@ import {
 } from './types';
 
 export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? 'mock';
-export const TOKEN = 'mock.assetx'; // session token placeholder for client-side calls
+
 
 export interface CategoryOption { value: string; label: string; }
 
 /** Load categories for filters (real backend with mock fallback). */
 export async function getCategories(token?: string | null): Promise<CategoryOption[]> {
   if (AUTH_MODE !== 'real') return mockCategories();
-  const res = await http.get<{ items: Array<{ id: string; name: string }> }>('/categories', token ?? TOKEN);
+  const res = await http.get<{ items: Array<{ id: string; name: string }> }>('/categories', token);
   return (res.items ?? []).map((c) => ({ value: c.id, label: c.name }));
 }
 
@@ -39,7 +39,7 @@ function mockCategories(): CategoryOption[] {
 
 export async function getAnalyticsSummary(token?: string | null): Promise<AssetAnalyticsSummary> {
   if (AUTH_MODE !== 'real') return mockAnalytics();
-  return http.get<AssetAnalyticsSummary>('/assets/analytics/summary', token ?? TOKEN);
+  return http.get<AssetAnalyticsSummary>('/assets/analytics/summary', token);
 }
 
 export async function searchAssets(query: AssetQuery, token?: string | null): Promise<PagedAssets> {
@@ -50,32 +50,32 @@ export async function searchAssets(query: AssetQuery, token?: string | null): Pr
   if (query.location_id) params.set('location_id', query.location_id);
   params.set('page', String(query.page ?? 1));
   params.set('limit', String(query.limit ?? 20));
-  return http.get<PagedAssets>(`/assets?${params}`, token ?? TOKEN);
+  return http.get<PagedAssets>(`/assets?${params}`, token);
 }
 
 export async function getAsset(id: string, token?: string | null): Promise<AssetDetail> {
   if (AUTH_MODE !== 'real') return mockAssetDetail(id);
-  return http.get<AssetDetail>(`/assets/${id}`, token ?? TOKEN);
+  return http.get<AssetDetail>(`/assets/${id}`, token);
 }
 
 export async function getLifecycleState(id: string, token?: string | null): Promise<LifecycleState> {
   if (AUTH_MODE !== 'real') return mockLifecycle(id);
-  return http.get<LifecycleState>(`/lifecycle/assets/${id}/state`, token ?? TOKEN);
+  return http.get<LifecycleState>(`/lifecycle/assets/${id}/state`, token);
 }
 
 export async function getLifecycleTransitions(id: string, token?: string | null): Promise<LifecycleTransitions> {
   if (AUTH_MODE !== 'real') return mockTransitions(id);
-  return http.get<LifecycleTransitions>(`/lifecycle/assets/${id}/transitions`, token ?? TOKEN);
+  return http.get<LifecycleTransitions>(`/lifecycle/assets/${id}/transitions`, token);
 }
 
 export async function getAssetMovements(id: string, token?: string | null): Promise<AssetMovement[]> {
   if (AUTH_MODE !== 'real') return mockMovements(id);
-  return http.get<AssetMovement[]>(`/assets/${id}/movements`, token ?? TOKEN);
+  return http.get<AssetMovement[]>(`/assets/${id}/movements`, token);
 }
 
 export async function getAssetAudit(id: string, token?: string | null): Promise<AuditEvent[]> {
   if (AUTH_MODE !== 'real') return mockAudit(id);
-  const res = await http.get<{ items: AuditEvent[] }>(`/audit/assets/${id}`, token ?? TOKEN);
+  const res = await http.get<{ items: AuditEvent[] }>(`/audit/assets/${id}`, token);
   return res.items;
 }
 

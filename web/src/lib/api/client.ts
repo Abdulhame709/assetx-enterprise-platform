@@ -1,11 +1,9 @@
 /**
- * Typed API client layer for the AssetX frontend.
- * Points at the AssetX backend (existing services only — no new backend).
- * - base URL from NEXT_PUBLIC_API_URL (falls back to same-origin /api proxy).
- * - injects Bearer token from the session.
+ * Typed API client layer for the AssetX frontend (Phase PRE-P3.1).
+ * - base URL from NEXT_PUBLIC_API_URL (falls back to /api proxy).
+ * - auto-injects the Bearer token from the token store.
+ * - on 401 with a refresh token available, attempts a one-time refresh and retries.
  * - throws ApiError with status + message for structured handling.
- * No business endpoints are hardcoded here beyond auth; module endpoints are
- * added when their screens are built (P2+).
  */
 
 export const API_BASE_URL =
@@ -25,25 +23,49 @@ export class ApiError extends Error {
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  /** explicit token override; auto-attached from store when omitted */
   token?: string | null;
   headers?: Record<string, string>;
+  /** set false to skip the automatic 401-refresh-retry */
+  skipAuthRefresh?: boolean;
+}
+
+async function readBody<T>(res: Response): Promise<T> {
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  if (!text) return undefined as T;
+  try { return JSON.parse(text) as T; } catch { return text as unknown as T; }
 }
 
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = 'GET', body, token, headers } = options;
+  const { method = 'GET', body, token, headers, skipAuthRefresh } = options;
+  const { tokenStore } = await import('../auth/token-store');
+  const authToken = token !== undefined ? token : tokenStore.getAccess();
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  const doRequest = async (t: string | null): Promise<Response> =>
+    fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(t ? { Authorization: `Bearer ${t}` } : {}),
+        ...headers,
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+
+  let res = await doRequest(authToken);
+
+  // One-time refresh on 401 (skip when a refresh is already in flight / explicit token).
+  if (res.status === 401 && !skipAuthRefresh && token === undefined) {
+    const { refreshSession } = await import('../auth/auth-service');
+    const newSession = await refreshSession();
+    if (newSession) {
+      res = await doRequest(newSession.accessToken);
+    }
+  }
 
   if (!res.ok) {
     let message = res.statusText;
@@ -58,8 +80,7 @@ export async function apiFetch<T = unknown>(
     throw new ApiError(res.status, message, code);
   }
 
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+  return readBody<T>(res);
 }
 
 export const http = {
