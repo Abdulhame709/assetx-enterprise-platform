@@ -6,14 +6,14 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { LoadingState, ErrorState } from '@/components/ui/states';
+import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { useAnalytics } from '@/features/assets/use-assets';
 import { BarList, Donut } from '@/features/assets/components/Charts';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 
 export default function AssetDashboardPage() {
-  const { data, loading, error, reload } = useAnalytics();
+  const state = useAnalytics();
 
   return (
     <div>
@@ -29,46 +29,45 @@ export default function AssetDashboardPage() {
         }
       />
 
-      {loading && <LoadingState rows={6} />}
-      {error && <ErrorState message={error} onRetry={reload} />}
+      <AsyncBoundary state={state}>
+        {(data) => (
+          <>
+            {/* KPI cards */}
+            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              <KpiCard label="Total Assets" value={data.total_assets.toLocaleString()} icon={Boxes} tone="info" />
+              <KpiCard label="Active Assets" value={data.active_assets.toLocaleString()} icon={CheckCircle2} tone="success" />
+              <KpiCard label="Assigned Assets" value={data.assigned_assets.toLocaleString()} icon={UserCheck} tone="brand" />
+              <KpiCard label="Under Maintenance" value={data.maintenance_assets.toLocaleString()} icon={Wrench} tone="warning" />
+              <KpiCard label="Disposed Assets" value={data.disposed_assets.toLocaleString()} icon={Trash2} tone="danger" />
+              <KpiCard label="Archived Assets" value={data.archived_assets.toLocaleString()} icon={Archive} tone="neutral" />
+            </div>
 
-      {data && (
-        <>
-          {/* KPI cards */}
-          <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <KpiCard label="Total Assets" value={data.total_assets.toLocaleString()} icon={Boxes} tone="info" />
-            <KpiCard label="Active Assets" value={data.active_assets.toLocaleString()} icon={CheckCircle2} tone="success" />
-            <KpiCard label="Assigned Assets" value={data.assigned_assets.toLocaleString()} icon={UserCheck} tone="brand" />
-            <KpiCard label="Under Maintenance" value={data.maintenance_assets.toLocaleString()} icon={Wrench} tone="warning" />
-            <KpiCard label="Disposed Assets" value={data.disposed_assets.toLocaleString()} icon={Trash2} tone="danger" />
-            <KpiCard label="Archived Assets" value={data.archived_assets.toLocaleString()} icon={Archive} tone="neutral" />
-          </div>
+            {/* Distributions */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <Card>
+                <CardHeader title="By Category" subtitle="Asset distribution" />
+                <CardBody><BarList data={data.by_category} /></CardBody>
+              </Card>
+              <Card>
+                <CardHeader title="By Location" subtitle="Asset distribution" />
+                <CardBody><BarList data={data.by_location} /></CardBody>
+              </Card>
+              <Card>
+                <CardHeader title="Lifecycle Distribution" subtitle="Current state mix" />
+                <CardBody><Donut data={data.lifecycle_distribution.map((d) => ({ name: d.state, count: d.count }))} /></CardBody>
+              </Card>
+            </div>
 
-          {/* Distributions */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <Card>
-              <CardHeader title="By Category" subtitle="Asset distribution" />
-              <CardBody><BarList data={data.by_category} /></CardBody>
-            </Card>
-            <Card>
-              <CardHeader title="By Location" subtitle="Asset distribution" />
-              <CardBody><BarList data={data.by_location} /></CardBody>
-            </Card>
-            <Card>
-              <CardHeader title="Lifecycle Distribution" subtitle="Current state mix" />
-              <CardBody><Donut data={data.lifecycle_distribution.map((d) => ({ name: d.state, count: d.count }))} /></CardBody>
-            </Card>
-          </div>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            {data.lifecycle_distribution.slice(0, 8).map((d) => (
-              <Badge key={d.state} tone="neutral" className="capitalize">
-                {d.state.replace(/_/g, ' ')}: {d.count}
-              </Badge>
-            ))}
-          </div>
-        </>
-      )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {data.lifecycle_distribution.slice(0, 8).map((d) => (
+                <Badge key={d.state} tone="neutral" className="capitalize">
+                  {d.state.replace(/_/g, ' ')}: {d.count}
+                </Badge>
+              ))}
+            </div>
+          </>
+        )}
+      </AsyncBoundary>
     </div>
   );
 }

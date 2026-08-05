@@ -6,6 +6,7 @@ import { useSession } from '@/lib/auth/session-context';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { Spinner } from '@/components/ui/Button';
+import { SkipLink } from '@/components/ui/SkipLink';
 
 /** AppShell — authenticated application layout: sidebar + topbar + content. */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -28,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-surface">
+      <SkipLink />
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
         <Sidebar />
@@ -44,7 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobileNav(true)} />
-        <main key={pathname} className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main id="main-content" key={pathname} className="flex-1 overflow-y-auto p-4 lg:p-6">
           {children}
         </main>
       </div>
