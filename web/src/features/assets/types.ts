@@ -14,6 +14,11 @@ export interface AssetSummary {
   employee_id: string | null;
   purchase_price: string;
   is_active: boolean;
+  /** presentation-only human-readable names (from the mapping layer) */
+  _categoryName?: string;
+  _locationName?: string;
+  _employeeName?: string;
+  _statusName?: string;
 }
 
 export interface AssetDetail extends AssetSummary {

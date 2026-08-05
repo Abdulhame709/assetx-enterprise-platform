@@ -1,7 +1,9 @@
 /**
- * Asset Experience API layer (Phase P2).
- * Wraps the existing backend endpoints + new P2 read endpoints. In mock mode
- * (no backend running) returns locally-generated data so the UI is browsable.
+ * Asset Experience API layer (PRE-P3.2.2).
+ * Responsible ONLY for fetching raw data and routing it through the centralized
+ * mapping layer (mappers/). All response normalization / DTO transformation /
+ * name resolution lives in mappers/, never here or in pages/components/hooks.
+ * Mock mode remains a controlled development fallback (AUTH_MODE=mock).
  */
 import { http } from '@/lib/api/client';
 import {
@@ -15,17 +17,38 @@ import {
   LifecycleTransitions,
   PagedAssets,
 } from './types';
+import {
+  mapAnalytics,
+  mapAssetDetail,
+  mapAssetMovements,
+  mapAuditEvents,
+  mapLifecycleState,
+  mapLifecycleTransitions,
+  mapPagedAssets,
+  NameLookup,
+  EMPTY_NAMES,
+} from './mappers';
 
 export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? 'mock';
-
 
 export interface CategoryOption { value: string; label: string; }
 
 /** Load categories for filters (real backend with mock fallback). */
 export async function getCategories(token?: string | null): Promise<CategoryOption[]> {
   if (AUTH_MODE !== 'real') return mockCategories();
-  const res = await http.get<{ items: Array<{ id: string; name: string }> }>('/categories', token);
-  return (res.items ?? []).map((c) => ({ value: c.id, label: c.name }));
+  const raw = await http.get<unknown>('/categories', token);
+  return mapCategories(raw);
+}
+
+/** Centralized category mapping — accepts array or wrapped responses. */
+export function mapCategories(raw: unknown): CategoryOption[] {
+  const list = Array.isArray(raw) ? raw : (raw as { items?: unknown[]; data?: unknown[] })?.items ?? (raw as { data?: unknown[] })?.data ?? [];
+  return (Array.isArray(list) ? list : [])
+    .map((c) => {
+      const o = c as { id?: string; name?: string };
+      return { value: String(o.id ?? ''), label: String(o.name ?? o.id ?? '') };
+    })
+    .filter((c) => c.value !== '');
 }
 
 function mockCategories(): CategoryOption[] {
@@ -39,10 +62,15 @@ function mockCategories(): CategoryOption[] {
 
 export async function getAnalyticsSummary(token?: string | null): Promise<AssetAnalyticsSummary> {
   if (AUTH_MODE !== 'real') return mockAnalytics();
-  return http.get<AssetAnalyticsSummary>('/assets/analytics/summary', token);
+  const raw = await http.get<unknown>('/assets/analytics/summary', token);
+  return mapAnalytics(raw);
 }
 
-export async function searchAssets(query: AssetQuery, token?: string | null): Promise<PagedAssets> {
+export async function searchAssets(
+  query: AssetQuery,
+  token?: string | null,
+  names: NameLookup = EMPTY_NAMES,
+): Promise<PagedAssets> {
   if (AUTH_MODE !== 'real') return mockSearch(query);
   const params = new URLSearchParams();
   if (query.q) params.set('q', query.q);
@@ -50,33 +78,59 @@ export async function searchAssets(query: AssetQuery, token?: string | null): Pr
   if (query.location_id) params.set('location_id', query.location_id);
   params.set('page', String(query.page ?? 1));
   params.set('limit', String(query.limit ?? 20));
-  return http.get<PagedAssets>(`/assets?${params}`, token);
+  const raw = await http.get<unknown>(`/assets?${params}`, token);
+  return mapPagedAssets(raw, names);
 }
 
-export async function getAsset(id: string, token?: string | null): Promise<AssetDetail> {
+export async function getAsset(id: string, token?: string | null, names: NameLookup = EMPTY_NAMES): Promise<AssetDetail> {
   if (AUTH_MODE !== 'real') return mockAssetDetail(id);
-  return http.get<AssetDetail>(`/assets/${id}`, token);
+  const raw = await http.get<unknown>(`/assets/${id}`, token);
+  return mapAssetDetail(raw, names) ?? mockAssetDetail(id);
 }
 
 export async function getLifecycleState(id: string, token?: string | null): Promise<LifecycleState> {
   if (AUTH_MODE !== 'real') return mockLifecycle(id);
-  return http.get<LifecycleState>(`/lifecycle/assets/${id}/state`, token);
+  const raw = await http.get<unknown>(`/lifecycle/assets/${id}/state`, token);
+  return mapLifecycleState(raw) ?? { assetId: id, state: '', timestamp: '' };
 }
 
 export async function getLifecycleTransitions(id: string, token?: string | null): Promise<LifecycleTransitions> {
   if (AUTH_MODE !== 'real') return mockTransitions(id);
-  return http.get<LifecycleTransitions>(`/lifecycle/assets/${id}/transitions`, token);
+  const raw = await http.get<unknown>(`/lifecycle/assets/${id}/transitions`, token);
+  return mapLifecycleTransitions(raw) ?? { assetId: id, state: '', allowedTransitions: [] };
 }
 
 export async function getAssetMovements(id: string, token?: string | null): Promise<AssetMovement[]> {
   if (AUTH_MODE !== 'real') return mockMovements(id);
-  return http.get<AssetMovement[]>(`/assets/${id}/movements`, token);
+  const raw = await http.get<unknown>(`/assets/${id}/movements`, token);
+  return mapAssetMovements(raw);
 }
 
 export async function getAssetAudit(id: string, token?: string | null): Promise<AuditEvent[]> {
   if (AUTH_MODE !== 'real') return mockAudit(id);
-  const res = await http.get<{ items: AuditEvent[] }>(`/audit/assets/${id}`, token);
-  return res.items;
+  const raw = await http.get<unknown>(`/audit/assets/${id}`, token);
+  return mapAuditEvents(raw);
+}
+
+/** Load all reference names for human-readable display. Returns lookup maps. */
+export async function getReferenceNames(token?: string | null): Promise<NameLookup> {
+  if (AUTH_MODE !== 'real') return EMPTY_NAMES;
+  try {
+    const [cats, locs] = await Promise.all([
+      http.get<unknown>('/categories', token),
+      http.get<unknown>('/locations', token),
+    ]);
+    const categories = mapCategories(cats);
+    const locations = mapCategories(locs);
+    return {
+      categories: new Map(categories.map((c) => [c.value, c.label])),
+      locations: new Map(locations.map((l) => [l.value, l.label])),
+      employees: new Map<string, string>(),
+      statuses: new Map<string, string>(),
+    };
+  } catch {
+    return EMPTY_NAMES;
+  }
 }
 
 // ---- Mock data (no backend running) ----

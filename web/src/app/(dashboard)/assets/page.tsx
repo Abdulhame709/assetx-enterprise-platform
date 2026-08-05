@@ -17,7 +17,6 @@ import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { getCategories } from '@/features/assets/api';
 import { formatCurrency } from '@/lib/format';
-import { useI18n } from '@/lib/i18n';
 
 export default function AssetsPage() {
   const [q, setQ] = useState('');
@@ -30,7 +29,6 @@ export default function AssetsPage() {
   const { data, status, error, reload } = useAssetList({ q, category_id: category ?? undefined, page, limit: 20 });
   const toast = useToast();
   const { confirm } = useConfirm();
-  const { label } = useI18n();
 
   useEffect(() => { void getCategories().then(setCategories).catch(() => undefined); }, []);
 
@@ -42,8 +40,8 @@ export default function AssetsPage() {
         <Link href={`/assets/${r.id}`} className="font-medium text-brand hover:underline">{r.name}</Link>
       ),
     },
-    { key: 'location_id', header: 'Location', render: (r) => label(r.location_id ?? undefined) },
-    { key: 'employee_id', header: 'Custodian', render: (r) => label(r.employee_id ?? undefined) },
+    { key: 'location_id', header: 'Location', render: (r) => r._locationName ?? '—' },
+    { key: 'employee_id', header: 'Custodian', render: (r) => r._employeeName ?? '—' },
     { key: 'quantity', header: 'Qty', align: 'center', render: (r) => <span className="text-ink-muted">{r.quantity}</span> },
     { key: 'purchase_price', header: 'Value', align: 'right', sortable: true, render: (r) => formatCurrency(r.purchase_price) },
     {

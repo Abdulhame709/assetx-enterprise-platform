@@ -68,9 +68,9 @@ export default function AssetDetailPage() {
                     <Badge tone="neutral">{detail.full_asset_code}</Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
-                    <Meta label="Category" value={label(detail.category_id ?? undefined)} />
-                    <Meta label="Location" value={label(detail.location_id ?? undefined)} />
-                    <Meta label="Custodian" value={label(detail.employee_id ?? undefined)} />
+                    <Meta label="Category" value={detail._categoryName ?? '—'} />
+                    <Meta label="Location" value={detail._locationName ?? '—'} />
+                    <Meta label="Custodian" value={detail._employeeName ?? '—'} />
                     <Meta label="Status" value={detail.is_active ? 'Active' : 'Inactive'} />
                     <Meta label="Value" value={formatCurrency(detail.purchase_price)} />
                   </div>
