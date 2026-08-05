@@ -22,6 +22,7 @@ A **one-line index** of all ADRs (no new ADRs here). Full ADRs live in `db/ADR-*
 | ADR-013 | AI Usage Strategy | ✅ Accepted |
 | ADR-014 | Release Strategy | ✅ Accepted |
 | ADR-015 | Disaster Recovery | ✅ Accepted |
+| ADR-016 | Frontend Authentication Integration (PRE-P3.1) | ✅ Accepted |
 | ADR-007 | Extend Asset Movement Lifecycle | ✅ Accepted |
 | ADR-009 | Authorization Hardening | ✅ Accepted |
 | ADR-010 | Audit & Compliance Engine | ✅ Accepted |
