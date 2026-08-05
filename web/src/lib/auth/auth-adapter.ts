@@ -18,7 +18,8 @@ import { Session } from '@/types/auth';
 import { tokenStore } from './token-store';
 import { API_BASE_URL } from '@/lib/api/client';
 
-interface BackendLoginResponse {
+/** Raw backend POST /auth/login response (contract — do not widen without backend change). */
+export interface BackendLoginResponse {
   accessToken: string;
   refreshToken?: string;
   user: { id: string; username: string; tenant_id: string };
@@ -31,6 +32,11 @@ interface JwtPayload {
   role?: string;
   roles?: string[];
   permissions?: string[];
+}
+
+interface JwtPayloadWithExp extends JwtPayload {
+  /** epoch seconds when the token expires */
+  exp?: number;
 }
 
 /** Decode a JWT payload (base64url, no external dependency). */
@@ -46,14 +52,43 @@ export function decodeJwtPayload(token: string): JwtPayload {
   }
 }
 
+/** Whether an access token is expired (or expiring within `skewSeconds`). */
+export function isTokenExpired(token: string | null | undefined, skewSeconds = 30): boolean {
+  if (!token) return true;
+  const payload = decodeJwtPayload(token) as JwtPayloadWithExp;
+  if (typeof payload.exp !== 'number' || !Number.isFinite(payload.exp)) return false; // no exp => treat as valid
+  const expiresAtMs = payload.exp * 1000;
+  return expiresAtMs - skewSeconds * 1000 <= Date.now();
+}
+
+/** Build a Session from a decoded JWT payload + optional tenant details. */
+export function buildSessionFromPayload(
+  accessToken: string,
+  refreshToken: string | null,
+  payload: JwtPayload,
+  tenant?: { id: string; name: string; code: string },
+): Session {
+  const username = payload.username ?? '';
+  return {
+    user: {
+      id: payload.sub ?? '',
+      username,
+      displayName: username || 'User',
+      roles: payload.roles ?? (payload.role ? [payload.role] : []),
+    },
+    tenant: tenant ?? { id: payload.tenant_id ?? '', name: '', code: '' },
+    permissions: payload.permissions ?? [],
+    accessToken,
+    refreshToken: refreshToken ?? undefined,
+  };
+}
+
 /** Map the real backend login response into a unified frontend Session. */
 export async function buildSessionFromLogin(loginResponse: BackendLoginResponse): Promise<Session> {
   tokenStore.set(loginResponse.accessToken, loginResponse.refreshToken ?? null);
   const payload = decodeJwtPayload(loginResponse.accessToken);
 
   const tenantId = loginResponse.user.tenant_id ?? payload.tenant_id ?? '';
-  const roles: string[] = payload.roles ?? (payload.role ? [payload.role] : []);
-  const permissions: string[] = payload.permissions ?? [];
 
   // Fetch tenant details (name/code) via the real endpoint.
   let tenant = { id: tenantId, name: '', code: '' };
@@ -69,18 +104,10 @@ export async function buildSessionFromLogin(loginResponse: BackendLoginResponse)
     /* keep default tenant — session still valid via token */
   }
 
-  const username = loginResponse.user.username ?? payload.username ?? '';
-  const session: Session = {
-    user: {
-      id: loginResponse.user.id ?? payload.sub ?? '',
-      username,
-      displayName: username || 'User',
-      roles,
-    },
+  return buildSessionFromPayload(
+    loginResponse.accessToken,
+    loginResponse.refreshToken ?? null,
+    payload,
     tenant,
-    permissions,
-    accessToken: loginResponse.accessToken,
-    refreshToken: loginResponse.refreshToken,
-  };
-  return session;
+  );
 }

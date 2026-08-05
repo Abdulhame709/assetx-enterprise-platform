@@ -9,7 +9,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthResponse, AuthStatus, LoginInput, Session } from '@/types/auth';
-import { AUTH_MODE, realLogin, realLogout } from './auth-service';
+import { AUTH_MODE, realLogin, realLogout, restoreSessionFromStored } from './auth-service';
 import { mockLogin } from './mock-session';
 import { hasPermission, PermissionKey } from './permissions';
 import { tokenStore } from './token-store';
@@ -20,7 +20,7 @@ interface SessionContextValue {
   status: AuthStatus;
   session: Session | null;
   login: (input: LoginInput) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   /** has permission (wildcard-aware) */
   can: (permission: PermissionKey) => boolean;
 }
@@ -41,20 +41,37 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<Session | null>(null);
 
+  // Session recovery on page load: rehydrate from stored session; if the access
+  // token is expired, attempt a refresh; if that fails, clear and log out.
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) {
-        const s = JSON.parse(raw) as Session;
-        setSession(s);
-        if (s.accessToken) tokenStore.set(s.accessToken, s.refreshToken ?? null);
-        setStatus('authenticated');
-      } else {
+    (async () => {
+      try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) { setStatus('unauthenticated'); return; }
+
+        if (AUTH_MODE === 'mock') {
+          const s = JSON.parse(raw) as Session;
+          setSession(s);
+          if (s.accessToken) tokenStore.set(s.accessToken, s.refreshToken ?? null);
+          setStatus('authenticated');
+          return;
+        }
+
+        const restored = await restoreSessionFromStored();
+        if (restored) {
+          setSession(restored);
+          tokenStore.set(restored.accessToken, restored.refreshToken ?? null);
+          try { localStorage.setItem(SESSION_KEY, JSON.stringify(restored)); } catch { /* ignore */ }
+          setStatus('authenticated');
+        } else {
+          tokenStore.clear();
+          try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+          setStatus('unauthenticated');
+        }
+      } catch {
         setStatus('unauthenticated');
       }
-    } catch {
-      setStatus('unauthenticated');
-    }
+    })();
   }, []);
 
   const login = useCallback(async (input: LoginInput) => {

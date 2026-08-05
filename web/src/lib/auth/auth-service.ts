@@ -5,16 +5,10 @@
  */
 import { Session, LoginInput } from '@/types/auth';
 import { http } from '@/lib/api/client';
-import { buildSessionFromLogin, decodeJwtPayload } from './auth-adapter';
+import { BackendLoginResponse, buildSessionFromLogin, buildSessionFromPayload, decodeJwtPayload, isTokenExpired } from './auth-adapter';
 import { tokenStore } from './token-store';
 
 export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? 'mock';
-
-interface BackendLoginResponse {
-  accessToken: string;
-  refreshToken?: string;
-  user: { id: string; username: string; tenant_id: string };
-}
 
 export async function realLogin(input: LoginInput): Promise<Session> {
   const res = await http.post<BackendLoginResponse>('/auth/login', { username: input.username, password: input.password });
@@ -29,21 +23,29 @@ export async function refreshSession(): Promise<Session | null> {
     const res = await http.post<{ accessToken: string }>('/auth/refresh', { refreshToken });
     const payload = decodeJwtPayload(res.accessToken);
     tokenStore.set(res.accessToken, refreshToken);
-    return {
-      user: {
-        id: payload.sub ?? '',
-        username: payload.username ?? '',
-        displayName: payload.username ?? 'User',
-        roles: payload.roles ?? (payload.role ? [payload.role] : []),
-      },
-      tenant: { id: payload.tenant_id ?? '', name: '', code: '' },
-      permissions: payload.permissions ?? [],
-      accessToken: res.accessToken,
-      refreshToken,
-    };
+    return buildSessionFromPayload(res.accessToken, refreshToken, payload);
   } catch {
+    // refresh failed → drop stored tokens so we don't retry with a stale refresh token
+    tokenStore.clear();
     return null;
   }
+}
+
+/**
+ * Restore/refresh a persisted session on page reload.
+ * - If the stored access token is still valid, rehydrate from it.
+ * - If it is expired (or expiring), attempt a refresh; on failure, return null
+ *   so the caller logs the user out (expired session handling).
+ */
+export async function restoreSessionFromStored(): Promise<Session | null> {
+  const accessToken = tokenStore.getAccess();
+  const refreshToken = tokenStore.getRefresh();
+  if (!accessToken) return null;
+
+  if (!isTokenExpired(accessToken)) {
+    return buildSessionFromPayload(accessToken, refreshToken, decodeJwtPayload(accessToken));
+  }
+  return refreshSession();
 }
 
 export async function realLogout(): Promise<void> {
