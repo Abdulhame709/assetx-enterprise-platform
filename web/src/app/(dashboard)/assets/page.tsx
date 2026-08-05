@@ -43,7 +43,11 @@ export default function AssetsPage() {
     { key: 'location_id', header: 'Location', render: (r) => r._locationName ?? '—' },
     { key: 'employee_id', header: 'Custodian', render: (r) => r._employeeName ?? '—' },
     { key: 'quantity', header: 'Qty', align: 'center', render: (r) => <span className="text-ink-muted">{r.quantity}</span> },
-    { key: 'purchase_price', header: 'Value', align: 'right', sortable: true, render: (r) => formatCurrency(r.purchase_price) },
+    {
+      key: 'purchase_price', header: 'Value', align: 'right', sortable: true,
+      accessor: (r) => Number(r.purchase_price || 0),
+      render: (r) => formatCurrency(r.purchase_price),
+    },
     {
       key: 'is_active', header: 'Status', align: 'center',
       render: (r) => r.is_active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Inactive</Badge>,

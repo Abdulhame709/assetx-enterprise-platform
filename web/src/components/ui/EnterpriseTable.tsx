@@ -21,6 +21,8 @@ export interface EColumn<T> {
   hideable?: boolean;
   width?: string;
   render?: (row: T) => ReactNode;
+  /** optional accessor for client-side sorting when the value isn't row[key] */
+  accessor?: (row: T) => string | number;
 }
 
 export interface ETableProps<T> {
@@ -98,6 +100,25 @@ export function EnterpriseTable<T>({
     });
   };
 
+  // Client-side sorting (allowed; no server-side sort in this scope).
+  // Sorts a copy of rows by the active sortKey/dir when provided.
+  const displayRows = useMemo(() => {
+    if (!sortKey || !sortDir) return rows;
+    const col = columns.find((c) => c.key === sortKey);
+    const accessor = col?.accessor;
+    return [...rows].sort((a, b) => {
+      const av = accessor ? accessor(a) : (a as Record<string, unknown>)[sortKey];
+      const bv = accessor ? accessor(b) : (b as Record<string, unknown>)[sortKey];
+      let cmp = 0;
+      if (typeof av === 'number' && typeof bv === 'number') {
+        cmp = av - bv;
+      } else {
+        cmp = String(av ?? '').localeCompare(String(bv ?? ''), undefined, { numeric: true });
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [rows, sortKey, sortDir, columns]);
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const alignCls = { left: 'text-start', center: 'text-center', right: 'text-end' };
 
@@ -149,7 +170,7 @@ export function EnterpriseTable<T>({
         <TableSkeleton rows={Math.min(6, pageSize)} cols={columns.length} />
       ) : error ? (
         <ErrorState message={error} onRetry={onRetry} />
-      ) : rows.length === 0 ? (
+      ) : displayRows.length === 0 ? (
         empty ?? <EmptyState />
       ) : (
         <div className="overflow-x-auto">
@@ -192,7 +213,7 @@ export function EnterpriseTable<T>({
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {rows.map((row) => {
+              {displayRows.map((row) => {
                 const k = rowKey(row);
                 const checked = selectedSet.has(k);
                 return (
