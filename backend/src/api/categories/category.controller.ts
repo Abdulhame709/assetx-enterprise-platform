@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import { CreateCategoryDto, UpdateCategoryDto } from '../dto/master-data.dto';
 
 @Controller('categories')
@@ -21,6 +22,7 @@ export class CategoryController {
   @Post()
   @RequirePermission('category.create')
   create(@Body() dto: CreateCategoryDto, @CurrentUser() user: RequestUser) {
+    assertOptionalUuid(dto.parent_id);
     return this.categories.create({ tenant_id: user.tenant_id, ...dto });
   }
 
@@ -33,12 +35,15 @@ export class CategoryController {
   @Get(':id')
   @RequirePermission('category.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.categories.getById(id, user.tenant_id);
   }
 
   @Patch(':id')
   @RequirePermission('category.update')
   update(@Param('id') id: string, @Body() dto: UpdateCategoryDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertOptionalUuid(dto.parent_id);
     return this.categories.update(id, user.tenant_id, dto);
   }
 }

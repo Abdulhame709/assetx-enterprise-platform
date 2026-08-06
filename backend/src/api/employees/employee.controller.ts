@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid } from '../../common/utils/uuid';
 import { CreateEmployeeDto, UpdateEmployeeDto } from '../dto/master-data.dto';
 
 @Controller('employees')
@@ -33,18 +34,21 @@ export class EmployeeController {
   @Get(':id')
   @RequirePermission('employee.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.employees.getById(id, user.tenant_id);
   }
 
   @Patch(':id')
   @RequirePermission('employee.update')
   update(@Param('id') id: string, @Body() dto: UpdateEmployeeDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.employees.update(id, user.tenant_id, dto);
   }
 
   @Delete(':id')
   @RequirePermission('employee.delete')
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.employees.softDelete(id, user.tenant_id).then(() => ({ message: 'deleted' }));
   }
 }

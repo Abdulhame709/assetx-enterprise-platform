@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid } from '../../common/utils/uuid';
 
 @Controller('lifecycle')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
@@ -20,12 +21,14 @@ export class LifecycleController {
   @Get('assets/:id/state')
   @RequirePermission('asset.view')
   state(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.lifecycle.getState(id, user.tenant_id);
   }
 
   @Get('assets/:id/transitions')
   @RequirePermission('asset.view')
   transitions(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.lifecycle.getTransitions(id, user.tenant_id);
   }
 }

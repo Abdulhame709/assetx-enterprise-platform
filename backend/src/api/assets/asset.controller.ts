@@ -18,6 +18,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import {
   AssetQueryDto,
   ChangeStatusDto,
@@ -34,6 +35,12 @@ export class AssetController {
   @Post()
   @RequirePermission('asset.create')
   create(@Body() dto: CreateAssetDto, @CurrentUser() user: RequestUser) {
+    assertOptionalUuid(dto.category_id);
+    assertOptionalUuid(dto.sub_type_id);
+    assertOptionalUuid(dto.model_id);
+    assertOptionalUuid(dto.location_id);
+    assertOptionalUuid(dto.status_id);
+    assertOptionalUuid(dto.employee_id);
     return this.assets.create({
       tenant_id: user.tenant_id,
       name: dto.name,
@@ -60,6 +67,10 @@ export class AssetController {
   @Get()
   @RequirePermission('asset.view')
   search(@Query() query: AssetQueryDto, @CurrentUser() user: RequestUser) {
+    assertOptionalUuid(query.status_id);
+    assertOptionalUuid(query.location_id);
+    assertOptionalUuid(query.category_id);
+    assertOptionalUuid(query.employee_id);
     return this.assets.search({
       tenant_id: user.tenant_id,
       q: query.q,
@@ -75,18 +86,28 @@ export class AssetController {
   @Get(':id')
   @RequirePermission('asset.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.assets.getById(id, user.tenant_id);
   }
 
   @Patch(':id')
   @RequirePermission('asset.update')
   update(@Param('id') id: string, @Body() dto: UpdateAssetDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertOptionalUuid(dto.category_id);
+    assertOptionalUuid(dto.model_id);
+    assertOptionalUuid(dto.location_id);
+    assertOptionalUuid(dto.employee_id);
     return this.assets.update(id, user.tenant_id, dto);
   }
 
   @Post(':id/transfer')
   @RequirePermission('asset.transfer')
   transfer(@Param('id') id: string, @Body() dto: TransferAssetDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertOptionalUuid(dto.to_location_id);
+    assertOptionalUuid(dto.to_employee_id);
+    assertOptionalUuid(dto.to_status_id);
     return this.assets.transfer(id, user.tenant_id, {
       to_location_id: dto.to_location_id,
       to_employee_id: dto.to_employee_id,
@@ -100,6 +121,8 @@ export class AssetController {
   @Patch(':id/status')
   @RequirePermission('asset.update')
   changeStatus(@Param('id') id: string, @Body() dto: ChangeStatusDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertOptionalUuid(dto.status_id);
     return this.assets.changeStatus(id, user.tenant_id, dto.status_id);
   }
 }

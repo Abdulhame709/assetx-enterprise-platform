@@ -12,6 +12,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import { CreateMovementDto, MovementTypeDto } from '../dto/movement.dto';
 
 @Controller()
@@ -24,6 +25,12 @@ export class MovementController {
   @Post('assets/:id/movements')
   @RequirePermission('movement.create')
   create(@Param('id') assetId: string, @Body() dto: CreateMovementDto, @CurrentUser() user: RequestUser) {
+    assertUuid(assetId);
+    assertUuid(dto.asset_id);
+    assertOptionalUuid(dto.to_location_id);
+    assertOptionalUuid(dto.to_employee_id);
+    assertOptionalUuid(dto.from_location_id);
+    assertOptionalUuid(dto.from_employee_id);
     return this.movements.create(user.tenant_id, {
       tenant_id: user.tenant_id,
       asset_id: assetId,
@@ -43,6 +50,7 @@ export class MovementController {
   @Get('assets/:id/movements')
   @RequirePermission('movement.view')
   listByAsset(@Param('id') assetId: string, @CurrentUser() user: RequestUser) {
+    assertUuid(assetId);
     return this.movements.listByAsset(assetId, user.tenant_id);
   }
 
@@ -58,6 +66,7 @@ export class MovementController {
   @Get('movements/:id')
   @RequirePermission('movement.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.movements.getById(id, user.tenant_id);
   }
 
@@ -66,12 +75,14 @@ export class MovementController {
   @Patch('movements/:id/approve')
   @RequirePermission('movement.approve')
   approve(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.movements.approve(id, user.tenant_id, user.sub);
   }
 
   @Patch('movements/:id/reject')
   @RequirePermission('movement.reject')
   reject(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.movements.reject(id, user.tenant_id);
   }
 
@@ -80,12 +91,14 @@ export class MovementController {
   @Patch('assets/:id/dispose')
   @RequirePermission('movement.create')
   dispose(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body('reason') reason?: string) {
+    assertUuid(id);
     return this.movements.dispose(user.tenant_id, id, user.sub, reason);
   }
 
   @Patch('assets/:id/retire')
   @RequirePermission('movement.create')
   retire(@CurrentUser() user: RequestUser, @Param('id') id: string, @Body('reason') reason?: string) {
+    assertUuid(id);
     return this.movements.retire(user.tenant_id, id, user.sub, reason);
   }
 }

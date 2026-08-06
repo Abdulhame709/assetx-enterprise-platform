@@ -123,9 +123,15 @@ export class AssetRepository implements AssetPort {
     if (filter.category_id) { where += ` AND category_id = $${idx}`; params.push(filter.category_id); idx++; }
     if (filter.employee_id) { where += ` AND employee_id = $${idx}`; params.push(filter.employee_id); idx++; }
     if (filter.location_id) {
-      // include descendants via materialized path prefix (ADR-005)
+      // Include descendants via materialized path prefix (ADR-005).
+      // LTREE's `<@` operator is unavailable in PGlite (path is a text column,
+      // "LTREE-compatible" per migration 001) — this text-equivalent preserves
+      // the ADR-005 semantics: path equals the target OR starts with `<target>.'
       where += ` AND location_id IN (
-        SELECT id FROM locations WHERE tenant_id = $1 AND path <@ (SELECT path FROM locations WHERE id = $${idx})
+        SELECT id FROM locations WHERE tenant_id = $1 AND (
+          path = (SELECT path FROM locations WHERE id = $${idx})
+          OR path LIKE (SELECT path FROM locations WHERE id = $${idx}) || '.%'
+        )
       )`;
       params.push(filter.location_id);
       idx++;
@@ -169,7 +175,12 @@ export class AssetRepository implements AssetPort {
     if (filter.price_from !== undefined) { where += ` AND purchase_price >= $${idx}`; params.push(filter.price_from); idx++; }
     if (filter.price_to !== undefined) { where += ` AND purchase_price <= $${idx}`; params.push(filter.price_to); idx++; }
     if (filter.location_id) {
-      where += ` AND location_id IN (SELECT id FROM locations WHERE tenant_id = $1 AND path <@ (SELECT path FROM locations WHERE id = $${idx}))`;
+      // Include descendants via materialized path prefix (ADR-005).
+      // Text-equivalent of LTREE `<@` for the text `path` column (see above).
+      where += ` AND location_id IN (SELECT id FROM locations WHERE tenant_id = $1 AND (
+          path = (SELECT path FROM locations WHERE id = $${idx})
+          OR path LIKE (SELECT path FROM locations WHERE id = $${idx}) || '.%'
+        ))`;
       params.push(filter.location_id); idx++;
     }
 

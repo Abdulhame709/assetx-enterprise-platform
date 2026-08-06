@@ -72,4 +72,6 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   SAVED_SEARCH_NAME_EXISTS: { http: 409, code: 'CONFLICT' },
   SAVED_SEARCH_LIMIT_EXCEEDED: { http: 409, code: 'CONFLICT' },
   SAVED_SEARCH_NOT_FOUND: { http: 404, code: 'NOT_FOUND' },
+  // RC1 stabilization (D2) — UUID validation for API params and filters
+  INVALID_UUID:            { http: 400, code: 'VALIDATION_ERROR' },
 };

@@ -53,7 +53,15 @@ npm install
 npm run dev   # → :3000
 ```
 
-Demo credentials (real backend, seeded at boot): `admin` / `AdminPass123`.
+Demo credentials (real backend, seeded at boot): `admin` / `AdminPass123` —
+**full reference: `docs/DEMO_CREDENTIALS.md`** (role, tenant, mock-mode accounts).
+
+Optional — reproducible **demo dataset** for QA/product preview (assets,
+locations, employees, inventory cycle, movements, notifications, audit events):
+
+```bash
+ASSETX_SEED_DEMO=1 npm start   # backend → seeds the demo tenant on boot
+```
 
 ## 4. Authentication flow
 

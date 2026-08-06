@@ -12,6 +12,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertOptionalUuid } from '../../common/utils/uuid';
 
 @Controller('search')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
@@ -21,18 +22,25 @@ export class SearchController {
   @Get('assets')
   @RequirePermission('asset.view')
   assets(@Query() query: Record<string, unknown>, @CurrentUser() u: RequestUser) {
+    assertOptionalUuid(query.status_id as string);
+    assertOptionalUuid(query.category_id as string);
+    assertOptionalUuid(query.location_id as string);
+    assertOptionalUuid(query.employee_id as string);
     return this.search.search(u.tenant_id, 'assets', query);
   }
 
   @Get('movements')
   @RequirePermission('movement.view')
   movements(@Query() query: Record<string, unknown>, @CurrentUser() u: RequestUser) {
+    assertOptionalUuid(query.asset_id as string);
+    assertOptionalUuid(query.performed_by as string);
     return this.search.search(u.tenant_id, 'movements', query);
   }
 
   @Get('audit')
   @RequirePermission('audit.view')
   audit(@Query() query: Record<string, unknown>, @CurrentUser() u: RequestUser) {
+    assertOptionalUuid(query.user_id as string);
     return this.search.search(u.tenant_id, 'audit', query);
   }
 

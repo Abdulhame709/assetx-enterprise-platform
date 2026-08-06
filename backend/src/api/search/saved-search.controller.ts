@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid } from '../../common/utils/uuid';
 
 @Controller('search/saved')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
@@ -37,12 +38,14 @@ export class SavedSearchController {
   @Patch(':id')
   @RequirePermission('search.save')
   update(@Param('id') id: string, @Body() dto: { name?: string; filters?: Record<string, unknown>; is_default?: boolean }, @CurrentUser() u: RequestUser) {
+    assertUuid(id);
     return this.saved.update(u.tenant_id, u.sub, id, dto);
   }
 
   @Delete(':id')
   @RequirePermission('search.save')
   async remove(@Param('id') id: string, @CurrentUser() u: RequestUser) {
+    assertUuid(id);
     await this.saved.remove(u.tenant_id, u.sub, id);
     return { message: 'deleted' };
   }
@@ -50,6 +53,7 @@ export class SavedSearchController {
   @Get(':id/execute')
   @RequirePermission('search.save')
   async execute(@Param('id') id: string, @CurrentUser() u: RequestUser) {
+    assertUuid(id);
     const criteria = await this.saved.getForExecution(u.tenant_id, u.sub, id);
     if (!criteria) throw new Error('SAVED_SEARCH_NOT_FOUND');
     return criteria;

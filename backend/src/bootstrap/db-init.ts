@@ -8,6 +8,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { PGliteDatabase } from '../infrastructure/database/pglite.database';
 import { seedPermissions } from './permission-seed';
 import { seedNotificationTemplates } from './notification-seed';
+import { seedDemoData } from './demo-data';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -81,6 +82,12 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
   await seedPermissions(db, tenantId);
   // Seed notification templates for the demo tenant.
   await seedNotificationTemplates(db, tenantId);
+
+  // Demo dataset for QA/product preview (RC1 stabilization — D3).
+  // Opt-in via ASSETX_SEED_DEMO=1 so tests and plain boots stay minimal.
+  if (process.env.ASSETX_SEED_DEMO === '1') {
+    await seedDemoData(db, tenantId);
+  }
 
   await db.exec(`SET ROLE postgres;`); // reset to owner for app-level setup
 }

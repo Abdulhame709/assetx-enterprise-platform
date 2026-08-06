@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import { CreateModelDto, UpdateModelDto } from '../dto/master-data.dto';
 
 @Controller('models')
@@ -21,6 +22,8 @@ export class ModelController {
   @Post()
   @RequirePermission('model.create')
   create(@Body() dto: CreateModelDto, @CurrentUser() user: RequestUser) {
+    assertOptionalUuid(dto.category_id);
+    assertOptionalUuid(dto.sub_type_id);
     return this.models.create({ tenant_id: user.tenant_id, ...dto });
   }
 
@@ -33,12 +36,16 @@ export class ModelController {
   @Get(':id')
   @RequirePermission('model.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.models.getById(id, user.tenant_id);
   }
 
   @Patch(':id')
   @RequirePermission('model.update')
   update(@Param('id') id: string, @Body() dto: UpdateModelDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertOptionalUuid(dto.category_id);
+    assertOptionalUuid(dto.sub_type_id);
     return this.models.update(id, user.tenant_id, dto);
   }
 }
