@@ -25,8 +25,9 @@ export class MovementController {
   @Post('assets/:id/movements')
   @RequirePermission('movement.create')
   create(@Param('id') assetId: string, @Body() dto: CreateMovementDto, @CurrentUser() user: RequestUser) {
+    // Asset identity comes from the path param (API contract: POST /assets/:id/movements).
+    // dto.asset_id is optional/ignored by the controller — only validate the path param.
     assertUuid(assetId);
-    assertUuid(dto.asset_id);
     assertOptionalUuid(dto.to_location_id);
     assertOptionalUuid(dto.to_employee_id);
     assertOptionalUuid(dto.from_location_id);
