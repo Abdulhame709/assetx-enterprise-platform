@@ -10,6 +10,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 
 @Controller('audit')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
@@ -28,6 +29,7 @@ export class AuditController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
+    assertOptionalUuid(user);
     return this.audit.query({
       tenant_id: current.tenant_id,
       action,
@@ -50,6 +52,7 @@ export class AuditController {
   @Get('assets/:id')
   @RequirePermission('audit.view')
   assetTimeline(@Param('id') id: string, @CurrentUser() current: RequestUser) {
+    assertUuid(id);
     return this.audit.assetTimeline(current.tenant_id, id);
   }
 }

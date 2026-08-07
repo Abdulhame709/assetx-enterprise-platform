@@ -35,8 +35,12 @@ export class RecordRepository implements RecordPort {
     const params: unknown[] = [tenantId, cycleId];
     if (scope?.location_id) {
       params.push(scope.location_id);
+      // Text-equivalent of LTREE `<@` for the text `path` column (ADR-005; see asset.repository).
       where += ` AND a.location_id IN (
-        SELECT id FROM locations WHERE tenant_id = $1 AND path <@ (SELECT path FROM locations WHERE id = $${params.length})
+        SELECT id FROM locations WHERE tenant_id = $1 AND (
+          path = (SELECT path FROM locations WHERE id = $${params.length})
+          OR path LIKE (SELECT path FROM locations WHERE id = $${params.length}) || '.%'
+        )
       )`;
     }
     if (scope?.category_id) {

@@ -14,6 +14,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import {
   CreateCycleDto, RecordResultDto, UpdateRecordDto, VerifyRecordDto,
 } from '../dto/inventory.dto';
@@ -31,6 +32,8 @@ export class InventoryController {
   @Post('cycles')
   @RequirePermission('inventory.create')
   create(@Body() dto: CreateCycleDto, @CurrentUser() user: RequestUser) {
+    assertOptionalUuid(dto.scope?.location_id);
+    assertOptionalUuid(dto.scope?.category_id);
     return this.cycles.create(user.tenant_id, dto.year, {
       all: dto.scope?.all,
       location_id: dto.scope?.location_id,
@@ -47,18 +50,21 @@ export class InventoryController {
   @Get('cycles/:id')
   @RequirePermission('inventory.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.cycles.getById(id, user.tenant_id);
   }
 
   @Patch('cycles/:id/start')
   @RequirePermission('inventory.execute')
   start(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.cycles.start(id, user.tenant_id);
   }
 
   @Patch('cycles/:id/close')
   @RequirePermission('inventory.close')
   close(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.cycles.close(id, user.tenant_id);
   }
 
@@ -66,12 +72,14 @@ export class InventoryController {
   @Get('cycles/:id/summary')
   @RequirePermission('inventory.view')
   summary(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.results.getSummary(id, user.tenant_id);
   }
 
   @Get('cycles/:id/results')
   @RequirePermission('inventory.view')
   getResults(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.results.getResults(id, user.tenant_id);
   }
 
@@ -79,6 +87,11 @@ export class InventoryController {
   @Post('cycles/:id/records')
   @RequirePermission('inventory.execute')
   record(@Param('id') id: string, @Body() dto: RecordResultDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertUuid(dto.asset_id);
+    assertOptionalUuid(dto.actual_location_id);
+    assertOptionalUuid(dto.actual_status_id);
+    assertOptionalUuid(dto.actual_employee_id);
     return this.records.record(id, user.tenant_id, dto.asset_id, {
       actual_location_id: dto.actual_location_id,
       actual_quantity: dto.actual_quantity,
@@ -91,18 +104,24 @@ export class InventoryController {
   @Get('cycles/:id/records')
   @RequirePermission('inventory.view')
   listRecords(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.records.listByCycle(id, user.tenant_id);
   }
 
   @Patch('records/:id')
   @RequirePermission('inventory.execute')
   updateRecord(@Param('id') id: string, @Body() dto: UpdateRecordDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    assertOptionalUuid(dto.actual_location_id);
+    assertOptionalUuid(dto.actual_status_id);
+    assertOptionalUuid(dto.actual_employee_id);
     return this.records.update(id, user.tenant_id, dto, user.sub);
   }
 
   @Patch('records/:id/verify')
   @RequirePermission('inventory.verify')
   verify(@Param('id') id: string, @Body() dto: VerifyRecordDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.records.verify(id, user.tenant_id, dto.verified, user.sub);
   }
 }

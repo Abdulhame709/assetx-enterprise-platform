@@ -11,6 +11,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import { CreateLocationDto, UpdateLocationDto } from '../dto/master-data.dto';
 
 @Controller('locations')
@@ -21,6 +22,7 @@ export class LocationController {
   @Post()
   @RequirePermission('location.create')
   create(@Body() dto: CreateLocationDto, @CurrentUser() user: RequestUser) {
+    assertOptionalUuid(dto.parent_id);
     return this.locations.create({ tenant_id: user.tenant_id, ...dto });
   }
 
@@ -33,18 +35,21 @@ export class LocationController {
   @Get(':id')
   @RequirePermission('location.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.locations.getById(id, user.tenant_id);
   }
 
   @Patch(':id')
   @RequirePermission('location.update')
   update(@Param('id') id: string, @Body() dto: UpdateLocationDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.locations.update(id, user.tenant_id, dto);
   }
 
   @Delete(':id')
   @RequirePermission('location.delete')
   remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.locations.softDelete(id, user.tenant_id).then(() => ({ message: 'deleted' }));
   }
 }

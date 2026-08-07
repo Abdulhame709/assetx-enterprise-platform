@@ -15,6 +15,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
+import { assertUuid } from '../../common/utils/uuid';
 
 @Controller('notifications')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
@@ -45,6 +46,7 @@ export class NotificationController {
   @Patch(':id/read')
   @RequirePermission('notification.view')
   markRead(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
     return this.notifications.markAsRead(user.tenant_id, user.sub, id);
   }
 
