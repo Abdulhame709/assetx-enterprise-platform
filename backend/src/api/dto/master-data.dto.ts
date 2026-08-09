@@ -24,6 +24,16 @@ export interface UpdateCategoryDto {
   parent_id?: string;
 }
 
+// Status (asset status master data — existing `statuses` table; no migration)
+export interface CreateStatusDto {
+  name: string;
+  color?: string;
+}
+export interface UpdateStatusDto {
+  name?: string;
+  color?: string;
+}
+
 // Model
 export interface CreateModelDto {
   category_id?: string;

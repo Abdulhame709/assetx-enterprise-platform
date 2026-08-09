@@ -35,6 +35,9 @@ import { LocationController } from './api/locations/location.controller';
 import { CategoryService } from './application/category.service';
 import { CategoryRepository } from './infrastructure/repositories/category.repository';
 import { CategoryController } from './api/categories/category.controller';
+import { StatusService } from './application/status.service';
+import { StatusRepository } from './infrastructure/repositories/status.repository';
+import { StatusController } from './api/statuses/status.controller';
 import { ModelService } from './application/model.service';
 import { ModelRepository } from './infrastructure/repositories/model.repository';
 import { ModelController } from './api/models/model.controller';
@@ -113,6 +116,7 @@ import {
   ASSET_PORT,
   LOCATION_PORT,
   CATEGORY_PORT,
+  STATUS_PORT,
   MODEL_PORT,
   EMPLOYEE_PORT,
   CYCLE_PORT,
@@ -169,6 +173,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     LocationService,
     { provide: CATEGORY_PORT, useClass: CategoryRepository },
     CategoryService,
+    { provide: STATUS_PORT, useClass: StatusRepository },
+    StatusService,
     { provide: MODEL_PORT, useClass: ModelRepository },
     ModelService,
     { provide: EMPLOYEE_PORT, useClass: EmployeeRepository },
@@ -262,6 +268,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
   controllers: [
     AuthController, UsersController, TenantController, AssetController, AssetAnalyticsController, LifecycleController,
     LocationController, CategoryController, ModelController, EmployeeController,
+    StatusController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
     NotificationController, ExportController, SearchController, SavedSearchController,
   ],
