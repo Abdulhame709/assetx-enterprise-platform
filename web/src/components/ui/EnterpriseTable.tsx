@@ -135,14 +135,14 @@ export function EnterpriseTable<T>({
                 onChange={(e) => onSearch?.(e.target.value)}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="ax-input w-56 py-1.5 ps-8"
+                className="ax-input w-full py-1.5 ps-8 sm:w-56"
               />
             </div>
           )}
           {selectable && selectedKeys && selectedKeys.length > 0 && (
             <span className="text-sm text-ink-muted">{selectedKeys.length} selected</span>
           )}
-          <div className="ms-auto flex items-center gap-2">
+          <div className="ms-auto flex flex-wrap items-center gap-2 max-sm:w-full">
             {toolbarActions}
             {exportable && onExport && (
               <Button variant="secondary" size="sm" onClick={onExport}>

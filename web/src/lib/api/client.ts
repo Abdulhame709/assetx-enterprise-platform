@@ -71,9 +71,20 @@ export async function apiFetch<T = unknown>(
     let message = res.statusText;
     let code: string | undefined;
     try {
-      const data = (await res.json()) as { message?: string; error?: string; code?: string };
-      message = data.message ?? data.error ?? res.statusText;
-      code = data.code;
+      const data = (await res.json()) as {
+        message?: string;
+        error?: string | { code?: string; message?: string };
+        code?: string;
+      };
+      // Backend error envelope: { data:null, error:{ code, message } }
+      const errPayload = data?.error;
+      if (typeof errPayload === 'object' && errPayload !== null) {
+        code = errPayload.code;
+        message = errPayload.message ?? res.statusText;
+      } else {
+        message = data.message ?? errPayload ?? res.statusText;
+        code = data.code;
+      }
     } catch {
       /* non-json error body */
     }

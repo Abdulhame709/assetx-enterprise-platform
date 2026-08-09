@@ -1,0 +1,52 @@
+/**
+ * Reference data API layer — shared lookup/master-data fetchers used by
+ * asset forms, filters and master-data screens (real backend only).
+ * Raw responses are normalized here; pages never see backend variance.
+ */
+import { http } from '@/lib/api/client';
+
+export interface ReferenceStatus { id: string; name: string; color: string | null; }
+export interface ReferenceEmployee { id: string; name: string; department: string | null; }
+export interface ReferenceModel { id: string; name: string; category_id: string | null; }
+
+function asArray(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) return raw as Record<string, unknown>[];
+  const o = raw as { items?: unknown[]; data?: unknown[] } | null;
+  const list = o?.items ?? o?.data ?? [];
+  return Array.isArray(list) ? (list as Record<string, unknown>[]) : [];
+}
+
+export async function getStatuses(): Promise<ReferenceStatus[]> {
+  const raw = await http.get<unknown>('/statuses');
+  return asArray(raw)
+    .map((s) => ({ id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null }))
+    .filter((s) => s.id !== '');
+}
+
+export async function createStatus(input: { name: string; color?: string }): Promise<ReferenceStatus> {
+  const raw = await http.post<unknown>('/statuses', input);
+  const s = (raw ?? {}) as Record<string, unknown>;
+  return { id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null };
+}
+
+export async function getEmployees(): Promise<ReferenceEmployee[]> {
+  const raw = await http.get<unknown>('/employees');
+  return asArray(raw)
+    .map((e) => ({
+      id: String(e.id ?? ''),
+      name: String(e.name ?? ''),
+      department: e.department != null ? String(e.department) : null,
+    }))
+    .filter((e) => e.id !== '');
+}
+
+export async function getModels(): Promise<ReferenceModel[]> {
+  const raw = await http.get<unknown>('/models');
+  return asArray(raw)
+    .map((m) => ({
+      id: String(m.id ?? ''),
+      name: String(m.name ?? ''),
+      category_id: m.category_id != null ? String(m.category_id) : null,
+    }))
+    .filter((m) => m.id !== '');
+}

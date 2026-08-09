@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { Download, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EnterpriseTable, EColumn } from '@/components/ui/EnterpriseTable';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useAssetList } from '@/features/assets/use-assets';
@@ -15,25 +15,57 @@ import { AssetSummary } from '@/features/assets/types';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { getCategories } from '@/features/assets/api';
+import { getCategories, disposeAsset, downloadAssetExport, AssetDetail } from '@/features/assets/api';
+import { getLocationsTree } from '@/features/assets/components/reference-selects';
+import { getStatuses, ReferenceStatus } from '@/features/reference/api';
+import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
 import { formatCurrency } from '@/lib/format';
+import { humanError } from '@/lib/api/errors';
 
 export default function AssetsPage() {
   const [q, setQ] = useState('');
   const [category, setCategory] = useState<string | null>(null);
+  const [location, setLocation] = useState<string | null>(null);
+  const [statusId, setStatusId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState('full_asset_code');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [selected, setSelected] = useState<string[]>([]);
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
-  const { data, status, error, reload } = useAssetList({ q, category_id: category ?? undefined, page, limit: 20 });
+  const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
+  const [statuses, setStatuses] = useState<ReferenceStatus[]>([]);
+  const [formOpen, setFormOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [disposing, setDisposing] = useState(false);
+  const { data, status, error, reload } = useAssetList({
+    q,
+    category_id: category ?? undefined,
+    location_id: location ?? undefined,
+    status_id: statusId ?? undefined,
+    page,
+    limit: 20,
+  });
   const toast = useToast();
   const { confirm } = useConfirm();
 
-  useEffect(() => { void getCategories().then(setCategories).catch(() => undefined); }, []);
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => undefined);
+    getLocationsTree().then(setLocations).catch(() => undefined);
+    getStatuses().then(setStatuses).catch(() => undefined);
+  }, []);
+
+  const statusName = (id: string | null): string => statuses.find((s) => s.id === id)?.name ?? '—';
+  const statusTone = (id: string | null): BadgeTone => {
+    const color = statuses.find((s) => s.id === id)?.color?.toLowerCase();
+    if (!color) return 'neutral';
+    if (['#27ae60', '#2ecc71'].includes(color)) return 'success';
+    if (['#e67e22', '#f39c12'].includes(color)) return 'warning';
+    if (['#e74c3c', '#c0392b', '#8e44ad'].includes(color)) return 'danger';
+    return 'neutral';
+  };
 
   const columns: EColumn<AssetSummary>[] = [
-    { key: 'full_asset_code', header: 'Code', width: '130px', sortable: true },
+    { key: 'full_asset_code', header: 'Code', width: '150px', sortable: true },
     {
       key: 'name', header: 'Asset', sortable: true,
       render: (r) => (
@@ -42,27 +74,61 @@ export default function AssetsPage() {
     },
     { key: 'location_id', header: 'Location', render: (r) => r._locationName ?? '—' },
     { key: 'employee_id', header: 'Custodian', render: (r) => r._employeeName ?? '—' },
+    {
+      key: 'status_id', header: 'Status',
+      render: (r) =>
+        r.status_id ? <Badge tone={statusTone(r.status_id)}>{statusName(r.status_id)}</Badge> :
+          (r.is_active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Inactive</Badge>),
+    },
     { key: 'quantity', header: 'Qty', align: 'center', render: (r) => <span className="text-ink-muted">{r.quantity}</span> },
     {
       key: 'purchase_price', header: 'Value', align: 'right', sortable: true,
       accessor: (r) => Number(r.purchase_price || 0),
       render: (r) => formatCurrency(r.purchase_price),
     },
-    {
-      key: 'is_active', header: 'Status', align: 'center',
-      render: (r) => r.is_active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Inactive</Badge>,
-    },
   ];
+
+  const onCreate = async (asset: AssetDetail) => {
+    toast.success('Asset created', `${asset.name} · code ${asset.full_asset_code}`);
+    setSelected([]);
+    reload();
+  };
+
+  const onExport = async () => {
+    setExporting(true);
+    try {
+      await downloadAssetExport('csv');
+      toast.success('Export downloaded', 'Your CSV file was generated from live data.');
+    } catch (err) {
+      toast.error('Export failed', humanError(err));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const onDisposeSelected = async () => {
     if (selected.length === 0) return;
     const ok = await confirm({
-      title: `Dispose ${selected.length} asset(s)`,
-      message: 'This will permanently dispose the selected assets. This action cannot be undone.',
+      title: `Request disposal for ${selected.length} asset(s)`,
+      message: 'One disposal movement will be created per asset. Assets are deactivated only after each movement is approved.',
       tone: 'danger',
-      confirmLabel: 'Dispose',
+      confirmLabel: 'Create disposal requests',
     });
-    if (ok) { toast.warning('Dispose', 'Bulk workflow not connected yet.'); setSelected([]); }
+    if (!ok) return;
+    setDisposing(true);
+    const results = await Promise.allSettled(selected.map((id) => disposeAsset(id)));
+    setDisposing(false);
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    if (succeeded > 0) {
+      toast.success('Disposal requests created', `${succeeded} movement(s) are now pending approval.`);
+    }
+    if (failed > 0) {
+      const firstError = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
+      toast.error('Some requests failed', failed === 1 ? humanError(firstError?.reason) : `${failed} requests failed.`);
+    }
+    setSelected([]);
+    reload();
   };
 
   return (
@@ -72,8 +138,13 @@ export default function AssetsPage() {
         subtitle={`${data?.total?.toLocaleString() ?? '—'} assets`}
         actions={
           <div className="flex items-center gap-2">
+            <PermissionGate permission={PERMISSIONS.EXPORT_ASSETS}>
+              <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}>
+                <Download className="h-4 w-4" /> Export
+              </Button>
+            </PermissionGate>
             <PermissionGate permission={PERMISSIONS.ASSET_CREATE}>
-              <Button variant="primary" size="sm" onClick={() => toast.info('New asset', 'Create workflow not connected yet.')}>
+              <Button variant="primary" size="sm" onClick={() => setFormOpen(true)}>
                 <Plus className="h-4 w-4" /> New Asset
               </Button>
             </PermissionGate>
@@ -88,7 +159,7 @@ export default function AssetsPage() {
             rows={data?.items ?? []}
             rowKey={(r) => r.id}
             loading={status === 'loading'}
-            error={error}
+            error={error ? humanError(error) : null}
             onRetry={reload}
             page={page}
             pageSize={20}
@@ -100,24 +171,44 @@ export default function AssetsPage() {
             searchable
             searchValue={q}
             onSearch={(v) => { setQ(v); setPage(1); }}
-            exportable
-            onExport={() => toast.info('Export', 'Export workflow not connected yet.')}
             selectable
             selectedKeys={selected}
             onSelectionChange={setSelected}
             defaultHiddenColumns={['quantity']}
             toolbarActions={
               <>
-                <div className="w-40">
+                <div className="w-full sm:w-44">
                   <SearchableSelect
                     options={categories}
                     value={category}
                     onChange={(v) => { setCategory(v); setPage(1); }}
-                    placeholder="Category"
+                    placeholder="Type"
                   />
                 </div>
-                <PermissionGate permission={PERMISSIONS.ASSET_DISPOSE}>
-                  <Button variant="danger" size="sm" disabled={selected.length === 0} onClick={() => void onDisposeSelected()}>
+                <div className="w-full sm:w-52">
+                  <SearchableSelect
+                    options={locations}
+                    value={location}
+                    onChange={(v) => { setLocation(v); setPage(1); }}
+                    placeholder="Location"
+                  />
+                </div>
+                <div className="w-full sm:w-44">
+                  <SearchableSelect
+                    options={statuses.map((s) => ({ value: s.id, label: s.name }))}
+                    value={statusId}
+                    onChange={(v) => { setStatusId(v); setPage(1); }}
+                    placeholder="Status"
+                  />
+                </div>
+                <PermissionGate permission={PERMISSIONS.MOVEMENT_CREATE}>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    disabled={selected.length === 0}
+                    loading={disposing}
+                    onClick={() => void onDisposeSelected()}
+                  >
                     <Trash2 className="h-3.5 w-3.5" /> Dispose ({selected.length})
                   </Button>
                 </PermissionGate>
@@ -126,6 +217,15 @@ export default function AssetsPage() {
           />
         </CardBody>
       </Card>
+
+      {formOpen && (
+        <AssetFormModal
+          open
+          mode="create"
+          onClose={() => setFormOpen(false)}
+          onSaved={(asset) => void onCreate(asset)}
+        />
+      )}
     </div>
   );
 }

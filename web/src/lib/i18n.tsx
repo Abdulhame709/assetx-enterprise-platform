@@ -37,7 +37,26 @@ const LABELS: Record<string, string> = {
   pending: 'Pending',
   approved: 'Approved',
   rejected: 'Rejected',
-  // audit actions
+  // inventory cycle status
+  new: 'New',
+  in_progress: 'In Progress',
+  closed: 'Closed',
+  // inventory record result (computed, ADL-006) — `transferred` shared with lifecycle states above
+  matched: 'Matched',
+  deficit: 'Deficit',
+  surplus: 'Surplus',
+  missing: 'Missing',
+  not_inventoried: 'Not Counted',
+  // audit actions (full backend catalog — audit-events.ts)
+  AUTH_LOGIN_SUCCESS: 'Sign-in succeeded',
+  AUTH_LOGIN_FAILED: 'Sign-in failed',
+  AUTH_LOGOUT: 'Signed out',
+  AUTH_TOKEN_REFRESH: 'Token refreshed',
+  AUTH_REGISTER: 'Account registered',
+  AUTH_PASSWORD_RESET: 'Password reset',
+  PERMISSION_GRANTED: 'Permission granted',
+  PERMISSION_DENIED: 'Permission denied',
+  PERMISSION_CHANGED: 'Permission changed',
   ASSET_CREATED: 'Asset created',
   ASSET_UPDATED: 'Asset updated',
   ASSET_STATUS_CHANGED: 'Asset status changed',
@@ -45,9 +64,19 @@ const LABELS: Record<string, string> = {
   MOVEMENT_CREATED: 'Movement created',
   MOVEMENT_APPROVED: 'Movement approved',
   MOVEMENT_REJECTED: 'Movement rejected',
+  INVENTORY_CREATED: 'Inventory cycle created',
+  INVENTORY_STARTED: 'Inventory cycle started',
+  INVENTORY_CLOSED: 'Inventory cycle closed',
+  INVENTORY_RECORD_VERIFIED: 'Inventory record verified',
+  COMPLIANCE_WARNING: 'Compliance warning',
   EXPORT_STARTED: 'Export started',
   EXPORT_COMPLETED: 'Export completed',
   EXPORT_FAILED: 'Export failed',
+  SAVED_SEARCH_CREATED: 'Saved search created',
+  SAVED_SEARCH_UPDATED: 'Saved search updated',
+  SAVED_SEARCH_DELETED: 'Saved search deleted',
+  SAVED_SEARCH_EXECUTED: 'Saved search executed',
+  API_REQUEST: 'API request',
   // misc
   Uncategorized: 'Uncategorized',
   Unassigned: 'Unassigned',
@@ -68,6 +97,12 @@ const I18nContext = createContext<I18nContextValue | null>(null);
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('en');
 
+  // Restore the saved preference once on mount. NOTE (P1 fix UX-03): this
+  // effect must be the ONLY storage reader-at-boot and nothing may write
+  // LANG_KEY during mount — otherwise the mount-effect ordering race
+  // (write of the default 'en' before the restore re-reads) destroys the
+  // saved preference. Persistence therefore happens only in setLocale
+  // (an explicit user gesture), never in the dir-sync effect.
   useEffect(() => {
     const saved = (localStorage.getItem(LANG_KEY) as Locale) || 'en';
     setLocaleState(saved === 'ar' ? 'ar' : 'en');
@@ -76,10 +111,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = locale;
-    try { localStorage.setItem(LANG_KEY, locale); } catch { /* ignore */ }
   }, [locale]);
 
-  const setLocale = useCallback((l: Locale) => setLocaleState(l), []);
+  const setLocale = useCallback((l: Locale) => {
+    try { localStorage.setItem(LANG_KEY, l); } catch { /* ignore */ }
+    setLocaleState(l);
+  }, []);
   const dir: Direction = locale === 'ar' ? 'rtl' : 'ltr';
 
   const label = useCallback((code?: string | null): string => {

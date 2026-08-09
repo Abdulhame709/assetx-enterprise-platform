@@ -90,11 +90,16 @@ describe('mapLifecycleTransitions', () => {
 
 describe('mapAnalytics', () => {
   it('maps buckets and counts', () => {
-    const a = mapAnalytics({ total_assets: '10', active_assets: 8, by_category: [{ name: 'IT', count: '5' }], by_location: [], lifecycle_distribution: [{ name: 'active', count: 8 }] });
+    const a = mapAnalytics({ total_assets: '10', active_assets: 8, by_category: [{ name: 'IT', count: '5' }], by_location: [], lifecycle_distribution: [{ state: 'active', count: 8 }] });
     expect(a.total_assets).toBe(10);
     expect(a.active_assets).toBe(8);
     expect(a.by_category[0].count).toBe(5);
     expect(a.lifecycle_distribution[0].state).toBe('active');
+  });
+  it('lifecycle buckets read backend `state` (live contract) with `name` fallback', () => {
+    const a = mapAnalytics({ lifecycle_distribution: [{ state: 'assigned', count: 11 }, { name: 'registered', count: 5 }] });
+    expect(a.lifecycle_distribution.map((b) => b.state)).toEqual(['assigned', 'registered']);
+    expect(a.lifecycle_distribution.every((b) => b.state !== '')).toBe(true);
   });
   it('empty -> zeroed', () => {
     const a = mapAnalytics(undefined);

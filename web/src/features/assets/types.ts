@@ -40,6 +40,8 @@ export interface AssetQuery {
   q?: string;
   category_id?: string;
   location_id?: string;
+  status_id?: string;
+  employee_id?: string;
   page?: number;
   limit?: number;
 }

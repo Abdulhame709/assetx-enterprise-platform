@@ -2,20 +2,24 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { ArrowLeft, Pencil, Trash2, ArrowRightLeft, Wrench } from 'lucide-react';
+import { ArrowLeft, Pencil, Trash2, ArrowRightLeft, Archive } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Badge, LifecycleStateBadge, BadgeTone } from '@/components/ui/Badge';
 import { Timeline } from '@/components/ui/Timeline';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
+import { usePublishCrumbTitle } from '@/lib/crumb-title';
 import { EmptyState } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/Tabs';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { useAsset360, Asset360Data } from '@/features/assets/use-assets';
 import { useI18n, relativeTime } from '@/lib/i18n';
-import { humanId, formatCurrency } from '@/lib/format';
-import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { humanId, formatCurrency, formatDate } from '@/lib/format';
 import { useToast } from '@/components/ui/Toast';
+import { useCan } from '@/lib/auth/session-context';
+import { PERMISSIONS } from '@/lib/auth/permissions';
+import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
+import { TransferAssetModal, EndOfLifeModal } from '@/features/assets/components/AssetLifecycleModals';
 
 type Tab = 'overview' | 'lifecycle' | 'movements' | 'maintenance' | 'audit' | 'attachments';
 
@@ -35,20 +39,14 @@ const TONE: Record<string, BadgeTone> = {
 export default function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<Tab>('overview');
+  const [editOpen, setEditOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [endOfLife, setEndOfLife] = useState<'dispose' | 'retire' | null>(null);
   const state = useAsset360(id);
+  usePublishCrumbTitle(state.data?.detail?.name ?? null);
   const { label } = useI18n();
-  const { confirm } = useConfirm();
   const toast = useToast();
-
-  const onDispose = async () => {
-    const ok = await confirm({
-      title: 'Dispose asset',
-      message: 'This will permanently dispose the asset. This action cannot be undone.',
-      tone: 'danger',
-      confirmLabel: 'Dispose',
-    });
-    if (ok) toast.info('Dispose', 'Workflow not connected yet.');
-  };
+  const can = useCan();
 
   return (
     <div>
@@ -71,7 +69,8 @@ export default function AssetDetailPage() {
                     <Meta label="Category" value={detail._categoryName ?? '—'} />
                     <Meta label="Location" value={detail._locationName ?? '—'} />
                     <Meta label="Custodian" value={detail._employeeName ?? '—'} />
-                    <Meta label="Status" value={detail.is_active ? 'Active' : 'Inactive'} />
+                    <Meta label="Status" value={detail.status_id ? (detail._statusName ?? '—') : (detail.is_active ? 'Active' : 'Inactive')} />
+                    {detail.is_active === false ? <Badge tone="danger">Deactivated</Badge> : null}
                     <Meta label="Value" value={formatCurrency(detail.purchase_price)} />
                   </div>
                 </div>
@@ -85,10 +84,18 @@ export default function AssetDetailPage() {
                   <ActionMenu
                     triggerLabel="Asset actions"
                     items={[
-                      { key: 'edit', label: 'Edit', icon: Pencil, onClick: () => toast.info('Edit', 'Edit workflow not connected yet.') },
-                      { key: 'transfer', label: 'Transfer', icon: ArrowRightLeft, onClick: () => toast.info('Transfer', 'Transfer workflow not connected yet.') },
-                      { key: 'maintenance', label: 'Start maintenance', icon: Wrench, onClick: () => toast.info('Maintenance', 'Awaiting L5.') },
-                      { key: 'dispose', label: 'Dispose', icon: Trash2, tone: 'danger', onClick: () => void onDispose() },
+                      ...(can(PERMISSIONS.ASSET_UPDATE)
+                        ? [{ key: 'edit', label: 'Edit', icon: Pencil, onClick: () => setEditOpen(true) }]
+                        : []),
+                      ...(can(PERMISSIONS.ASSET_TRANSFER)
+                        ? [{ key: 'transfer', label: 'Transfer', icon: ArrowRightLeft, onClick: () => setTransferOpen(true) }]
+                        : []),
+                      ...(can(PERMISSIONS.MOVEMENT_CREATE)
+                        ? [
+                            { key: 'retire', label: 'Retire', icon: Archive, onClick: () => setEndOfLife('retire') },
+                            { key: 'dispose', label: 'Dispose', icon: Trash2, tone: 'danger' as const, onClick: () => setEndOfLife('dispose') },
+                          ]
+                        : []),
                     ]}
                   />
                 </div>
@@ -118,7 +125,7 @@ export default function AssetDetailPage() {
                   <CardHeader title="Financial Information" />
                   <CardBody>
                     <InfoRow label="Purchase price" value={formatCurrency(detail.purchase_price)} />
-                    <InfoRow label="Purchase date" value={detail.purchase_date ?? '—'} />
+                    <InfoRow label="Purchase date" value={formatDate(detail.purchase_date)} />
                     <InfoRow label="Depreciation rate" value={detail.depreciation_rate ? `${detail.depreciation_rate}%` : '—'} />
                     <InfoRow label="Useful life" value={detail.useful_life ? `${detail.useful_life} years` : '—'} />
                   </CardBody>
@@ -185,11 +192,11 @@ export default function AssetDetailPage() {
             {/* Maintenance */}
             {tab === 'maintenance' && (
               <Card>
-                <CardHeader title="Maintenance" subtitle="Placeholder — awaits L5 Maintenance Automation" />
+                <CardHeader title="Maintenance" subtitle="No maintenance API on the backend yet" />
                 <CardBody>
                   <EmptyState
                     title="Maintenance history"
-                    description="Maintenance automation is planned for a later phase (L5). No maintenance records yet."
+                    description="The maintenance module (orders API) is not implemented on the backend yet; records will appear here once it ships."
                   />
                 </CardBody>
               </Card>
@@ -223,11 +230,53 @@ export default function AssetDetailPage() {
             {/* Attachments */}
             {tab === 'attachments' && (
               <Card>
-                <CardHeader title="Attachments" subtitle="UI placeholder — storage not yet implemented" />
+                <CardHeader title="Attachments" subtitle="No storage backend yet" />
                 <CardBody>
-                  <EmptyState title="No attachments" description="Attachment storage is planned for a later phase." />
+                  <EmptyState title="No attachments" description="Attachment storage (object storage) is not implemented on the backend yet." />
                 </CardBody>
               </Card>
+            )}
+
+            {/* Real action modals */}
+            {editOpen && (
+              <AssetFormModal
+                open
+                mode="edit"
+                asset={detail}
+                onClose={() => setEditOpen(false)}
+                onSaved={(a) => {
+                  toast.success('Asset updated', a.name);
+                  setEditOpen(false);
+                  state.reload();
+                }}
+              />
+            )}
+            {transferOpen && (
+              <TransferAssetModal
+                open
+                assetId={detail.id}
+                assetName={detail.name}
+                onClose={() => setTransferOpen(false)}
+                onDone={(message) => {
+                  toast.success('Transfer requested', message);
+                  setTransferOpen(false);
+                  state.reload();
+                }}
+              />
+            )}
+            {endOfLife && (
+              <EndOfLifeModal
+                open
+                kind={endOfLife}
+                assetId={detail.id}
+                assetName={detail.name}
+                onClose={() => setEndOfLife(null)}
+                onDone={(message) => {
+                  toast.success(endOfLife === 'dispose' ? 'Disposal requested' : 'Retirement requested', message);
+                  setEndOfLife(null);
+                  state.reload();
+                }}
+              />
             )}
           </>
         )}

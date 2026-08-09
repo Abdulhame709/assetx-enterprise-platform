@@ -4,6 +4,7 @@ import { useEffect, useState, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from '@/lib/auth/session-context';
 import { Sidebar } from './Sidebar';
+import { CrumbTitleProvider } from '@/lib/crumb-title';
 import { Topbar } from './Topbar';
 import { Spinner } from '@/components/ui/Button';
 import { SkipLink } from '@/components/ui/SkipLink';
@@ -28,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }
 
   return (
+    <CrumbTitleProvider>
     <div className="flex h-screen overflow-hidden bg-surface">
       <SkipLink />
       {/* Desktop sidebar */}
@@ -51,5 +53,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
       </div>
     </div>
+    </CrumbTitleProvider>
   );
 }

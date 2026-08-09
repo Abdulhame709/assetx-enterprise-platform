@@ -15,6 +15,8 @@ import {
   ScrollText,
   Search,
   Settings,
+  MapPin,
+  Tags,
   type LucideIcon,
 } from 'lucide-react';
 import { PERMISSIONS, PermissionKey } from './auth/permissions';
@@ -48,6 +50,13 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: 'Inventory', href: '/inventory', icon: ClipboardList, permission: PERMISSIONS.INVENTORY_VIEW },
       { label: 'Maintenance', href: '/maintenance', icon: Wrench, permission: PERMISSIONS.MAINTENANCE_VIEW },
       { label: 'Movements', href: '/movements', icon: ArrowLeftRight, permission: PERMISSIONS.MOVEMENT_VIEW },
+    ],
+  },
+  {
+    title: 'Master Data',
+    items: [
+      { label: 'Locations', href: '/locations', icon: MapPin, permission: PERMISSIONS.LOCATION_VIEW },
+      { label: 'Asset Types', href: '/asset-types', icon: Tags, permission: PERMISSIONS.CATEGORY_VIEW },
     ],
   },
   {

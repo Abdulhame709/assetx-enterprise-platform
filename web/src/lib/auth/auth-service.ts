@@ -8,7 +8,7 @@ import { http } from '@/lib/api/client';
 import { BackendLoginResponse, buildSessionFromLogin, buildSessionFromPayload, decodeJwtPayload, isTokenExpired } from './auth-adapter';
 import { tokenStore } from './token-store';
 
-export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? 'mock';
+export const AUTH_MODE = process.env.NEXT_PUBLIC_AUTH_MODE ?? 'real';
 
 export async function realLogin(input: LoginInput): Promise<Session> {
   const res = await http.post<BackendLoginResponse>('/auth/login', { username: input.username, password: input.password });

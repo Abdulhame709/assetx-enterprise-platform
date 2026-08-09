@@ -196,9 +196,12 @@ export function mapAnalytics(raw: unknown): AssetAnalyticsSummary {
     archived_assets: toNumber(r.archived_assets, 0),
     by_category: toBuckets(r.by_category),
     by_location: toBuckets(r.by_location),
-    lifecycle_distribution: toBuckets(r.lifecycle_distribution).map((b) => ({
-      state: b.name,
-      count: b.count,
+    lifecycle_distribution: normalizeList<Record<string, unknown>>(r.lifecycle_distribution).map((b) => ({
+      // Backend contract sends `state` per bucket (verified live); `name`
+      // kept as a defensive fallback only (P2 fix UX-05 — previously the
+      // undefined state yielded empty legend labels + duplicate React keys).
+      state: String(b.state ?? b.name ?? ''),
+      count: toNumber(b.count, 0),
     })),
   };
 }

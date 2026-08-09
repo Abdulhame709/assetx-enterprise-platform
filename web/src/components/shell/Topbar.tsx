@@ -7,6 +7,7 @@ import { TenantBadge } from './TenantBadge';
 import { UserMenu } from './UserMenu';
 import { Breadcrumbs, Crumb } from '@/components/ui/Breadcrumbs';
 import { usePathname } from 'next/navigation';
+import { useCrumbTitle } from '@/lib/crumb-title';
 
 interface TopbarProps {
   onMenu?: () => void;
@@ -15,18 +16,27 @@ interface TopbarProps {
 /** Derive breadcrumb crumb from the current path (feature-aware). */
 function useBreadcrumbs(): Crumb[] {
   const pathname = usePathname();
+  const entityTitle = useCrumbTitle();
   const segs = pathname.split('/').filter(Boolean);
   const map: Record<string, string> = {
     dashboard: 'Dashboard', assets: 'Assets', inventory: 'Inventory',
     maintenance: 'Maintenance', movements: 'Movements', reports: 'Reports',
     analytics: 'Analytics', compliance: 'Compliance', audit: 'Audit',
     search: 'Search', administration: 'Administration',
+    locations: 'Locations', 'asset-types': 'Asset Types',
   };
   const crumbs: Crumb[] = [{ label: 'Home', href: '/dashboard' }];
   let acc = '';
-  segs.forEach((s) => {
+  segs.forEach((s, idx) => {
     acc += `/${s}`;
-    const label = map[s] ?? (s.length > 12 ? `${s.slice(0, 12)}…` : s);
+    // P2 fix UX-07: never leak raw entity ids into crumbs; known sections get
+    // human labels, an id segment shows the page-published entity title when
+    // the loaded data provides one (never invented — 'Details' otherwise).
+    const isIdSegment = /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(s);
+    const label = map[s]
+      ?? (isIdSegment
+        ? (idx === segs.length - 1 && entityTitle ? entityTitle : 'Details')
+        : s.length > 12 ? `${s.slice(0, 12)}…` : s);
     crumbs.push({ label, href: acc });
   });
   return crumbs;
