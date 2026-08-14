@@ -1,0 +1,63 @@
+name: AssetX CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend build and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: NODE_OPTIONS=--experimental-vm-modules npm run test:unit -- --runInBand
+      - name: Integration tests
+        run: NODE_OPTIONS=--experimental-vm-modules npm run test:integration -- --runInBand
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+  web:
+    name: Web build and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type-safe production build
+        run: npm run build
+      - name: Unit tests
+        run: npm test -- --run
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
