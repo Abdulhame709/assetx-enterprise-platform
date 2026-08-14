@@ -20,6 +20,6 @@ export interface RefreshRequestDto {
 }
 
 export interface ResetPasswordRequestDto {
-  username: string;
+  resetToken: string;
   newPassword: string;
 }

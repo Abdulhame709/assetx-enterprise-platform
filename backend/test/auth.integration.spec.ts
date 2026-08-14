@@ -78,8 +78,20 @@ describe('AuthService — integration (real PostgreSQL)', () => {
     await expect(h.auth.refresh(login.refreshToken)).rejects.toThrow('SESSION_REVOKED');
   });
 
-  it('completePasswordReset — changes the password', async () => {
-    await h.auth.completePasswordReset('alice', 'NewStrongPass456');
+  it('completePasswordReset — requires a valid one-time token', async () => {
+    await expect(
+      h.auth.completePasswordReset('not-a-valid-reset-token', 'NewStrongPass456'),
+    ).rejects.toThrow('PASSWORD_RESET_TOKEN_INVALID');
+
+    const issued = await h.auth.requestPasswordReset('alice');
+    expect(issued.resetToken).toBeDefined();
+
+    await h.auth.completePasswordReset(issued.resetToken!, 'NewStrongPass456');
+    // A token cannot be redeemed twice.
+    await expect(
+      h.auth.completePasswordReset(issued.resetToken!, 'AnotherStrongPass789'),
+    ).rejects.toThrow('PASSWORD_RESET_TOKEN_INVALID');
+
     // old password fails
     await expect(h.auth.login({ username: 'alice', password: 'StrongPass123' })).rejects.toThrow(
       'INVALID_CREDENTIALS',

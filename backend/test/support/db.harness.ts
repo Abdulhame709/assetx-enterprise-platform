@@ -148,6 +148,8 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(migration002);
   const migration003 = fs.readFileSync(path.join(migrationsDir, '003_saved_searches.sql'), 'utf8');
   await db.exec(migration003);
+  const migration004 = fs.readFileSync(path.join(migrationsDir, '004_password_reset_tokens.sql'), 'utf8');
+  await db.exec(migration004);
 
   // Create a non-owner 'authenticated' role and grant table access.
   // This mirrors the Supabase production model where the API connects as a
@@ -162,7 +164,7 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
-      user_roles, user_permissions, asset_categories, asset_models, statuses,
+      user_roles, user_permissions, password_reset_tokens, asset_categories, asset_models, statuses,
       locations, assets, asset_movements, maintenance_orders, inventory_cycles,
       inventory_team, inventory_records, audit_events, notification_templates,
       notifications, settings TO authenticated;

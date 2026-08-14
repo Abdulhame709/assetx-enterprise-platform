@@ -13,6 +13,7 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   USER_NOT_FOUND:          { http: 404, code: 'NOT_FOUND' },
   TENANT_NOT_FOUND:        { http: 404, code: 'NOT_FOUND' },
   SESSION_REVOKED:         { http: 401, code: 'UNAUTHORIZED' },
+  PASSWORD_RESET_TOKEN_INVALID: { http: 400, code: 'VALIDATION_ERROR' },
   // Asset module
   ASSET_NOT_FOUND:         { http: 404, code: 'NOT_FOUND' },
   ASSET_NAME_INVALID:      { http: 400, code: 'VALIDATION_ERROR' },

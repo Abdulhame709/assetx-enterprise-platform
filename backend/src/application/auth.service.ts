@@ -11,7 +11,13 @@ import { DATABASE_PORT, PASSWORD_HASHER, TOKEN_MANAGER } from '../core/ports/tok
 import { getPermissionVersion } from '../bootstrap/permission-version';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
-import { randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
+
+const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
+
+function hashResetToken(token: string): string {
+  return createHash('sha256').update(token, 'utf8').digest('hex');
+}
 
 export interface RegisterInput {
   tenantId: string;
@@ -137,24 +143,82 @@ export class AuthService {
     return { accessToken: this.tokens.signAccessToken(clean) };
   }
 
-  /** Reset password (foundation: generates a reset token stub; full flow wires email). */
+  /**
+   * Request a password reset. The raw token is returned only for the local/test
+   * adapter; production delivery must send it through a trusted email provider.
+   * Only the SHA-256 digest is persisted, so a database read cannot redeem it.
+   */
   async requestPasswordReset(username: string): Promise<{ message: string; resetToken?: string }> {
     const user = await this.users.findByUsername(username);
     if (!user) {
-      // do not reveal whether the user exists (security best practice)
+      // Do not reveal whether the user exists (security best practice).
       return { message: 'if_user_exists_reset_sent' };
     }
-    const resetToken = randomUUID();
-    // In production this token is emailed; here it is returned for the integration test.
+
+    const resetToken = randomBytes(32).toString('base64url');
+    const tokenHash = hashResetToken(resetToken);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MS).toISOString();
+
+    // Invalidate previously issued tokens for this user before issuing a new one.
+    await this.db.query(
+      `UPDATE password_reset_tokens SET used_at = now()
+       WHERE user_id = $1 AND used_at IS NULL`,
+      [user.id],
+    );
+    await this.db.query(
+      `INSERT INTO password_reset_tokens (user_id, tenant_id, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4)`,
+      [user.id, user.tenant_id, tokenHash, expiresAt],
+    );
+
     return { message: 'if_user_exists_reset_sent', resetToken };
   }
 
-  async completePasswordReset(username: string, newPassword: string): Promise<void> {
+  /** Complete a reset with a valid, unexpired, one-time token. */
+  async completePasswordReset(resetToken: string, newPassword: string): Promise<void> {
     this.validatePassword(newPassword);
-    const user = await this.users.findByUsername(username);
-    if (!user) throw new Error('USER_NOT_FOUND');
-    const hash = await this.hasher.hash(newPassword);
-    await this.db.query(`UPDATE users SET password_hash = $2, updated_at = now() WHERE id = $1`, [user.id, hash]);
+    if (!resetToken || resetToken.length < 40) {
+      throw new Error('PASSWORD_RESET_TOKEN_INVALID');
+    }
+
+    const tokenHash = hashResetToken(resetToken);
+    const { rows } = await this.db.query<{
+      id: string;
+      user_id: string;
+      tenant_id: string;
+    }>(
+      `UPDATE password_reset_tokens
+       SET used_at = now()
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > now()
+       RETURNING id, user_id, tenant_id`,
+      [tokenHash],
+    );
+    const token = rows[0];
+    if (!token) throw new Error('PASSWORD_RESET_TOKEN_INVALID');
+
+    await this.db.setTenant(token.tenant_id);
+    const user = await this.users.findById(token.user_id);
+    if (!user || !user.is_active) throw new Error('PASSWORD_RESET_TOKEN_INVALID');
+
+    const passwordHash = await this.hasher.hash(newPassword);
+    await this.db.query(
+      `UPDATE users SET password_hash = $2, updated_at = now()
+       WHERE id = $1 AND tenant_id = $3`,
+      [user.id, passwordHash, token.tenant_id],
+    );
+
+    // A password reset invalidates every existing in-memory session for this user.
+    for (const [sessionId, sessionUserId] of this.sessions.entries()) {
+      if (sessionUserId === user.id) this.sessions.delete(sessionId);
+    }
+
+    await this.audit.log({
+      tenant_id: token.tenant_id,
+      userId: user.id,
+      action: AUDIT_EVENTS.AUTH_PASSWORD_RESET,
+      entity: 'auth',
+      entityId: user.id,
+    }).catch(() => undefined);
   }
 
   getSessionUser(sessionId: string): string | null {
