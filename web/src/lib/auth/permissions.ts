@@ -48,6 +48,9 @@ export const PERMISSIONS = {
   EMPLOYEE_VIEW: 'employee.view',
   EMPLOYEE_CREATE: 'employee.create',
   EMPLOYEE_UPDATE: 'employee.update',
+  NOTIFICATION_VIEW: 'notification.view',
+  IMPORT_VIEW: 'import.view',
+  SETTINGS_VIEW: 'settings.view',
   EXPORT_ASSETS: 'export.assets',
   EXPORT_MOVEMENTS: 'export.movements',
 } as const;

@@ -17,6 +17,9 @@ import {
   Settings,
   MapPin,
   Tags,
+  Users,
+  Bell,
+  Upload,
   type LucideIcon,
 } from 'lucide-react';
 import { PERMISSIONS, PermissionKey } from './auth/permissions';
@@ -37,41 +40,45 @@ export interface NavSection {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    title: 'Overview',
+    title: 'nav.overview',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD_VIEW },
-      { label: 'Search', href: '/search', icon: Search, permission: PERMISSIONS.SEARCH_VIEW },
+      { label: 'nav.dashboard', href: '/dashboard', icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD_VIEW },
+      { label: 'nav.search', href: '/search', icon: Search, permission: PERMISSIONS.SEARCH_VIEW },
+      { label: 'nav.notifications', href: '/notifications', icon: Bell, permission: PERMISSIONS.NOTIFICATION_VIEW },
     ],
   },
   {
-    title: 'Operations',
+    title: 'nav.operations',
     items: [
-      { label: 'Assets', href: '/assets', icon: Boxes, permission: PERMISSIONS.ASSET_VIEW },
-      { label: 'Inventory', href: '/inventory', icon: ClipboardList, permission: PERMISSIONS.INVENTORY_VIEW },
-      { label: 'Maintenance', href: '/maintenance', icon: Wrench, permission: PERMISSIONS.MAINTENANCE_VIEW },
-      { label: 'Movements', href: '/movements', icon: ArrowLeftRight, permission: PERMISSIONS.MOVEMENT_VIEW },
+      { label: 'nav.assets', href: '/assets', icon: Boxes, permission: PERMISSIONS.ASSET_VIEW },
+      { label: 'nav.inventory', href: '/inventory', icon: ClipboardList, permission: PERMISSIONS.INVENTORY_VIEW },
+      { label: 'nav.maintenance', href: '/maintenance', icon: Wrench, permission: PERMISSIONS.MAINTENANCE_VIEW },
+      { label: 'nav.movements', href: '/movements', icon: ArrowLeftRight, permission: PERMISSIONS.MOVEMENT_VIEW },
+      { label: 'nav.importData', href: '/import-data', icon: Upload, permission: PERMISSIONS.ADMIN_ROLE },
     ],
   },
   {
-    title: 'Master Data',
+    title: 'nav.masterData',
     items: [
-      { label: 'Locations', href: '/locations', icon: MapPin, permission: PERMISSIONS.LOCATION_VIEW },
-      { label: 'Asset Types', href: '/asset-types', icon: Tags, permission: PERMISSIONS.CATEGORY_VIEW },
+      { label: 'nav.locations', href: '/locations', icon: MapPin, permission: PERMISSIONS.LOCATION_VIEW },
+      { label: 'nav.assetTypes', href: '/asset-types', icon: Tags, permission: PERMISSIONS.CATEGORY_VIEW },
+      { label: 'nav.employees', href: '/employees', icon: Users, permission: PERMISSIONS.EMPLOYEE_VIEW },
     ],
   },
   {
-    title: 'Insights',
+    title: 'nav.insights',
     items: [
-      { label: 'Reports', href: '/reports', icon: FileText, permission: PERMISSIONS.REPORT_VIEW },
-      { label: 'Analytics', href: '/analytics', icon: BarChart3, permission: PERMISSIONS.ANALYTICS_VIEW },
-      { label: 'Compliance', href: '/compliance', icon: ShieldCheck, permission: PERMISSIONS.COMPLIANCE_VIEW },
-      { label: 'Audit', href: '/audit', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
+      { label: 'nav.reports', href: '/reports', icon: FileText, permission: PERMISSIONS.REPORT_VIEW },
+      { label: 'nav.analytics', href: '/analytics', icon: BarChart3, permission: PERMISSIONS.ANALYTICS_VIEW },
+      { label: 'nav.compliance', href: '/compliance', icon: ShieldCheck, permission: PERMISSIONS.COMPLIANCE_VIEW },
+      { label: 'nav.audit', href: '/audit', icon: ScrollText, permission: PERMISSIONS.AUDIT_VIEW },
     ],
   },
   {
-    title: 'Administration',
+    title: 'nav.administration',
     items: [
-      { label: 'Administration', href: '/administration', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
+      { label: 'nav.administrationPage', href: '/administration', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
+      { label: 'nav.settings', href: '/settings', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
     ],
   },
 ];

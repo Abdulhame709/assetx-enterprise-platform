@@ -6,10 +6,12 @@ import { Boxes } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { visibleSections } from '@/lib/navigation';
 import { useSession } from '@/lib/auth/session-context';
+import { useI18n } from '@/lib/i18n';
 
 /** Sidebar — permission-driven navigation. */
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { can } = useSession();
+  const { t } = useI18n();
   const pathname = usePathname();
   const sections = visibleSections(can);
 
@@ -22,11 +24,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <span className="text-lg font-semibold text-ink">AssetX</span>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3" aria-label="Main navigation">
+      <nav className="flex-1 overflow-y-auto p-3" aria-label={t('common.mainNavigation')}>
         {sections.map((section) => (
           <div key={section.title} className="mb-4">
             <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
-              {section.title}
+              {t(section.title)}
             </p>
             <ul className="space-y-0.5">
               {section.items.map((item) => {
@@ -43,7 +45,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       )}
                     >
                       <Icon className="h-4 w-4" />
-                      {item.label}
+                      {t(item.label)}
                     </Link>
                   </li>
                 );

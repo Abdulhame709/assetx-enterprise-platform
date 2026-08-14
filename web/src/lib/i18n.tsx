@@ -15,6 +15,65 @@ export type Direction = 'ltr' | 'rtl';
 
 const LANG_KEY = 'assetx.lang.v1';
 
+/** Static UI dictionary. Keys are shared by the shell and feature pages. */
+const TRANSLATIONS: Record<Locale, Record<string, string>> = {
+  en: {
+    'nav.overview': 'Overview', 'nav.operations': 'Operations', 'nav.masterData': 'Master Data',
+    'nav.insights': 'Insights', 'nav.administration': 'Administration', 'nav.dashboard': 'Dashboard',
+    'nav.search': 'Search', 'nav.assets': 'Assets', 'nav.inventory': 'Inventory', 'nav.maintenance': 'Maintenance',
+    'nav.movements': 'Movements', 'nav.employees': 'Employees', 'nav.notifications': 'Notifications',
+    'nav.locations': 'Locations', 'nav.assetTypes': 'Asset Types', 'nav.reports': 'Reports',
+    'nav.analytics': 'Analytics', 'nav.compliance': 'Compliance', 'nav.audit': 'Audit',
+    'nav.importData': 'Import Data', 'nav.settings': 'Settings', 'nav.administrationPage': 'Administration',
+    'common.home': 'Home', 'common.details': 'Details', 'common.tenant': 'Tenant',
+    'common.mainNavigation': 'Main navigation', 'common.toggleNavigation': 'Toggle navigation',
+    'common.toggleLanguage': 'Toggle language', 'common.arabic': 'العربية', 'common.english': 'English',
+    'common.notifications': 'Notifications', 'common.unreadNotifications': 'unread notifications',
+    'placeholder.planned': 'This module is planned for a later phase.',
+    'placeholder.employeeSubtitle': 'Employee custody and assignment records.',
+    'placeholder.notificationSubtitle': 'System notifications and alerts.',
+    'placeholder.settingsSubtitle': 'Tenant settings and preferences.',
+    'placeholder.importSubtitle': 'Import assets and master data with reconciliation.',
+  },
+  ar: {
+    'nav.overview': 'نظرة عامة', 'nav.operations': 'العمليات', 'nav.masterData': 'البيانات الأساسية',
+    'nav.insights': 'الرؤى والتقارير', 'nav.administration': 'الإدارة', 'nav.dashboard': 'لوحة التحكم',
+    'nav.search': 'البحث', 'nav.assets': 'الأصول', 'nav.inventory': 'الجرد', 'nav.maintenance': 'الصيانة',
+    'nav.movements': 'الحركات', 'nav.employees': 'الموظفون', 'nav.notifications': 'الإشعارات',
+    'nav.locations': 'المواقع', 'nav.assetTypes': 'أنواع الأصول', 'nav.reports': 'التقارير',
+    'nav.analytics': 'التحليلات', 'nav.compliance': 'الامتثال', 'nav.audit': 'سجل التدقيق',
+    'nav.importData': 'استيراد البيانات', 'nav.settings': 'الإعدادات', 'nav.administrationPage': 'الإدارة',
+    'common.home': 'الرئيسية', 'common.details': 'التفاصيل', 'common.tenant': 'الجهة',
+    'common.mainNavigation': 'التنقل الرئيسي', 'common.toggleNavigation': 'تبديل قائمة التنقل',
+    'common.toggleLanguage': 'تبديل اللغة', 'common.arabic': 'العربية', 'common.english': 'English',
+    'common.notifications': 'الإشعارات', 'common.unreadNotifications': 'إشعارات غير مقروءة',
+    'placeholder.planned': 'هذه الوحدة مدرجة ضمن مرحلة لاحقة.',
+    'placeholder.employeeSubtitle': 'سجلات الموظفين والعهد والتكليفات.',
+    'placeholder.notificationSubtitle': 'إشعارات النظام والتنبيهات.',
+    'placeholder.settingsSubtitle': 'إعدادات الجهة والتفضيلات.',
+    'placeholder.importSubtitle': 'استيراد الأصول والبيانات الأساسية مع المطابقة.',
+  },
+};
+
+const AR_LABELS: Record<string, string> = {
+  draft: 'مسودة', registered: 'مسجل', active: 'نشط', assigned: 'مُسلَّم', in_maintenance: 'قيد الصيانة',
+  transferred: 'منقول', disposed: 'مستبعد', archived: 'مؤرشف', transfer: 'نقل', assignment: 'تسليم عهدة',
+  return: 'إرجاع', maintenance_return: 'إرجاع من الصيانة', disposal: 'استبعاد', retirement: 'إحالة للتقاعد',
+  pending: 'معلّق', approved: 'معتمد', rejected: 'مرفوض', new: 'جديد', in_progress: 'قيد التنفيذ', closed: 'مغلق',
+  matched: 'مطابق', deficit: 'عجز', surplus: 'زيادة', missing: 'مفقود', not_inventoried: 'لم يُجرد',
+  Uncategorized: 'غير مصنف', Unassigned: 'غير مسند', AUTH_LOGIN_SUCCESS: 'تم تسجيل الدخول',
+  AUTH_LOGIN_FAILED: 'فشل تسجيل الدخول', AUTH_LOGOUT: 'تم تسجيل الخروج', AUTH_TOKEN_REFRESH: 'تم تحديث الرمز',
+  AUTH_REGISTER: 'تم تسجيل الحساب', AUTH_PASSWORD_RESET: 'إعادة تعيين كلمة المرور', PERMISSION_GRANTED: 'تم منح الصلاحية',
+  PERMISSION_DENIED: 'رُفضت الصلاحية', PERMISSION_CHANGED: 'تم تغيير الصلاحية', ASSET_CREATED: 'تم إنشاء الأصل',
+  ASSET_UPDATED: 'تم تحديث الأصل', ASSET_STATUS_CHANGED: 'تم تغيير حالة الأصل', ASSET_DELETED: 'تم حذف الأصل',
+  MOVEMENT_CREATED: 'تم إنشاء الحركة', MOVEMENT_APPROVED: 'تم اعتماد الحركة', MOVEMENT_REJECTED: 'تم رفض الحركة',
+  INVENTORY_CREATED: 'تم إنشاء دورة الجرد', INVENTORY_STARTED: 'بدأت دورة الجرد', INVENTORY_CLOSED: 'أُغلقت دورة الجرد',
+  INVENTORY_RECORD_VERIFIED: 'تم اعتماد سجل الجرد', COMPLIANCE_WARNING: 'تحذير امتثال', EXPORT_STARTED: 'بدأ التصدير',
+  EXPORT_COMPLETED: 'اكتمل التصدير', EXPORT_FAILED: 'فشل التصدير', SAVED_SEARCH_CREATED: 'تم إنشاء البحث المحفوظ',
+  SAVED_SEARCH_UPDATED: 'تم تحديث البحث المحفوظ', SAVED_SEARCH_DELETED: 'تم حذف البحث المحفوظ',
+  SAVED_SEARCH_EXECUTED: 'تم تنفيذ البحث المحفوظ', API_REQUEST: 'طلب API',
+};
+
 /** Human labels for internal codes (presentation-only; backend untouched). */
 const LABELS: Record<string, string> = {
   // lifecycle states
@@ -86,6 +145,8 @@ interface I18nContextValue {
   locale: Locale;
   dir: Direction;
   setLocale: (l: Locale) => void;
+  /** Translate a stable UI key, falling back to English or the supplied fallback. */
+  t: (key: string, fallback?: string) => string;
   /** human label for an internal code, falling back to the raw value */
   label: (code?: string | null) => string;
   /** whether a code is known/humanized (vs raw internal) */
@@ -119,16 +180,20 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
   const dir: Direction = locale === 'ar' ? 'rtl' : 'ltr';
 
+  const t = useCallback((key: string, fallback?: string): string => {
+    return TRANSLATIONS[locale][key] ?? TRANSLATIONS.en[key] ?? fallback ?? key;
+  }, [locale]);
+
   const label = useCallback((code?: string | null): string => {
     if (!code) return '—';
-    return LABELS[code] ?? code;
-  }, []);
+    return locale === 'ar' ? (AR_LABELS[code] ?? LABELS[code] ?? code) : (LABELS[code] ?? code);
+  }, [locale]);
 
   const isKnownLabel = useCallback((code?: string | null): boolean => !!code && code in LABELS, []);
 
   const value = useMemo(
-    () => ({ locale, dir, setLocale, label, isKnownLabel }),
-    [locale, dir, setLocale, label, isKnownLabel],
+    () => ({ locale, dir, setLocale, t, label, isKnownLabel }),
+    [locale, dir, setLocale, t, label, isKnownLabel],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
