@@ -13,7 +13,9 @@ import { ReportTemplateService } from './application/report-template.service';
 import { AnalyticsService } from './application/analytics.service';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDatabase } from './infrastructure/database/pglite.database';
+import { PostgresDatabase } from './infrastructure/database/postgres.database';
 import { initLocalDatabase } from './bootstrap/db-init';
+import { applyMigrations } from './bootstrap/migrations';
 import { BcryptHasher } from './infrastructure/auth/bcrypt.hasher';
 import { JwtTokenManager } from './infrastructure/auth/jwt.token-manager';
 import { UserRepository } from './infrastructure/repositories/user.repository';
@@ -26,6 +28,7 @@ import { TenantController } from './api/tenant/tenant.controller';
 import { AuthGuard } from './common/guards/auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { PermissionGuard } from './common/guards/permission.guard';
+import { DatabasePort } from './core/ports/database.port';
 import { AssetService } from './application/asset.service';
 import { AssetRepository } from './infrastructure/repositories/asset.repository';
 import { AssetController } from './api/assets/asset.controller';
@@ -114,7 +117,6 @@ import {
   DATABASE_PORT,
   PASSWORD_HASHER,
   TOKEN_MANAGER,
-  PGLITE,
   ASSET_PORT,
   LOCATION_PORT,
   CATEGORY_PORT,
@@ -148,18 +150,21 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
   ],
   providers: [
     {
-      provide: PGLITE,
-      useFactory: async () => {
-        const pg = new PGlite();
-        // Apply the verified migration + demo tenant so the runtime is connected to a real schema.
-        await initLocalDatabase(pg);
-        return pg;
-      },
-    },
-    {
       provide: DATABASE_PORT,
-      useFactory: (pg: PGlite) => new PGliteDatabase(pg),
-      inject: [PGLITE],
+      useFactory: async (): Promise<DatabasePort> => {
+        if (process.env.DATABASE_URL) {
+          const db = new PostgresDatabase(process.env.DATABASE_URL);
+          if (process.env.RUN_MIGRATIONS === 'true') {
+            await applyMigrations(db);
+          }
+          return db;
+        }
+
+        const pg = new PGlite();
+        // PGlite remains the local/test fallback; production must set DATABASE_URL.
+        await initLocalDatabase(pg);
+        return new PGliteDatabase(pg);
+      },
     },
     { provide: PASSWORD_HASHER, useClass: BcryptHasher },
     {
@@ -260,7 +265,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     ReportingService,
     {
       provide: AuthGuard,
-      useFactory: (tokens: JwtTokenManager, db: PGliteDatabase) => new AuthGuard(tokens, db),
+      useFactory: (tokens: JwtTokenManager, db: DatabasePort) => new AuthGuard(tokens, db),
       inject: [TOKEN_MANAGER, DATABASE_PORT],
     },
     RolesGuard,

@@ -25,9 +25,13 @@
 
 الأولوية الحالية هي **P0**، وليس إضافة خصائص جديدة. تم تنفيذ أول خطوة في هذه المرحلة داخل النسخة المستقلة: أصبح reset-password يعتمد على رمز عشوائي عالي entropy، ويُخزن hash فقط، وينتهي بعد 15 دقيقة، ويُستهلك مرة واحدة، ويُبطل جلسات المستخدم، مع migration واختبار تكامل جديد. كما أُضيفت إعدادات Jest المنفصلة للوحدة والتكامل لإصلاح أوامر الاختبار المعلنة.
 
-تم تنفيذ `ValidationPipe` مع DTOs مصادقة قابلة للتحقق، وإجبار إعدادات الأسرار وCORS في production، وإضافة rate limiting وHelmet، وترقية Next.js إلى 14.2.35. نجحت اختبارات الوحدة 7/7، واختبارات المصادقة 9/9، وبناء الواجهة واختباراتها 51/51. ما زال فحص الاعتماديات يحتاج معالجة بقية التحذيرات العالية قبل إعلان P0 مغلقاً بالكامل.
+تم تنفيذ `ValidationPipe` مع DTOs مصادقة قابلة للتحقق، وإجبار إعدادات الأسرار وCORS في production، وإضافة rate limiting وHelmet، وترقية Next.js إلى 16.3.1 وReact إلى 19.2.8. نجحت اختبارات الوحدة 7/7، واختبارات المصادقة 9/9، وبناء الواجهة واختباراتها 51/51، وفحص اعتماديات الواجهة 0 vulnerabilities. وبعد إضافة PostgreSQL adapter، أصبح backend audit بلا high أو critical vulnerabilities، مع بقاء moderate/low items موثقة تحتاج تحديثات لاحقة.
 
-الخطوة التالية هي استكمال فحص الاعتماديات، ثم الانتقال إلى CI/CD وDocker وبيئة staging قبل أي عمل كبير على الموبايل.
+تم أيضاً تنفيذ مسار PostgreSQL/Supabase عبر `DATABASE_URL` مع migration runner قابل لإعادة التشغيل، مع إبقاء PGlite كمسار local/test. وأصبح auth lookup قبل الجلسة يمر عبر دالة `SECURITY DEFINER` محدودة، بينما تخزن refresh sessions في PostgreSQL وتستخدم rotation ذرياً يمنع replay عبر أكثر من instance. ما زالت الحاجة قائمة لاختبار PostgreSQL فعلي وتهيئة staging وbackup/restore قبل إغلاق P0 إنتاجياً.
+
+تمت إضافة baseline لبيئة staging عبر Docker Compose وملف env نموذجي وrunbook، مع health checks، وmigration job منفصل يرفض التشغيل دون `DATABASE_URL`. كما تم تثبيت auth lookup الآمن وpersistent refresh rotation واختبار replay محلياً.
+
+الخطوة التالية هي إجراء migration rehearsal على PostgreSQL حقيقي، ثم cross-tenant tests وbackup/restore smoke test، وبعدها الانتقال إلى خصائص المنتج وتصميم تطبيق الموبايل.
 
 ## قرار تطبيق الموبايل
 

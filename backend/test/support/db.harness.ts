@@ -161,6 +161,12 @@ export async function createHarness(): Promise<Harness> {
       END IF;
     END $$;
   `);
+  const migration005 = fs.readFileSync(path.join(migrationsDir, '005_authenticate_user_function.sql'), 'utf8');
+  await db.exec(migration005);
+  const migration006 = fs.readFileSync(path.join(migrationsDir, '006_auth_sessions.sql'), 'utf8');
+  await db.exec(migration006);
+  const migration007 = fs.readFileSync(path.join(migrationsDir, '007_runtime_grants.sql'), 'utf8');
+  await db.exec(migration007);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
@@ -168,6 +174,8 @@ export async function createHarness(): Promise<Harness> {
       locations, assets, asset_movements, maintenance_orders, inventory_cycles,
       inventory_team, inventory_records, audit_events, notification_templates,
       notifications, settings TO authenticated;
+    GRANT EXECUTE ON FUNCTION authenticate_user(text) TO authenticated;
+    GRANT SELECT, INSERT, UPDATE, DELETE ON auth_sessions TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;
   `);
 

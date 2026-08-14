@@ -21,9 +21,13 @@ export class UserRepository {
     return rows[0];
   }
 
+  /**
+   * Pre-session lookup: the database function exposes only auth fields and
+   * bypasses tenant RLS in a tightly scoped SECURITY DEFINER context.
+   */
   async findByUsername(username: string): Promise<User | null> {
     const { rows } = await this.db.query<User>(
-      `SELECT * FROM users WHERE username = $1 LIMIT 1`,
+      `SELECT * FROM authenticate_user($1)`,
       [username],
     );
     return rows[0] ?? null;

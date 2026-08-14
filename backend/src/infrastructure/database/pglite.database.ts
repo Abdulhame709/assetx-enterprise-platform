@@ -31,6 +31,9 @@ export class PGliteDatabase implements DatabasePort {
   }
 
   async setTenant(tenantId: string | null): Promise<void> {
+    if (tenantId !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId)) {
+      throw new Error('INVALID_UUID');
+    }
     // Act as the non-owner 'authenticated' role so RLS applies (owner bypasses RLS).
     try {
       await this.client.exec(`SET ROLE authenticated;`);
@@ -38,13 +41,10 @@ export class PGliteDatabase implements DatabasePort {
       // role may not exist (harness/owner context); fall through to RLS via session.
     }
     // RLS resolves via current_tenant_id() → current_setting('app.tenant_id')
-    if (tenantId) {
-      await this.client.exec(
-        `SELECT set_config('app.tenant_id', '${tenantId}', false);`,
-      );
-    } else {
-      await this.client.exec(`SELECT set_config('app.tenant_id', '', false);`);
-    }
+    await this.client.query(
+      `SELECT set_config('app.tenant_id', $1, false);`,
+      [tenantId ?? ''],
+    );
   }
 
   async close(): Promise<void> {

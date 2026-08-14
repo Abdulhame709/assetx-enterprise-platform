@@ -64,12 +64,18 @@ describe('AuthService — integration (real PostgreSQL)', () => {
     expect(user!.last_login).not.toBeNull();
   });
 
-  it('refresh — issues a new access token from a valid refresh token', async () => {
+  it('refresh — rotates the refresh token and rejects replay', async () => {
     const login = await h.auth.login({ username: 'alice', password: 'StrongPass123' });
     const refreshed = await h.auth.refresh(login.refreshToken);
     expect(refreshed.accessToken).toBeDefined();
+    expect(refreshed.refreshToken).toBeDefined();
+    expect(refreshed.refreshToken).not.toBe(login.refreshToken);
     const decoded = h.tokens.verifyAccessToken(refreshed.accessToken);
     expect(decoded.sub).toBe(login.user.id);
+
+    await expect(h.auth.refresh(login.refreshToken)).rejects.toThrow('SESSION_REVOKED');
+    const secondRefresh = await h.auth.refresh(refreshed.refreshToken);
+    expect(secondRefresh.accessToken).toBeDefined();
   });
 
   it('refresh — rejects a revoked session', async () => {
