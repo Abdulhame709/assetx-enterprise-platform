@@ -6,6 +6,7 @@
  * required, quantity > 0, price ≥ 0, depreciation 0–100.
  */
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select, Textarea } from '@/components/ui/form';
@@ -15,6 +16,7 @@ import { getStatuses, getEmployees, getModels, ReferenceEmployee, ReferenceModel
 import { getCategories } from '../api';
 import { getLocationsTree } from './reference-selects';
 import { createAsset, updateAsset, AssetDetail } from '../api';
+import { useI18n } from '@/lib/i18n';
 
 interface Props {
   open: boolean;
@@ -57,11 +59,14 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [createdAsset, setCreatedAsset] = useState<AssetDetail | null>(null);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!open) return;
     setErrors({});
     setServerError(null);
+    setCreatedAsset(null);
     if (mode === 'edit' && asset) {
       setForm({
         name: asset.name ?? '',
@@ -89,8 +94,8 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
       getStatuses().then(setStatuses),
       getEmployees().then(setEmployees),
       getModels().then(setModels),
-    ]).catch((err) => setRefError(humanError(err, 'Could not load form options.')));
-  }, [open, mode, asset]);
+    ]).catch((err) => setRefError(humanError(err, t('assetForm.formLoadFailed'))));
+  }, [open, mode, asset, t]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
@@ -102,16 +107,16 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
 
   const validate = (): boolean => {
     const e: Record<string, string> = {};
-    if (form.name.trim().length < 2) e.name = 'Name must be at least 2 characters.';
+    if (form.name.trim().length < 2) e.name = t('assetForm.nameTooShort');
     if (mode === 'create') {
-      if (!form.category_id) e.category_id = 'Choose an asset type.';
-      if (!form.location_id) e.location_id = 'Choose a location.';
-      if (!form.status_id) e.status_id = 'Choose a status.';
+      if (!form.category_id) e.category_id = t('assetForm.chooseAssetType');
+      if (!form.location_id) e.location_id = t('assetForm.chooseAssetLocation');
+      if (!form.status_id) e.status_id = t('assetForm.chooseAssetStatus');
     }
     const qty = Number(form.quantity);
-    if (!form.quantity || Number.isNaN(qty) || qty <= 0) e.quantity = 'Quantity must be a number greater than zero.';
+    if (!form.quantity || Number.isNaN(qty) || qty <= 0) e.quantity = t('assetForm.quantityInvalid');
     if (form.purchase_price && (Number.isNaN(Number(form.purchase_price)) || Number(form.purchase_price) < 0)) {
-      e.purchase_price = 'Price cannot be negative.';
+      e.purchase_price = t('assetForm.priceNegative');
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -139,6 +144,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
           barcode: form.barcode.trim() || undefined,
           notes: form.notes.trim() || undefined,
         });
+        setCreatedAsset(asset);
         onSaved(asset, 'created');
       } else if (asset) {
         const updated = await updateAsset(asset.id, {
@@ -154,7 +160,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
         });
         onSaved(updated, 'updated');
       }
-      onClose();
+      if (mode === 'edit') onClose();
     } catch (err) {
       setServerError(humanError(err));
     } finally {
@@ -162,81 +168,112 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
     }
   };
 
+  const startAnother = () => {
+    setCreatedAsset(null);
+    setForm(EMPTY);
+    setErrors({});
+    setServerError(null);
+  };
+
   return (
-    <Modal open={open} onClose={onClose} title={mode === 'create' ? 'New Asset' : `Edit ${asset?.name ?? 'asset'}`} size="lg">
+    <Modal open={open} onClose={onClose} title={createdAsset ? t('assetForm.createdTitle') : mode === 'create' ? t('assetForm.newTitle') : `${t('assetForm.editTitle')} ${asset?.name ?? ''}`} size="lg">
+      {createdAsset ? (
+        <div className="space-y-5">
+          <div className="rounded-xl border border-success/25 bg-success/10 p-4">
+            <p className="text-base font-semibold text-success">{createdAsset.name}</p>
+            <p className="mt-1 text-sm text-ink-muted">{t('assetForm.createdDescription')}</p>
+          </div>
+          <dl className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-line bg-surface-subtle p-3">
+              <dt className="text-xs font-medium text-ink-muted">{t('assetForm.fullCode')}</dt>
+              <dd className="mt-1 break-all font-mono text-sm font-semibold text-ink">{createdAsset.full_asset_code}</dd>
+            </div>
+            <div className="rounded-lg border border-line bg-surface-subtle p-3">
+              <dt className="text-xs font-medium text-ink-muted">{t('assetForm.baseCode')}</dt>
+              <dd className="mt-1 break-all font-mono text-sm font-semibold text-ink">{createdAsset.base_asset_code}</dd>
+            </div>
+          </dl>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={startAnother}>{t('assetForm.createAnother')}</Button>
+            <Link href={`/assets/${createdAsset.id}`} onClick={onClose} className="inline-flex items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand-strong">{t('assetForm.openAsset')}</Link>
+            <Button type="button" variant="primary" size="sm" onClick={onClose}>{t('assetForm.cancel')}</Button>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={submit} className="space-y-4">
         {refError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{refError}</p>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Asset name *" error={errors.name} className="sm:col-span-2">
-            <Input value={form.name} onChange={(e) => set('name', e.target.value)} autoFocus minLength={2} required placeholder="e.g. Laptop X4" />
+          <Field label={t('assetForm.assetName')} error={errors.name} className="sm:col-span-2">
+            <Input value={form.name} onChange={(e) => set('name', e.target.value)} autoFocus minLength={2} required placeholder={t('assetForm.exampleName')} />
           </Field>
-          <Field label="Asset type *" error={errors.category_id}>
+          <Field label={t('assetForm.assetType')} error={errors.category_id}>
             <SearchableSelect
               options={categories}
               value={form.category_id}
               onChange={(v) => { set('category_id', v); set('model_id', null); }}
-              placeholder="Choose type…"
+              placeholder={t('assetForm.chooseType')}
             />
           </Field>
-          <Field label="Model">
+          <Field label={t('assetForm.model')}>
             <SearchableSelect
               options={modelsForCategory.map((m) => ({ value: m.id, label: m.name }))}
               value={form.model_id}
               onChange={(v) => set('model_id', v)}
-              placeholder="Optional…"
+              placeholder={t('assetForm.optional')}
             />
           </Field>
-          <Field label="Location *" error={errors.location_id}>
-            <SearchableSelect options={locations} value={form.location_id} onChange={(v) => set('location_id', v)} placeholder="Choose location…" />
+          <Field label={t('assetForm.location')} error={errors.location_id}>
+            <SearchableSelect options={locations} value={form.location_id} onChange={(v) => set('location_id', v)} placeholder={t('assetForm.chooseLocation')} />
           </Field>
           {mode === 'create' && (
-            <Field label="Status *" error={errors.status_id}>
+            <Field label={t('assetForm.status')} error={errors.status_id}>
               <Select value={form.status_id} onChange={(e) => set('status_id', e.target.value)} required>
-                <option value="">Choose status…</option>
+                <option value="">{t('assetForm.chooseStatus')}</option>
                 {statuses.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
                 ))}
               </Select>
             </Field>
           )}
-          <Field label="Custodian (employee)">
+          <Field label={t('assetForm.custodian')}>
             <SearchableSelect
               options={employees.map((p) => ({ value: p.id, label: p.department ? `${p.name} · ${p.department}` : p.name }))}
               value={form.employee_id}
               onChange={(v) => set('employee_id', v)}
-              placeholder="Optional…"
+              placeholder={t('assetForm.optional')}
             />
           </Field>
-          <Field label="Quantity *" error={errors.quantity}>
+          <Field label={t('assetForm.quantity')} error={errors.quantity}>
             <Input type="number" min={1} step={1} value={form.quantity} onChange={(e) => set('quantity', e.target.value)} required />
           </Field>
-          <Field label="Purchase price" error={errors.purchase_price}>
+          <Field label={t('assetForm.purchasePrice')} error={errors.purchase_price}>
             <Input type="number" min={0} step="0.01" value={form.purchase_price} onChange={(e) => set('purchase_price', e.target.value)} placeholder="0.00" />
           </Field>
-          <Field label="Purchase date">
+          <Field label={t('assetForm.purchaseDate')}>
             <Input type="date" value={form.purchase_date} onChange={(e) => set('purchase_date', e.target.value)} />
           </Field>
-          <Field label="Serial number">
-            <Input value={form.serial_number} onChange={(e) => set('serial_number', e.target.value)} placeholder="Optional" />
+          <Field label={t('assetForm.serialNumber')}>
+            <Input value={form.serial_number} onChange={(e) => set('serial_number', e.target.value)} placeholder={t('assetForm.optional')} />
           </Field>
-          <Field label="Barcode">
-            <Input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} placeholder="Optional" />
+          <Field label={t('assetForm.barcode')}>
+            <Input value={form.barcode} onChange={(e) => set('barcode', e.target.value)} placeholder={t('assetForm.optional')} />
           </Field>
-          <Field label="Description" className="sm:col-span-2">
-            <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder="What is this asset?" />
+          <Field label={t('assetForm.description')} className="sm:col-span-2">
+            <Textarea value={form.description} onChange={(e) => set('description', e.target.value)} placeholder={t('assetForm.whatIsAsset')} />
           </Field>
-          <Field label="Notes" className="sm:col-span-2">
-            <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Internal notes (optional)" />
+          <Field label={t('assetForm.notes')} className="sm:col-span-2">
+            <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder={t('assetForm.internalNotes')} />
           </Field>
         </div>
         {serverError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{serverError}</p>}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetForm.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>
-            {mode === 'create' ? 'Create asset' : 'Save changes'}
+            {mode === 'create' ? t('assetForm.create') : t('assetForm.save')}
           </Button>
         </div>
       </form>
+      )}
     </Modal>
   );
 }

@@ -83,6 +83,14 @@ export class InventoryController {
     return this.results.getResults(id, user.tenant_id);
   }
 
+  /** Download a minimal cycle snapshot for the offline-first field mobile client. */
+  @Get('cycles/:id/mobile-snapshot')
+  @RequirePermission('inventory.view')
+  mobileSnapshot(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    return this.results.getMobileSnapshot(id, user.tenant_id);
+  }
+
   // ---- Records ----
   @Post('cycles/:id/records')
   @RequirePermission('inventory.execute')

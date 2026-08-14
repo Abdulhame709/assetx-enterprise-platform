@@ -102,6 +102,17 @@ describe('Inventory Core — integration (real PostgreSQL + RLS)', () => {
     expect(s.completion).toBe(100);
   });
 
+  it('Mobile snapshot — includes stable expected-location identity and display path', async () => {
+    const { cycle } = await h.cycles.create(h.tenantA, 2033, { all: true });
+    const snapshot = await h.inventoryResult.getMobileSnapshot(cycle.id, h.tenantA);
+    const record = snapshot.records.find((item) => item.asset_id === assetsInCycle[0]);
+    expect(record).toBeDefined();
+    expect(record!.expected_location_id).toBe(h.refA.location);
+    expect(record!.expected_location).toBeTruthy();
+    expect(record!.expected_location_path).toBeTruthy();
+    expect(record!.actual_location_id).toBeNull();
+  });
+
   it('Tenant isolation — cycle in A not visible from B', async () => {
     const { cycle } = await h.cycles.create(h.tenantA, 2040, { all: true });
     const fromB = await h.cycles.getById(cycle.id, h.tenantB);
