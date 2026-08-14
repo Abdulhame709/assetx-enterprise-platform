@@ -28,25 +28,25 @@ const CYCLE_TONE: Record<CycleStatus, BadgeTone> = {
   closed: 'success',
 };
 
-function formatDate(d: string | null): string {
-  return d ? new Date(d).toLocaleDateString() : '—';
+function formatDate(d: string | null, locale: string): string {
+  return d ? new Date(d).toLocaleDateString(locale) : '—';
 }
 
 export default function InventoryPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const state = useCycles();
   const toast = useToast();
-  const { label } = useI18n();
+  const { label, t, locale } = useI18n();
 
   return (
     <div>
       <PageHeader
-        title="Inventory Cycles"
-        subtitle={`${state.data?.length ?? 0} cycle(s)`}
+        title={t('inventory.cycle')}
+        subtitle={`${state.data?.length ?? 0} ${t('inventory.cycles')}`}
         actions={
           <PermissionGate permission={PERMISSIONS.INVENTORY_CREATE}>
             <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" /> New Cycle
+              <Plus className="h-4 w-4" /> {t('inventory.newCycle')}
             </Button>
           </PermissionGate>
         }
@@ -58,9 +58,9 @@ export default function InventoryPage() {
           {state.status === 'error' && <ErrorState message={humanError(state.error)} onRetry={state.reload} />}
           {state.status === 'success' && state.data && state.data.length === 0 && (
             <EmptyState
-              title="No inventory cycles yet"
-              description="Create a cycle to snapshot your active assets and start counting."
-              actionLabel="Create cycle"
+              title={t('inventory.noCycles')}
+              description={t('inventory.createCycleHint')}
+              actionLabel={t('inventory.createCycle')}
               onAction={() => setCreateOpen(true)}
             />
           )}
@@ -69,7 +69,7 @@ export default function InventoryPage() {
               {state.data.map(({ cycle, summary }) => {
                 const total = summary?.expected_assets ?? 0;
                 const done = summary?.inventoried ?? 0;
-                const verifiedText = summary ? `${done}/${total} counted · ${summary.completion}% complete` : 'summary unavailable';
+                const verifiedText = summary ? `${done}/${total} ${t('inventory.countedComplete')} ${summary.completion}%` : t('inventory.summaryUnavailable');
                 const pct = total > 0 ? Math.round((done / total) * 100) : 0;
                 return (
                   <div key={cycle.id} className="flex flex-wrap items-center gap-4 px-4 py-3 hover:bg-surface-muted/60">
@@ -78,12 +78,12 @@ export default function InventoryPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-ink">Cycle {cycle.year}</span>
+                        <span className="text-sm font-semibold text-ink">{t('inventory.cycle')} {cycle.year}</span>
                         <Badge tone={CYCLE_TONE[cycle.status]}>{label(cycle.status)}</Badge>
                         {cycle.status === 'closed' && <CheckCircle2 className="h-4 w-4 text-success" />}
                       </div>
                       <p className="mt-0.5 text-xs text-ink-faint">
-                        Started {formatDate(cycle.start_date)} · {cycle.end_date ? `Closed ${formatDate(cycle.end_date)}` : 'Not closed'}
+                        {cycle.start_date ? `${t('inventory.started')} ${formatDate(cycle.start_date, locale)}` : t('inventory.notStarted')} · {cycle.end_date ? `${t('inventory.closed')} ${formatDate(cycle.end_date, locale)}` : t('inventory.notClosed')}
                         {' · '}
                         <Link href={`/inventory/${cycle.id}`} className="text-brand hover:underline">{verifiedText}</Link>
                       </p>
@@ -101,7 +101,7 @@ export default function InventoryPage() {
                     )}
                     <Link href={`/inventory/${cycle.id}`}>
                       <Button variant="secondary" size="sm">
-                        Open <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
+                        {t('inventory.open')} <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
                       </Button>
                     </Link>
                   </div>
@@ -117,7 +117,7 @@ export default function InventoryPage() {
           open
           onClose={() => setCreateOpen(false)}
           onCreated={(cyc, snapshotCount) => {
-            toast.success('Cycle created', `Cycle ${cyc.year} — ${snapshotCount} asset(s) snapshotted.`);
+            toast.success(t('inventory.cycleCreated'), `${t('inventory.cycle')} ${cyc.year} — ${snapshotCount} ${t('inventory.snapshotted')}`);
             setCreateOpen(false);
             state.reload();
           }}
