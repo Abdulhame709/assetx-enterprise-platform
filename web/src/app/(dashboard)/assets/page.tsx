@@ -21,6 +21,7 @@ import { getStatuses, ReferenceStatus } from '@/features/reference/api';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
 import { formatCurrency } from '@/lib/format';
 import { humanError } from '@/lib/api/errors';
+import { useI18n } from '@/lib/i18n';
 
 export default function AssetsPage() {
   const [q, setQ] = useState('');
@@ -47,6 +48,7 @@ export default function AssetsPage() {
   });
   const toast = useToast();
   const { confirm } = useConfirm();
+  const { t } = useI18n();
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => undefined);
@@ -65,31 +67,31 @@ export default function AssetsPage() {
   };
 
   const columns: EColumn<AssetSummary>[] = [
-    { key: 'full_asset_code', header: 'Code', width: '150px', sortable: true },
+    { key: 'full_asset_code', header: t('common.code'), width: '150px', sortable: true },
     {
-      key: 'name', header: 'Asset', sortable: true,
+      key: 'name', header: t('common.name'), sortable: true,
       render: (r) => (
         <Link href={`/assets/${r.id}`} className="font-medium text-brand hover:underline">{r.name}</Link>
       ),
     },
-    { key: 'location_id', header: 'Location', render: (r) => r._locationName ?? '—' },
-    { key: 'employee_id', header: 'Custodian', render: (r) => r._employeeName ?? '—' },
+    { key: 'location_id', header: t('common.location'), render: (r) => r._locationName ?? '—' },
+    { key: 'employee_id', header: t('common.custodian'), render: (r) => r._employeeName ?? '—' },
     {
-      key: 'status_id', header: 'Status',
+      key: 'status_id', header: t('common.status'),
       render: (r) =>
         r.status_id ? <Badge tone={statusTone(r.status_id)}>{statusName(r.status_id)}</Badge> :
-          (r.is_active ? <Badge tone="success">Active</Badge> : <Badge tone="neutral">Inactive</Badge>),
+          (r.is_active ? <Badge tone="success">{t('common.active')}</Badge> : <Badge tone="neutral">{t('common.inactive')}</Badge>),
     },
-    { key: 'quantity', header: 'Qty', align: 'center', render: (r) => <span className="text-ink-muted">{r.quantity}</span> },
+    { key: 'quantity', header: t('common.quantity'), align: 'center', render: (r) => <span className="text-ink-muted">{r.quantity}</span> },
     {
-      key: 'purchase_price', header: 'Value', align: 'right', sortable: true,
+      key: 'purchase_price', header: t('common.value'), align: 'right', sortable: true,
       accessor: (r) => Number(r.purchase_price || 0),
       render: (r) => formatCurrency(r.purchase_price),
     },
   ];
 
   const onCreate = async (asset: AssetDetail) => {
-    toast.success('Asset created', `${asset.name} · code ${asset.full_asset_code}`);
+    toast.success(t('common.assetCreated'), `${asset.name} · ${t('common.code')} ${asset.full_asset_code}`);
     setSelected([]);
     reload();
   };
@@ -98,9 +100,9 @@ export default function AssetsPage() {
     setExporting(true);
     try {
       await downloadAssetExport('csv');
-      toast.success('Export downloaded', 'Your CSV file was generated from live data.');
+      toast.success(t('common.exportDownloaded'), t('common.exportLiveData'));
     } catch (err) {
-      toast.error('Export failed', humanError(err));
+      toast.error(t('common.exportFailed'), humanError(err));
     } finally {
       setExporting(false);
     }
@@ -121,11 +123,11 @@ export default function AssetsPage() {
     const succeeded = results.filter((r) => r.status === 'fulfilled').length;
     const failed = results.length - succeeded;
     if (succeeded > 0) {
-      toast.success('Disposal requests created', `${succeeded} movement(s) are now pending approval.`);
+      toast.success(t('common.disposalRequestsCreated'), `${succeeded} movement(s) are now pending approval.`);
     }
     if (failed > 0) {
       const firstError = results.find((r): r is PromiseRejectedResult => r.status === 'rejected');
-      toast.error('Some requests failed', failed === 1 ? humanError(firstError?.reason) : `${failed} requests failed.`);
+      toast.error(t('common.someRequestsFailed'), failed === 1 ? humanError(firstError?.reason) : `${failed} requests failed.`);
     }
     setSelected([]);
     reload();
@@ -134,18 +136,18 @@ export default function AssetsPage() {
   return (
     <div>
       <PageHeader
-        title="Assets"
-        subtitle={`${data?.total?.toLocaleString() ?? '—'} assets`}
+        title={t('nav.assets')}
+        subtitle={`${data?.total?.toLocaleString() ?? '—'} ${t('common.assets')}`}
         actions={
           <div className="flex items-center gap-2">
             <PermissionGate permission={PERMISSIONS.EXPORT_ASSETS}>
               <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}>
-                <Download className="h-4 w-4" /> Export
+                <Download className="h-4 w-4" /> {t('common.export')}
               </Button>
             </PermissionGate>
             <PermissionGate permission={PERMISSIONS.ASSET_CREATE}>
               <Button variant="primary" size="sm" onClick={() => setFormOpen(true)}>
-                <Plus className="h-4 w-4" /> New Asset
+                <Plus className="h-4 w-4" /> {t('common.newAsset')}
               </Button>
             </PermissionGate>
           </div>
@@ -182,7 +184,7 @@ export default function AssetsPage() {
                     options={categories}
                     value={category}
                     onChange={(v) => { setCategory(v); setPage(1); }}
-                    placeholder="Type"
+                    placeholder={t('common.type')}
                   />
                 </div>
                 <div className="w-full sm:w-52">
@@ -190,7 +192,7 @@ export default function AssetsPage() {
                     options={locations}
                     value={location}
                     onChange={(v) => { setLocation(v); setPage(1); }}
-                    placeholder="Location"
+                    placeholder={t('common.location')}
                   />
                 </div>
                 <div className="w-full sm:w-44">
@@ -198,7 +200,7 @@ export default function AssetsPage() {
                     options={statuses.map((s) => ({ value: s.id, label: s.name }))}
                     value={statusId}
                     onChange={(v) => { setStatusId(v); setPage(1); }}
-                    placeholder="Status"
+                    placeholder={t('common.status')}
                   />
                 </div>
                 <PermissionGate permission={PERMISSIONS.MOVEMENT_CREATE}>
@@ -209,7 +211,7 @@ export default function AssetsPage() {
                     loading={disposing}
                     onClick={() => void onDisposeSelected()}
                   >
-                    <Trash2 className="h-3.5 w-3.5" /> Dispose ({selected.length})
+                    <Trash2 className="h-3.5 w-3.5" /> {t('common.dispose')} ({selected.length})
                   </Button>
                 </PermissionGate>
               </>
