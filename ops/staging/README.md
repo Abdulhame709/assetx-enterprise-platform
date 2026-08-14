@@ -7,10 +7,12 @@
 ## ترتيب النشر
 
 1. انسخ `ops/staging/.env.example` إلى ملف أسرار خارج GitHub، ثم املأ القيم الفعلية.
-2. ابنِ صورتي backend وweb عبر `docker compose -f docker-compose.staging.yml build`.
-3. شغّل migration job منفصلاً قبل التطبيق: `docker compose -f docker-compose.staging.yml run --rm backend node backend/dist/bootstrap/migrate.js`.
-4. شغّل الخدمات: `docker compose --env-file ops/staging/.env -f docker-compose.staging.yml up -d`.
-5. تحقق من `GET /health` للخلفية وفتح `/login` للواجهة، ثم نفذ smoke tests وcross-tenant tests.
+2. أنشئ دور `authenticated` مرة واحدة بواسطة مسؤول PostgreSQL عبر `ops/staging/provision-runtime-role.sql`، ولا تمنح backend صلاحية CREATEROLE.
+3. ابنِ صورتي backend وweb عبر `docker compose -f docker-compose.staging.yml build`.
+4. شغّل migration job منفصلاً قبل التطبيق: `docker compose -f docker-compose.staging.yml run --rm backend node backend/dist/bootstrap/migrate.js`.
+5. شغّل الخدمات: `docker compose --env-file ops/staging/.env -f docker-compose.staging.yml up -d`.
+6. تحقق من `GET /health` للخلفية وفتح `/login` للواجهة، ثم نفذ smoke tests وcross-tenant tests.
+7. نفذ `ops/staging/backup-restore-smoke.sh` على قاعدة restore مؤقتة فقط، مع `ALLOW_DESTRUCTIVE_RESTORE=true`.
 
 لا ينبغي تشغيل `RUN_MIGRATIONS=true` في service backend الإنتاجية. التطبيق المتكرر للـ migrations يجب أن يبقى jobاً محمياً ومراجَعاً، مع backup قبل migrations البنيوية.
 
@@ -20,4 +22,4 @@
 
 ## حدود الحالة الحالية
 
-الملفات الموجودة هنا هي baseline قابل للتشغيل والتحقق، وليست دليلاً على أن staging الحقيقي تم نشره؛ لا توجد في هذا المستودع بيانات اتصال أو أسرار أو صلاحيات بنية تحتية. قبل الإنتاج يجب تنفيذ migration rehearsal على نسخة PostgreSQL حقيقية، وفحص backup/restore، وإضافة reverse proxy/TLS ومراقبة مركزية.
+تم تنفيذ rehearsal فعلي على PostgreSQL محلي: migrations السبعة نجحت، وإعادة التطبيق كانت idempotent، وbackup/restore smoke test نجح. هذه النتيجة لا تعني أن staging الحقيقي نُشر؛ لا توجد في هذا المستودع بيانات اتصال أو أسرار أو صلاحيات بنية تحتية. قبل الإنتاج يجب تكرار rehearsal على PostgreSQL/Supabase الفعلي، وفحص PITR وRPO/RTO، وإضافة reverse proxy/TLS ومراقبة مركزية.

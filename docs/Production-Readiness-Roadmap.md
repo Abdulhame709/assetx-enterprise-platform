@@ -31,7 +31,9 @@
 
 تمت إضافة baseline لبيئة staging عبر Docker Compose وملف env نموذجي وrunbook، مع health checks، وmigration job منفصل يرفض التشغيل دون `DATABASE_URL`. كما تم تثبيت auth lookup الآمن وpersistent refresh rotation واختبار replay محلياً.
 
-الخطوة التالية هي إجراء migration rehearsal على PostgreSQL حقيقي، ثم cross-tenant tests وbackup/restore smoke test، وبعدها الانتقال إلى خصائص المنتج وتصميم تطبيق الموبايل.
+تم تنفيذ migration rehearsal فعلي على PostgreSQL محلي، مع نجاح تطبيق migrations السبعة وإعادة تطبيقها دون تكرار، ونجاح cross-tenant tests وbackup/restore smoke test. أضيف تقرير rehearsal وprovisioning script وRunbook إلى المستودع.
+
+قبل الانتقال إلى خصائص المنتج والموبايل، يجب تكرار rehearsal على PostgreSQL/Supabase الفعلي، واختبار PITR وRPO/RTO، وتشغيل المجموعة الكاملة من الاختبارات على runner بذاكرة أعلى أو على دفعات.
 
 ## قرار تطبيق الموبايل
 
