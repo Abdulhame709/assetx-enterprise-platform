@@ -42,7 +42,7 @@ export default function InventoryCyclePage() {
   const { id } = useParams<{ id: string }>();
   const state = useCycleDetail(id);
   usePublishCrumbTitle(state.data ? `Cycle ${state.data.cycle.year}` : null);
-  const { label } = useI18n();
+  const { label, t, locale } = useI18n();
   const toast = useToast();
   const { confirm } = useConfirm();
   const can = useCan();
@@ -58,18 +58,18 @@ export default function InventoryCyclePage() {
 
   const onStart = async () => {
     const ok = await confirm({
-      title: 'Start this cycle?',
-      message: 'Counting begins. The snapshot stays as it was created.',
-      confirmLabel: 'Start cycle',
+      title: t('inventory.startConfirm'),
+      message: t('inventory.startMessage'),
+      confirmLabel: t('inventory.startAction'),
     });
     if (!ok) return;
     setTransitioning(true);
     try {
       await startCycle(id);
-      toast.success('Cycle started', 'The cycle is now in progress — you can record counts.');
+      toast.success(t('inventory.startedToast'), t('inventory.startedToastMessage'));
       state.reload();
     } catch (err) {
-      toast.error('Could not start', humanError(err));
+      toast.error(t('inventory.verificationFailed', 'Could not start'), humanError(err));
     } finally {
       setTransitioning(false);
     }
@@ -77,22 +77,22 @@ export default function InventoryCyclePage() {
 
   const onClose = async (summary: CycleDetailData['summary']) => {
     const pendingText = summary && summary.not_inventoried > 0
-      ? ` ${summary.not_inventoried} record(s) are still uncounted.`
+      ? ` ${summary.not_inventoried} ${t('inventory.recordsUncounted')}`
       : '';
     const ok = await confirm({
-      title: 'Close this cycle?',
-      message: `Closing is final — records become read-only.${pendingText}`,
+      title: t('inventory.closeConfirm'),
+      message: `${t('inventory.closeMessage')}${pendingText}`,
       tone: 'warning',
-      confirmLabel: 'Close cycle',
+      confirmLabel: t('inventory.closeAction'),
     });
     if (!ok) return;
     setTransitioning(true);
     try {
       await closeCycle(id);
-      toast.success('Cycle closed', 'Records are locked. Summary is final.');
+      toast.success(t('inventory.closedToast'), t('inventory.closedToastMessage'));
       state.reload();
     } catch (err) {
-      toast.error('Could not close', humanError(err));
+      toast.error(t('inventory.verificationFailed', 'Could not close'), humanError(err));
     } finally {
       setTransitioning(false);
     }
@@ -102,10 +102,10 @@ export default function InventoryCyclePage() {
     setVerifyingId(record.id);
     try {
       await verifyRecord(record.id, verified);
-      toast.success(verified ? 'Record verified' : 'Verification removed', record._assetName);
+      toast.success(verified ? t('inventory.recordVerified') : t('inventory.verificationRemoved'), record._assetName);
       state.reload();
     } catch (err) {
-      toast.error('Verification failed', humanError(err));
+      toast.error(t('inventory.verificationFailed'), humanError(err));
     } finally {
       setVerifyingId(null);
     }
@@ -114,7 +114,7 @@ export default function InventoryCyclePage() {
   return (
     <div>
       <Link href="/inventory" className="mb-3 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink">
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> Back to cycles
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('inventory.backToCycles')}
       </Link>
 
       <AsyncBoundary state={state}>
@@ -130,24 +130,24 @@ export default function InventoryCyclePage() {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="text-xl font-semibold text-ink">Inventory Cycle {cycle.year}</h1>
+                      <h1 className="text-xl font-semibold text-ink">{t('inventory.cycle')} {cycle.year}</h1>
                       <Badge tone={CYCLE_TONE[cycle.status]}>{label(cycle.status)}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-ink-muted">
-                      {cycle.start_date ? `Started ${new Date(cycle.start_date).toLocaleDateString()}` : 'Not started yet'}
-                      {cycle.end_date ? ` · Closed ${new Date(cycle.end_date).toLocaleDateString()}` : ''}
-                      {summary ? ` · Net variance ${summary.variance}` : ''}
+                      {cycle.start_date ? `${t('inventory.started')} ${new Date(cycle.start_date).toLocaleDateString(locale)}` : t('inventory.notStarted')}
+                      {cycle.end_date ? ` · ${t('inventory.closed')} ${new Date(cycle.end_date).toLocaleDateString(locale)}` : ''}
+                      {summary ? ` · ${t('inventory.netVariance')} ${summary.variance}` : ''}
                     </p>
                   </div>
                   <div className="flex gap-2">
                     {cycle.status === 'new' && can(PERMISSIONS.INVENTORY_EXECUTE) && (
                       <Button variant="primary" size="sm" loading={transitioning} onClick={() => void onStart()}>
-                        <Play className="h-4 w-4" /> Start Cycle
+                        <Play className="h-4 w-4" /> {t('inventory.start')}
                       </Button>
                     )}
                     {cycle.status === 'in_progress' && can(PERMISSIONS.INVENTORY_CLOSE) && (
                       <Button variant="secondary" size="sm" loading={transitioning} onClick={() => void onClose(summary)}>
-                        <Lock className="h-4 w-4" /> Close Cycle
+                        <Lock className="h-4 w-4" /> {t('inventory.close')}
                       </Button>
                     )}
                   </div>
@@ -157,12 +157,12 @@ export default function InventoryCyclePage() {
               {/* Summary (all values from the computed summary endpoint) */}
               {summary && (
                 <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                  <KpiCard label="Expected" value={summary.expected_assets.toLocaleString()} icon={Boxes} tone="brand" />
-                  <KpiCard label="Counted" value={`${summary.inventoried} (${summary.completion}%)`} icon={ScanSearch} tone="info" />
-                  <KpiCard label="Matched" value={summary.found.toLocaleString()} icon={CheckCheck} tone="success" />
-                  <KpiCard label="Deficit / Extra" value={`${summary.deficit} / ${summary.extra}`} icon={TrendingUp} tone="warning" />
-                  <KpiCard label="Missing" value={summary.missing.toLocaleString()} icon={PackageX} tone="danger" />
-                  <KpiCard label="Transferred / Uncounted" value={`${summary.transferred} / ${summary.not_inventoried}`} icon={ArrowLeftRight} tone="neutral" />
+                  <KpiCard label={t('inventory.expected')} value={summary.expected_assets.toLocaleString()} icon={Boxes} tone="brand" />
+                  <KpiCard label={t('inventory.counted')} value={`${summary.inventoried} (${summary.completion}%)`} icon={ScanSearch} tone="info" />
+                  <KpiCard label={t('inventory.matched')} value={summary.found.toLocaleString()} icon={CheckCheck} tone="success" />
+                  <KpiCard label={t('inventory.deficitExtra')} value={`${summary.deficit} / ${summary.extra}`} icon={TrendingUp} tone="warning" />
+                  <KpiCard label={t('inventory.missing')} value={summary.missing.toLocaleString()} icon={PackageX} tone="danger" />
+                  <KpiCard label={t('inventory.transferredUncounted')} value={`${summary.transferred} / ${summary.not_inventoried}`} icon={ArrowLeftRight} tone="neutral" />
                 </div>
               )}
 
@@ -180,6 +180,7 @@ export default function InventoryCyclePage() {
                     onCount={(r) => setCountRecord(r)}
                     onVerify={(r, v) => void onVerify(r, v)}
                     label={label}
+                    t={t}
                   />
                 </CardBody>
               </Card>
@@ -192,7 +193,7 @@ export default function InventoryCyclePage() {
                   lookups={data.lookups}
                   onClose={() => setCountRecord(null)}
                   onSaved={() => {
-                    toast.success('Count saved', 'The record result was recomputed.');
+                    toast.success(t('inventory.countSaved'), t('inventory.countSavedMessage'));
                     setCountRecord(null);
                     state.reload();
                   }}
@@ -208,7 +209,7 @@ export default function InventoryCyclePage() {
 
 function RecordsTable({
   records, resultFilter, onResultFilter, writable, verifyingId, canVerifyNow, closed,
-  onCount, onVerify, label,
+  onCount, onVerify, label, t,
 }: {
   records: InventoryRecordRow[];
   resultFilter: string | null;
@@ -220,6 +221,7 @@ function RecordsTable({
   onCount: (r: InventoryRecordRow) => void;
   onVerify: (r: InventoryRecordRow, v: boolean) => void;
   label: (code?: string | null) => string;
+  t: (key: string, fallback?: string) => string;
 }) {
   const resultOptions = useMemo(
     () => [
@@ -235,7 +237,7 @@ function RecordsTable({
 
   const columns: EColumn<InventoryRecordRow>[] = [
     {
-      key: 'asset', header: 'Asset',
+      key: 'asset', header: t('inventory.asset'),
       render: (r) => (
         <div className="min-w-0">
           <div className="truncate font-medium text-ink">{r._assetName ?? '—'}</div>
@@ -243,21 +245,21 @@ function RecordsTable({
         </div>
       ),
     },
-    { key: 'expected', header: 'Expected', render: (r) => <span className="text-ink-muted">{`qty ${r.expected_quantity ?? '—'} · ${r._expectedLocation ?? '—'}`}</span> },
+    { key: 'expected', header: t('inventory.expected'), render: (r) => <span className="text-ink-muted">{`${t('common.quantity')} ${r.expected_quantity ?? '—'} · ${r._expectedLocation ?? '—'}`}</span> },
     {
-      key: 'actual', header: 'Counted',
+      key: 'actual', header: t('inventory.counted'),
       render: (r) => r.actual_quantity == null
         ? <span className="text-ink-faint">—</span>
-        : <span className="text-ink">{`qty ${r.actual_quantity} · ${r._actualLocation ?? '—'}`}</span>,
+        : <span className="text-ink">{`${t('common.quantity')} ${r.actual_quantity} · ${r._actualLocation ?? '—'}`}</span>,
     },
     {
-      key: 'result', header: 'Result', accessor: (r) => r.result,
+      key: 'result', header: t('inventory.result'), accessor: (r) => r.result,
       render: (r) => <Badge tone={RESULT_TONE[r.result]}>{label(r.result)}</Badge>,
     },
-    { key: 'date', header: 'Counted on', render: (r) => <span className="text-xs text-ink-faint">{r.inventory_date ? new Date(r.inventory_date).toLocaleDateString() : '—'}</span> },
+    { key: 'date', header: t('inventory.countedOn'), render: (r) => <span className="text-xs text-ink-faint">{r.inventory_date ? new Date(r.inventory_date).toLocaleDateString() : '—'}</span> },
     {
-      key: 'verified', header: 'Verified',
-      render: (r) => r.is_verified ? <Badge tone="success">Verified</Badge> : <span className="text-xs text-ink-faint">—</span>,
+      key: 'verified', header: t('inventory.verified'),
+      render: (r) => r.is_verified ? <Badge tone="success">{t('inventory.verified')}</Badge> : <span className="text-xs text-ink-faint">—</span>,
     },
     {
       key: 'actions', header: '', width: '210px', align: 'right',
@@ -265,17 +267,17 @@ function RecordsTable({
         <div className="flex justify-end gap-1">
           {writable && (
             <Button variant="secondary" size="sm" onClick={() => onCount(r)}>
-              <ClipboardCheck className="h-3.5 w-3.5" /> {r.result === 'not_inventoried' ? 'Count' : 'Re-count'}
+              <ClipboardCheck className="h-3.5 w-3.5" /> {r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')}
             </Button>
           )}
           {canVerifyNow && !closed && r.result !== 'not_inventoried' && !r.is_verified && (
             <Button variant="ghost" size="sm" loading={verifyingId === r.id} onClick={() => onVerify(r, true)}>
-              <CheckCheck className="h-3.5 w-3.5 text-success" /> Verify
+              <CheckCheck className="h-3.5 w-3.5 text-success" /> {t('inventory.verify')}
             </Button>
           )}
           {canVerifyNow && !closed && r.is_verified && (
             <Button variant="ghost" size="sm" loading={verifyingId === r.id} onClick={() => onVerify(r, false)}>
-              <Undo2 className="h-3.5 w-3.5 text-ink-faint" /> Unverify
+              <Undo2 className="h-3.5 w-3.5 text-ink-faint" /> {t('inventory.unverify')}
             </Button>
           )}
         </div>
@@ -293,13 +295,13 @@ function RecordsTable({
       searchable={false}
       empty={
         <EmptyState
-          title={resultFilter ? 'No records match this filter' : 'No snapshot records'}
-          description={resultFilter ? 'Try a different result filter.' : 'This cycle has no assets in its snapshot.'}
+          title={resultFilter ? t('inventory.noFilterRecords') : t('inventory.noSnapshotRecords')}
+          description={resultFilter ? t('inventory.tryDifferentFilter') : t('inventory.snapshotNoAssets')}
         />
       }
       toolbarActions={
         <div className="w-52">
-          <SearchableSelect options={resultOptions} value={resultFilter} onChange={onResultFilter} placeholder="Filter by result" />
+          <SearchableSelect options={resultOptions} value={resultFilter} onChange={onResultFilter} placeholder={t('inventory.filterByResult')} />
         </div>
       }
     />
