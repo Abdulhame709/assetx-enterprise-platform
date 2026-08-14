@@ -20,6 +20,7 @@ import { UserRepository } from './infrastructure/repositories/user.repository';
 import { AuthService } from './application/auth.service';
 import { UsersService } from './application/users.service';
 import { AuthController } from './api/auth/auth.controller';
+import { HealthController } from './api/health/health.controller';
 import { UsersController } from './api/users/users.controller';
 import { TenantController } from './api/tenant/tenant.controller';
 import { AuthGuard } from './common/guards/auth.guard';
@@ -274,7 +275,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     },
   ],
   controllers: [
-    AuthController, UsersController, TenantController, AssetController, AssetAnalyticsController, LifecycleController,
+    HealthController, AuthController, UsersController, TenantController, AssetController, AssetAnalyticsController, LifecycleController,
     LocationController, CategoryController, ModelController, EmployeeController,
     StatusController,
     InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
