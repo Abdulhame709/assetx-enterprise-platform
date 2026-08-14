@@ -4,8 +4,9 @@
  * implements them; API consumes services. Ports are injected by token to satisfy NestJS.
  */
 import { Module, Global } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduledReportService } from './application/scheduled-report.service';
 import { ReportBuilderService } from './application/report-builder.service';
 import { ReportTemplateService } from './application/report-template.service';
@@ -140,7 +141,10 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
 
 @Global()
 @Module({
-  imports: [ScheduleModule.forRoot()],
+  imports: [
+    ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+  ],
   providers: [
     {
       provide: PGLITE,
@@ -263,6 +267,10 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
   controllers: [

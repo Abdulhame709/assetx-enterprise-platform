@@ -6,6 +6,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/http/http-exception.filter';
 
@@ -33,6 +34,7 @@ function assertProductionConfig(): void {
 async function bootstrap() {
   assertProductionConfig();
   const app = await NestFactory.create(AppModule, { logger: false });
+  app.use(helmet());
 
   const origins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
     .split(',')
