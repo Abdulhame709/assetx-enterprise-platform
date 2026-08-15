@@ -30,7 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <CrumbTitleProvider>
-    <div className="flex h-screen overflow-hidden bg-surface">
+    <div className="flex h-screen overflow-hidden bg-surface-raised">
       <SkipLink />
       {/* Desktop sidebar */}
       <div className="hidden lg:block">
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobileNav(true)} />
-        <main id="main-content" key={pathname} className="flex-1 overflow-y-auto p-4 lg:p-6">
+        <main id="main-content" key={pathname} className="ax-workspace flex-1 overflow-y-auto p-4 md:p-5 lg:p-6 xl:p-8">
           {children}
         </main>
       </div>

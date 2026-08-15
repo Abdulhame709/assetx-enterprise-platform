@@ -11,12 +11,15 @@ import {
 } from '../core/ports/status.port';
 import { Status } from '../core/entities/status.entity';
 import { STATUS_PORT, DATABASE_PORT } from '../core/ports/tokens';
+import { AuditService } from './audit.service';
+import { AUDIT_EVENTS } from '../core/constants/audit-events';
 
 @Injectable()
 export class StatusService {
   constructor(
     @Inject(STATUS_PORT) private readonly statuses: StatusPort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
+    private readonly audit: AuditService,
   ) {}
 
   async create(input: CreateStatusInput): Promise<Status> {
@@ -46,5 +49,18 @@ export class StatusService {
   async list(tenantId: string): Promise<Status[]> {
     await this.db.setTenant(tenantId);
     return this.statuses.list(tenantId);
+  }
+
+  async deactivate(id: string, tenantId: string, userId: string | null): Promise<void> {
+    await this.db.setTenant(tenantId);
+    const existing = await this.statuses.findById(id, tenantId);
+    if (!existing) throw new Error('STATUS_NOT_FOUND');
+    if (await this.statuses.countAssets(id, tenantId)) throw new Error('STATUS_HAS_ASSETS');
+    await this.statuses.deactivate(id, tenantId);
+    await this.audit.log({
+      tenant_id: tenantId, userId,
+      action: AUDIT_EVENTS.STATUS_DEACTIVATED, entity: 'status', entityId: id,
+      metadata: { name: existing.name, soft_delete: true },
+    }).catch(() => undefined);
   }
 }

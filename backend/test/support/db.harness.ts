@@ -247,7 +247,7 @@ export async function createHarness(): Promise<Harness> {
   const assetRepo = new AssetRepository(db);
   const assets = new AssetService(assetRepo, db, audit, bus);
   const locations = new LocationService(new LocationRepository(db), db);
-  const categories = new CategoryService(new CategoryRepository(db), db);
+  const categories = new CategoryService(new CategoryRepository(db), db, audit);
   const models = new ModelService(new ModelRepository(db), db);
   const employees = new EmployeeService(new EmployeeRepository(db), db);
   const cycleRepo = new CycleRepository(db);

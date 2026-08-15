@@ -53,9 +53,9 @@ export function Topbar({ onMenu }: TopbarProps) {
   const isCrumbable = crumbs.length > 1;
 
   return (
-    <header className="flex h-16 items-center gap-3 border-b border-line bg-surface px-4">
+    <header className="flex h-[72px] items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-sm md:px-6">
       {onMenu && (
-          <button className="rounded-lg p-1.5 text-ink-muted hover:bg-surface-muted lg:hidden" onClick={onMenu} aria-label={t('common.toggleNavigation')}>
+          <button className="min-h-10 min-w-10 rounded-lg p-2 text-ink-muted hover:bg-surface-muted lg:hidden" onClick={onMenu} aria-label={t('common.toggleNavigation')}>
           <Menu className="h-5 w-5" />
         </button>
       )}
@@ -73,7 +73,7 @@ export function Topbar({ onMenu }: TopbarProps) {
       <div className="ms-auto flex items-center gap-1">
         <button
           onClick={() => setLocale(locale === 'en' ? 'ar' : 'en')}
-          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-ink-muted hover:bg-surface-muted hover:text-ink"
+          className="flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface-muted hover:text-ink"
           aria-label={t('common.toggleLanguage')}
           title={locale === 'en' ? t('common.arabic') : t('common.english')}
         >

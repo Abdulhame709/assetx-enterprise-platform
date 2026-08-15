@@ -3,7 +3,7 @@
  * Reference: API Spec (DOC-10)
  */
 import {
-  Body, Controller, Get, Param, Patch, Post, UseGuards,
+  Body, Controller, Delete, Get, Param, Patch, Post, UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from '../../application/category.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
@@ -45,5 +45,13 @@ export class CategoryController {
     assertUuid(id);
     assertOptionalUuid(dto.parent_id);
     return this.categories.update(id, user.tenant_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermission('category.delete')
+  async deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    await this.categories.deactivate(id, user.tenant_id, user.sub);
+    return { id, deactivated: true };
   }
 }

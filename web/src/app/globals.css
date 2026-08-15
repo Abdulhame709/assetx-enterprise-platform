@@ -67,7 +67,7 @@
     text-rendering: optimizeLegibility;
   }
   body {
-    @apply bg-surface text-ink font-sans;
+    @apply bg-surface-raised text-ink font-sans;
     font-feature-settings: 'cv11', 'ss01';
   }
   /* Arabic support */
@@ -79,6 +79,9 @@
 @layer components {
   .ax-card {
     @apply bg-surface border border-line rounded-xl shadow-card;
+  }
+  .ax-workspace {
+    @apply bg-surface-raised/70;
   }
   .ax-input {
     @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink

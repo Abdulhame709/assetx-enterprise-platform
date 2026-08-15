@@ -22,4 +22,6 @@ export interface CategoryPort {
   existsName(tenantId: string, name: string, excludeId?: string): Promise<boolean>;
   /** Count assets using a category (protect against orphan delete if needed). */
   countAssets(id: string, tenantId: string): Promise<number>;
+  countChildren(id: string, tenantId: string): Promise<number>;
+  deactivate(id: string, tenantId: string): Promise<void>;
 }

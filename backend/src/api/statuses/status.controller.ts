@@ -3,7 +3,7 @@
  * Reference: API Spec (DOC-10) · AAB §13.13 (AssetStatus module registry)
  */
 import {
-  Body, Controller, Get, Param, Patch, Post, UseGuards,
+  Body, Controller, Delete, Get, Param, Patch, Post, UseGuards,
 } from '@nestjs/common';
 import { StatusService } from '../../application/status.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
@@ -43,5 +43,13 @@ export class StatusController {
   update(@Param('id') id: string, @Body() dto: UpdateStatusDto, @CurrentUser() user: RequestUser) {
     assertUuid(id);
     return this.statuses.update(id, user.tenant_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermission('status.delete')
+  async deactivate(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    await this.statuses.deactivate(id, user.tenant_id, user.sub);
+    return { id, deactivated: true };
   }
 }

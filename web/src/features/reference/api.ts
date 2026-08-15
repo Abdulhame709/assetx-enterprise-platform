@@ -35,6 +35,10 @@ export async function updateStatus(id: string, input: { name?: string; color?: s
   return { id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null, is_active: s.is_active !== false };
 }
 
+export async function deleteStatus(id: string): Promise<void> {
+  await http.del(`/statuses/${id}`);
+}
+
 export async function getEmployees(): Promise<ReferenceEmployee[]> {
   const raw = await http.get<unknown>('/employees');
   return asArray(raw)

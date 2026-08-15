@@ -77,4 +77,19 @@ export class CategoryRepository implements CategoryPort {
     );
     return Number(rows[0]?.c ?? 0);
   }
+
+  async countChildren(id: string, tenantId: string): Promise<number> {
+    const { rows } = await this.db.query<{ c: string }>(
+      `SELECT count(*) AS c FROM asset_categories WHERE parent_id = $1 AND tenant_id = $2 AND is_active = true`,
+      [id, tenantId],
+    );
+    return Number(rows[0]?.c ?? 0);
+  }
+
+  async deactivate(id: string, tenantId: string): Promise<void> {
+    await this.db.query(
+      `UPDATE asset_categories SET is_active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2 AND is_active = true`,
+      [id, tenantId],
+    );
+  }
 }

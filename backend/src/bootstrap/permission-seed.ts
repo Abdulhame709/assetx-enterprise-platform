@@ -25,7 +25,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'category.view', 'category.create', 'category.update', 'category.delete',
     'model.view', 'model.create', 'model.update', 'model.delete',
     'employee.view', 'employee.create', 'employee.update', 'employee.delete',
-    'status.view', 'status.create', 'status.update',
+    'status.view', 'status.create', 'status.update', 'status.delete',
   ],
   'Asset Manager': [
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',
@@ -39,7 +39,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'category.view', 'category.create', 'category.update', 'category.delete',
     'model.view', 'model.create', 'model.update', 'model.delete',
     'employee.view', 'employee.create', 'employee.update', 'employee.delete',
-    'status.view', 'status.create', 'status.update',
+    'status.view', 'status.create', 'status.update', 'status.delete',
   ],
   Auditor: [
     'asset.view', 'movement.view', 'inventory.view', 'inventory.verify',

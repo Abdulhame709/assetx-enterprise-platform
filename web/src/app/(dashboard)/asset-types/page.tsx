@@ -6,7 +6,7 @@
  * so no delete action is offered (contract parity, no fake buttons).
  */
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Pencil, Plus, Search, Tag } from 'lucide-react';
+import { ChevronRight, Pencil, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -16,9 +16,10 @@ import { LoadingState, ErrorState, EmptyState } from '@/components/ui/states';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { humanError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
-import { useAssetTypes, createAssetType, updateAssetType, AssetTypeNode } from '@/features/asset-types/use-asset-types';
+import { useAssetTypes, createAssetType, updateAssetType, deactivateAssetType, AssetTypeNode } from '@/features/asset-types/use-asset-types';
 import { useI18n } from '@/lib/i18n';
 
 type ModalState =
@@ -31,7 +32,9 @@ export default function AssetTypesPage() {
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
   const state = useAssetTypes();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { t, locale } = useI18n();
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
 
   const childrenOf = useMemo(() => {
     const map = new Map<string | null, AssetTypeNode[]>();
@@ -78,6 +81,26 @@ export default function AssetTypesPage() {
   }, [state.data, childrenOf, search]);
 
   const roots = state.data?.filter((t) => !t.parent_id).length ?? 0;
+
+  const deactivate = async (node: AssetTypeNode) => {
+    const accepted = await confirm({
+      title: t('assetTypes.deactivateTitle').replace('{name}', node.name),
+      message: t('assetTypes.deactivateMessage'),
+      tone: 'danger',
+      confirmLabel: t('assetTypes.deactivate'),
+    });
+    if (!accepted) return;
+    setDeactivatingId(node.id);
+    try {
+      await deactivateAssetType(node.id);
+      toast.success(t('assetTypes.deactivated'), t('assetTypes.saved'));
+      state.reload();
+    } catch (err) {
+      toast.error(t('common.error'), humanError(err));
+    } finally {
+      setDeactivatingId(null);
+    }
+  };
 
   return (
     <div>
@@ -155,6 +178,17 @@ export default function AssetTypesPage() {
                         onClick={() => setModal({ mode: 'edit', node })}
                       >
                         <Pencil className="h-4 w-4" />
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission={PERMISSIONS.CATEGORY_DELETE}>
+                      <button
+                        type="button"
+                        title={t('assetTypes.deactivate')}
+                        disabled={deactivatingId === node.id}
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => deactivate(node)}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </PermissionGate>
                   </div>

@@ -22,4 +22,5 @@ export interface StatusPort {
   existsName(tenantId: string, name: string, excludeId?: string): Promise<boolean>;
   /** Count assets currently using this status (integrity info for callers). */
   countAssets(id: string, tenantId: string): Promise<number>;
+  deactivate(id: string, tenantId: string): Promise<void>;
 }

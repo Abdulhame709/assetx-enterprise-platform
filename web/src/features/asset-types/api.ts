@@ -55,3 +55,7 @@ export async function updateAssetType(id: string, input: { name?: string }): Pro
   if (!mapped) throw new Error('Unexpected server response');
   return mapped;
 }
+
+export async function deactivateAssetType(id: string): Promise<void> {
+  await http.del(`/categories/${id}`);
+}

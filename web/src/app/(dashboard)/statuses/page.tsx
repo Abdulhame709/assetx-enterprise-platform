@@ -2,7 +2,7 @@
 
 /** Asset statuses — governed master data with StatusColor support (README §13.9). */
 import { FormEvent, useMemo, useState } from 'react';
-import { CircleDot, Pencil, Plus, Search } from 'lucide-react';
+import { CircleDot, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -14,21 +14,44 @@ import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useAsync } from '@/lib/use-async';
 import { humanError } from '@/lib/api/errors';
 import { useToast } from '@/components/ui/Toast';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useI18n } from '@/lib/i18n';
-import { createStatus, getStatuses, ReferenceStatus, updateStatus } from '@/features/reference/api';
+import { createStatus, deleteStatus, getStatuses, ReferenceStatus, updateStatus } from '@/features/reference/api';
 
 type ModalState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; status: ReferenceStatus };
 
 export default function StatusesPage() {
   const { t, locale } = useI18n();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const state = useAsync(() => getStatuses(), [], { isEmpty: (items) => items.length === 0 });
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const statuses = useMemo(() => {
     const term = search.trim().toLocaleLowerCase(locale);
     return (state.data ?? []).filter((status) => !term || status.name.toLocaleLowerCase(locale).includes(term));
   }, [locale, search, state.data]);
+
+  const deactivate = async (status: ReferenceStatus) => {
+    const accepted = await confirm({
+      title: t('statuses.deactivateTitle').replace('{name}', status.name),
+      message: t('statuses.deactivateMessage'),
+      tone: 'danger',
+      confirmLabel: t('statuses.deactivate'),
+    });
+    if (!accepted) return;
+    setDeactivatingId(status.id);
+    try {
+      await deleteStatus(status.id);
+      toast.success(t('statuses.deactivated'), t('statuses.saved'));
+      state.reload();
+    } catch (err) {
+      toast.error(t('common.error'), humanError(err));
+    } finally {
+      setDeactivatingId(null);
+    }
+  };
 
   return (
     <div>
@@ -75,6 +98,17 @@ export default function StatusesPage() {
                   <PermissionGate permission={PERMISSIONS.STATUS_UPDATE}>
                     <button type="button" className="rounded-md p-1.5 text-ink-faint opacity-100 transition-opacity hover:bg-brand/10 hover:text-brand sm:opacity-0 sm:group-hover:opacity-100" title={t('statuses.edit')} onClick={() => setModal({ mode: 'edit', status })}>
                       <Pencil className="h-4 w-4" />
+                    </button>
+                  </PermissionGate>
+                  <PermissionGate permission={PERMISSIONS.STATUS_DELETE}>
+                    <button
+                      type="button"
+                      className="rounded-md p-1.5 text-ink-faint opacity-100 transition-opacity hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
+                      title={t('statuses.deactivate')}
+                      disabled={deactivatingId === status.id}
+                      onClick={() => deactivate(status)}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </PermissionGate>
                 </div>

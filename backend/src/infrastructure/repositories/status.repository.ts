@@ -71,4 +71,11 @@ export class StatusRepository implements StatusPort {
     );
     return Number(rows[0]?.c ?? 0);
   }
+
+  async deactivate(id: string, tenantId: string): Promise<void> {
+    await this.db.query(
+      `UPDATE statuses SET is_active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2 AND is_active = true`,
+      [id, tenantId],
+    );
+  }
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes } from 'lucide-react';
+import { Boxes, Building2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { visibleSections } from '@/lib/navigation';
 import { useSession } from '@/lib/auth/session-context';
@@ -10,24 +10,27 @@ import { useI18n } from '@/lib/i18n';
 
 /** Sidebar — permission-driven navigation. */
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { can } = useSession();
+  const { can, session } = useSession();
   const { t } = useI18n();
   const pathname = usePathname();
   const sections = visibleSections(can);
 
   return (
-    <aside className="flex h-full w-64 flex-col border-e border-line bg-surface">
-      <div className="flex h-16 items-center gap-2 border-b border-line px-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white">
-          <Boxes className="h-4 w-4" />
+    <aside className="flex h-full w-72 flex-col border-e border-line bg-surface shadow-sm">
+      <div className="flex h-[72px] items-center gap-3 border-b border-line px-5">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white shadow-sm">
+          <Boxes className="h-5 w-5" />
         </span>
-        <span className="text-lg font-semibold text-ink">AssetX</span>
+        <div className="min-w-0">
+          <span className="block text-lg font-bold tracking-tight text-ink">AssetX</span>
+          <span className="block truncate text-[11px] font-medium text-ink-faint">Enterprise Asset Operations</span>
+        </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-3" aria-label={t('common.mainNavigation')}>
+      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label={t('common.mainNavigation')}>
         {sections.map((section) => (
-          <div key={section.title} className="mb-4">
-            <p className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+          <div key={section.title} className="mb-5">
+            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-faint">
               {t(section.title)}
             </p>
             <ul className="space-y-0.5">
@@ -40,8 +43,8 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                       href={item.href}
                       onClick={onNavigate}
                       className={cn(
-                        'flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium',
-                        active ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:bg-surface-muted hover:text-ink',
+                        'flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        active ? 'bg-brand text-white shadow-sm' : 'text-ink-muted hover:bg-surface-muted hover:text-ink',
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -54,6 +57,12 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
+      <div className="border-t border-line p-3">
+        <div className="flex items-center gap-2 rounded-lg bg-surface-muted/70 px-3 py-2">
+          <Building2 className="h-4 w-4 shrink-0 text-ink-faint" />
+          <span className="truncate text-xs font-medium text-ink-muted">{session?.tenant.name ?? t('common.tenant')}</span>
+        </div>
+      </div>
     </aside>
   );
 }
