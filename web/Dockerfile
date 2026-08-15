@@ -7,6 +7,8 @@ RUN npm ci --omit=dev --no-audit --no-fund
 
 FROM node:22-alpine AS build
 WORKDIR /app/web
+ARG API_PROXY_TARGET=http://127.0.0.1:3001
+ENV API_PROXY_TARGET=${API_PROXY_TARGET}
 COPY web/package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY web/ ./
@@ -18,6 +20,7 @@ FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
+ENV API_PROXY_TARGET=http://backend:3001
 WORKDIR /app
 COPY --from=build /app/web/public ./public
 COPY --from=build /app/web/.next/standalone ./

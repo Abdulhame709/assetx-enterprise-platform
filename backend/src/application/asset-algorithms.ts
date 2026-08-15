@@ -168,7 +168,7 @@ export function cleanLocationName(locationName: string): string {
     .replace(/[^\p{L}\p{N}-]+/gu, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
-  return cleaned || 'location';
+  return cleaned.toLowerCase() || 'location';
 }
 
 export function generateFullAssetCode(
