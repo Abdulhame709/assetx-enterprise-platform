@@ -23,6 +23,26 @@ export interface AssetDepreciation extends DepreciationResult {
   useful_life: number | null;
 }
 
+export interface AssetReferenceSummary {
+  movements: number;
+  inventory_records: number;
+  maintenance_orders: number;
+  open_inventory_cycles: number;
+}
+
+export interface BulkAssetUpdateInput {
+  asset_ids: string[];
+  location_id?: string;
+  employee_id?: string | null;
+  status_id?: string;
+  notes?: string | null;
+}
+
+export interface BulkAssetUpdateResult {
+  updated: string[];
+  failed: { id: string; reason: string }[];
+}
+
 @Injectable()
 export class AssetService {
   constructor(
@@ -103,6 +123,9 @@ export class AssetService {
     await this.db.setTenant(tenantId);
     const existing = await this.assets.findById(id, tenantId);
     if (!existing) throw new Error('ASSET_NOT_FOUND');
+    if (this.hasProtectedChanges(input) && await this.hasReferences(id, tenantId)) {
+      throw new Error('ASSET_HAS_REFERENCES');
+    }
     const updated = await this.assets.update(id, input);
     await this.audit.log({
       tenant_id: tenantId, userId: null,
@@ -110,6 +133,69 @@ export class AssetService {
       metadata: { fields: Object.keys(input) },
     }).catch(() => undefined);
     return updated;
+  }
+
+  /** Soft delete preserves the audit trail and historical operational records. */
+  async softDelete(id: string, tenantId: string): Promise<void> {
+    await this.db.setTenant(tenantId);
+    const existing = await this.assets.findById(id, tenantId);
+    if (!existing) throw new Error('ASSET_NOT_FOUND');
+    if (await this.hasReferences(id, tenantId)) throw new Error('ASSET_HAS_REFERENCES');
+    await this.db.query(
+      `UPDATE assets SET is_active = false, updated_at = now()
+       WHERE id = $1 AND tenant_id = $2 AND is_active = true`,
+      [id, tenantId],
+    );
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: AUDIT_EVENTS.ASSET_DELETED, entity: 'asset', entityId: id,
+      metadata: { name: existing.name, soft_delete: true },
+    }).catch(() => undefined);
+  }
+
+  /** A restricted, result-oriented bulk update used by the selected-row toolbar. */
+  async bulkUpdate(tenantId: string, input: BulkAssetUpdateInput): Promise<BulkAssetUpdateResult> {
+    const ids = [...new Set(input.asset_ids ?? [])];
+    if (ids.length === 0) throw new Error('ASSET_BULK_EMPTY');
+    const has = (key: keyof BulkAssetUpdateInput) => Object.prototype.hasOwnProperty.call(input, key);
+    const changes: { column: string; value: unknown }[] = [];
+    if (has('location_id')) changes.push({ column: 'location_id', value: input.location_id ?? null });
+    if (has('employee_id')) changes.push({ column: 'employee_id', value: input.employee_id ?? null });
+    if (has('status_id')) changes.push({ column: 'status_id', value: input.status_id ?? null });
+    if (has('notes')) changes.push({ column: 'notes', value: input.notes ?? null });
+    if (changes.length === 0) throw new Error('ASSET_BULK_FIELDS_REQUIRED');
+
+    await this.db.setTenant(tenantId);
+    const setClause = changes.map((change, index) => `${change.column} = $${index + 3}`).join(', ');
+    const values = changes.map((change) => change.value);
+    const result: BulkAssetUpdateResult = { updated: [], failed: [] };
+
+    for (const id of ids) {
+      const asset = await this.assets.findById(id, tenantId);
+      if (!asset) {
+        result.failed.push({ id, reason: 'ASSET_NOT_FOUND' });
+        continue;
+      }
+      if (await this.hasReferences(id, tenantId)) {
+        result.failed.push({ id, reason: 'ASSET_HAS_REFERENCES' });
+        continue;
+      }
+      const updated = await this.db.query<{ id: string }>(
+        `UPDATE assets SET ${setClause}, updated_at = now()
+         WHERE id = $1 AND tenant_id = $2 AND is_active = true
+         RETURNING id`,
+        [id, tenantId, ...values],
+      );
+      if (updated.rows[0]) result.updated.push(id);
+      else result.failed.push({ id, reason: 'ASSET_NOT_FOUND' });
+    }
+
+    await this.audit.log({
+      tenant_id: tenantId, userId: null,
+      action: AUDIT_EVENTS.ASSET_UPDATED, entity: 'asset', entityId: result.updated[0] ?? null,
+      metadata: { bulk: true, fields: changes.map((change) => change.column), updated: result.updated, failed: result.failed },
+    }).catch(() => undefined);
+    return result;
   }
 
   async search(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }> {
@@ -194,6 +280,36 @@ export class AssetService {
       employee_id: a.employee_id,
       purchase_price: a.purchase_price,
       is_active: a.is_active,
+    };
+  }
+
+  private hasProtectedChanges(input: UpdateAssetInput): boolean {
+    return input.category_id !== undefined || input.location_id !== undefined ||
+      input.quantity !== undefined || input.employee_id !== undefined;
+  }
+
+  private async hasReferences(assetId: string, tenantId: string): Promise<boolean> {
+    const summary = await this.referenceSummary(assetId, tenantId);
+    return Object.values(summary).some((count) => count > 0);
+  }
+
+  private async referenceSummary(assetId: string, tenantId: string): Promise<AssetReferenceSummary> {
+    const [movements, records, maintenance, openCycles] = await Promise.all([
+      this.db.query<{ c: string }>('SELECT count(*) AS c FROM asset_movements WHERE tenant_id = $1 AND asset_id = $2', [tenantId, assetId]),
+      this.db.query<{ c: string }>('SELECT count(*) AS c FROM inventory_records WHERE tenant_id = $1 AND asset_id = $2', [tenantId, assetId]),
+      this.db.query<{ c: string }>('SELECT count(*) AS c FROM maintenance_orders WHERE tenant_id = $1 AND asset_id = $2', [tenantId, assetId]),
+      this.db.query<{ c: string }>(
+        `SELECT count(*) AS c FROM inventory_records ir
+         JOIN inventory_cycles ic ON ic.id = ir.cycle_id AND ic.tenant_id = ir.tenant_id
+         WHERE ir.tenant_id = $1 AND ir.asset_id = $2 AND ic.status <> 'closed'`,
+        [tenantId, assetId],
+      ),
+    ]);
+    return {
+      movements: Number(movements.rows[0]?.c ?? 0),
+      inventory_records: Number(records.rows[0]?.c ?? 0),
+      maintenance_orders: Number(maintenance.rows[0]?.c ?? 0),
+      open_inventory_cycles: Number(openCycles.rows[0]?.c ?? 0),
     };
   }
 }

@@ -48,6 +48,15 @@ export interface ChangeStatusDto {
   status_id: string;
 }
 
+/** Controlled bulk changes exposed in the asset list toolbar. */
+export interface BulkUpdateAssetDto {
+  asset_ids: string[];
+  location_id?: string;
+  employee_id?: string | null;
+  status_id?: string;
+  notes?: string | null;
+}
+
 export interface AssetQueryDto {
   q?: string;
   status_id?: string;

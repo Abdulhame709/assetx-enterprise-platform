@@ -136,7 +136,7 @@ export default function AssetTypesPage() {
                     <span className="truncate text-sm font-medium text-ink">{node.name}</span>
                     {depth > 0 && <p className="truncate text-xs text-ink-faint">{node.full_path}</p>}
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                  <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                     <PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}>
                       <button
                         type="button"

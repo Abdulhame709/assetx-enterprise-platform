@@ -188,6 +188,19 @@ export interface UpdateAssetInput {
   notes?: string;
 }
 
+export interface BulkAssetUpdateInput {
+  asset_ids: string[];
+  location_id?: string;
+  employee_id?: string | null;
+  status_id?: string;
+  notes?: string | null;
+}
+
+export interface BulkAssetUpdateResult {
+  updated: string[];
+  failed: { id: string; reason: string }[];
+}
+
 function assertRealMode(): void {
   if (AUTH_MODE !== 'real') {
     throw new Error('WRITE_MODE_UNAVAILABLE: mutations require the real backend (AUTH_MODE=real).');
@@ -208,6 +221,16 @@ export async function updateAsset(id: string, input: UpdateAssetInput): Promise<
   const mapped = mapAssetDetail(raw);
   if (!mapped) throw new Error('Unexpected server response');
   return mapped;
+}
+
+export async function deleteAsset(id: string): Promise<void> {
+  assertRealMode();
+  await http.del(`/assets/${id}`);
+}
+
+export async function bulkUpdateAssets(input: BulkAssetUpdateInput): Promise<BulkAssetUpdateResult> {
+  assertRealMode();
+  return http.patch<BulkAssetUpdateResult>('/assets/bulk', input);
 }
 
 /** Transfer asset — POST /assets/:id/transfer: applies immediately (location/custodian/status)

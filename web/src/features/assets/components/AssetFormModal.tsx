@@ -20,7 +20,7 @@ import { useI18n } from '@/lib/i18n';
 
 interface Props {
   open: boolean;
-  mode: 'create' | 'edit';
+  mode: 'create' | 'edit' | 'copy';
   asset?: AssetDetail | null;
   onClose: () => void;
   onSaved: (asset: AssetDetail, verb: 'created' | 'updated') => void;
@@ -48,6 +48,17 @@ const EMPTY: FormState = {
   serial_number: '', barcode: '', notes: '',
 };
 
+function formFromAsset(asset: AssetDetail): FormState {
+  return {
+    name: asset.name ?? '', description: asset.description ?? '',
+    category_id: asset.category_id ?? null, location_id: asset.location_id ?? null,
+    status_id: asset.status_id ?? '', employee_id: asset.employee_id ?? null,
+    model_id: asset.model_id ?? null, quantity: String(asset.quantity ?? 1),
+    purchase_price: asset.purchase_price ?? '', purchase_date: asset.purchase_date?.slice(0, 10) ?? '',
+    serial_number: asset.serial_number ?? '', barcode: asset.barcode ?? '', notes: asset.notes ?? '',
+  };
+}
+
 export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
@@ -67,22 +78,14 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
     setErrors({});
     setServerError(null);
     setCreatedAsset(null);
-    if (mode === 'edit' && asset) {
-      setForm({
-        name: asset.name ?? '',
-        description: asset.description ?? '',
-        category_id: asset.category_id ?? null,
-        location_id: asset.location_id ?? null,
-        status_id: asset.status_id ?? '',
-        employee_id: asset.employee_id ?? null,
-        model_id: asset.model_id ?? null,
-        quantity: String(asset.quantity ?? 1),
-        purchase_price: asset.purchase_price ?? '',
-        purchase_date: asset.purchase_date?.slice(0, 10) ?? '',
-        serial_number: asset.serial_number ?? '',
-        barcode: asset.barcode ?? '',
-        notes: asset.notes ?? '',
-      });
+    if (asset && (mode === 'edit' || mode === 'copy')) {
+      const next = formFromAsset(asset);
+      if (mode === 'copy') {
+        next.quantity = '1';
+        next.serial_number = '';
+        next.barcode = '';
+      }
+      setForm(next);
     } else {
       setForm(EMPTY);
     }
@@ -108,7 +111,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
   const validate = (): boolean => {
     const e: Record<string, string> = {};
     if (form.name.trim().length < 2) e.name = t('assetForm.nameTooShort');
-    if (mode === 'create') {
+    if (mode !== 'edit') {
       if (!form.category_id) e.category_id = t('assetForm.chooseAssetType');
       if (!form.location_id) e.location_id = t('assetForm.chooseAssetLocation');
       if (!form.status_id) e.status_id = t('assetForm.chooseAssetStatus');
@@ -128,7 +131,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
     if (!validate()) return;
     setSaving(true);
     try {
-      if (mode === 'create') {
+      if (mode !== 'edit') {
         const asset = await createAsset({
           name: form.name.trim(),
           description: form.description.trim() || undefined,
@@ -176,7 +179,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={createdAsset ? t('assetForm.createdTitle') : mode === 'create' ? t('assetForm.newTitle') : `${t('assetForm.editTitle')} ${asset?.name ?? ''}`} size="lg">
+    <Modal open={open} onClose={onClose} title={createdAsset ? t('assetForm.createdTitle') : mode === 'copy' ? `${t('assetForm.copyTitle')} ${asset?.name ?? ''}` : mode === 'create' ? t('assetForm.newTitle') : `${t('assetForm.editTitle')} ${asset?.name ?? ''}`} size="lg">
       {createdAsset ? (
         <div className="space-y-5">
           <div className="rounded-xl border border-success/25 bg-success/10 p-4">
@@ -225,7 +228,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
           <Field label={t('assetForm.location')} error={errors.location_id}>
             <SearchableSelect options={locations} value={form.location_id} onChange={(v) => set('location_id', v)} placeholder={t('assetForm.chooseLocation')} />
           </Field>
-          {mode === 'create' && (
+          {mode !== 'edit' && (
             <Field label={t('assetForm.status')} error={errors.status_id}>
               <Select value={form.status_id} onChange={(e) => set('status_id', e.target.value)} required>
                 <option value="">{t('assetForm.chooseStatus')}</option>
@@ -266,10 +269,13 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
           </Field>
         </div>
         {serverError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{serverError}</p>}
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          {mode === 'edit' && asset && (
+            <Button type="button" variant="secondary" size="sm" onClick={() => setForm(formFromAsset(asset))}>{t('assetForm.revert')}</Button>
+          )}
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetForm.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>
-            {mode === 'create' ? t('assetForm.create') : t('assetForm.save')}
+            {mode === 'edit' ? t('assetForm.save') : t('assetForm.create')}
           </Button>
         </div>
       </form>

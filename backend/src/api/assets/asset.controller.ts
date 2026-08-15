@@ -5,6 +5,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -21,6 +22,7 @@ import { CurrentUser, RequestUser } from '../../common/decorators/current-user.d
 import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import {
   AssetQueryDto,
+  BulkUpdateAssetDto,
   ChangeStatusDto,
   CreateAssetDto,
   TransferAssetDto,
@@ -92,9 +94,21 @@ export class AssetController {
 
   @Get(':id')
   @RequirePermission('asset.view')
-  getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+  async getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     assertUuid(id);
-    return this.assets.getById(id, user.tenant_id);
+    const asset = await this.assets.getById(id, user.tenant_id);
+    if (!asset) throw new Error('ASSET_NOT_FOUND');
+    return asset;
+  }
+
+  @Patch('bulk')
+  @RequirePermission('asset.update')
+  bulkUpdate(@Body() dto: BulkUpdateAssetDto, @CurrentUser() user: RequestUser) {
+    for (const id of dto.asset_ids ?? []) assertUuid(id);
+    assertOptionalUuid(dto.location_id);
+    assertOptionalUuid(dto.employee_id);
+    assertOptionalUuid(dto.status_id);
+    return this.assets.bulkUpdate(user.tenant_id, dto);
   }
 
   @Patch(':id')
@@ -106,6 +120,14 @@ export class AssetController {
     assertOptionalUuid(dto.location_id);
     assertOptionalUuid(dto.employee_id);
     return this.assets.update(id, user.tenant_id, dto);
+  }
+
+  @Delete(':id')
+  @RequirePermission('asset.delete')
+  async remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    await this.assets.softDelete(id, user.tenant_id);
+    return { id, deleted: true };
   }
 
   @Post(':id/transfer')

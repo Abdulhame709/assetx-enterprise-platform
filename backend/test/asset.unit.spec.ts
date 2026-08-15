@@ -98,4 +98,54 @@ describe('AssetService — unit: validation + lifecycle', () => {
     expect(updated).not.toBeNull();
     expect(updated!.status_id).toBe(damaged);
   });
+
+  it('softDelete — deactivates an unlinked asset without removing its row', async () => {
+    const asset = await h.assets.create({
+      tenant_id: h.tenantA,
+      name: 'Disposable standalone asset',
+      category_id: h.refA.category,
+      location_id: h.refA.location,
+      status_id: h.refA.status,
+    });
+    await h.assets.softDelete(asset.id, h.tenantA);
+    const row = await h.db.query<{ is_active: boolean }>('SELECT is_active FROM assets WHERE id = $1 AND tenant_id = $2', [asset.id, h.tenantA]);
+    expect(row.rows[0]?.is_active).toBe(false);
+    await expect(h.assets.getById(asset.id, h.tenantA)).resolves.toBeNull();
+  });
+
+  it('softDelete — blocks an asset that has recorded operational movements', async () => {
+    const asset = await h.assets.create({
+      tenant_id: h.tenantA,
+      name: 'Protected moved asset',
+      category_id: h.refA.category,
+      location_id: h.refA.location,
+      status_id: h.refA.status,
+    });
+    await h.assets.transfer(asset.id, h.tenantA, { to_status_id: h.refA.status });
+    await expect(h.assets.softDelete(asset.id, h.tenantA)).rejects.toThrow('ASSET_HAS_REFERENCES');
+  });
+
+  it('bulkUpdate — updates an allowed field for selected active assets', async () => {
+    const first = await h.assets.create({
+      tenant_id: h.tenantA,
+      name: 'Bulk target one',
+      category_id: h.refA.category,
+      location_id: h.refA.location,
+      status_id: h.refA.status,
+    });
+    const second = await h.assets.create({
+      tenant_id: h.tenantA,
+      name: 'Bulk target two',
+      category_id: h.refA.category,
+      location_id: h.refA.location,
+      status_id: h.refA.status,
+    });
+    const result = await h.assets.bulkUpdate(h.tenantA, { asset_ids: [first.id, second.id], notes: 'Batch reviewed' });
+    expect(result.updated).toEqual(expect.arrayContaining([first.id, second.id]));
+    expect(result.failed).toHaveLength(0);
+  });
+
+  it('bulkUpdate — rejects a request with no selected change field', async () => {
+    await expect(h.assets.bulkUpdate(h.tenantA, { asset_ids: ['00000000-0000-0000-0000-000000000000'] })).rejects.toThrow('ASSET_BULK_FIELDS_REQUIRED');
+  });
 });

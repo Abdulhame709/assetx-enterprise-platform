@@ -6,7 +6,7 @@
 import { http } from '@/lib/api/client';
 
 export interface ReferenceStatus { id: string; name: string; color: string | null; is_active: boolean; }
-export interface ReferenceEmployee { id: string; name: string; department: string | null; }
+export interface ReferenceEmployee { id: string; name: string; department: string | null; phone: string | null; email: string | null; }
 export interface ReferenceModel { id: string; name: string; category_id: string | null; }
 
 function asArray(raw: unknown): Record<string, unknown>[] {
@@ -42,8 +42,32 @@ export async function getEmployees(): Promise<ReferenceEmployee[]> {
       id: String(e.id ?? ''),
       name: String(e.name ?? ''),
       department: e.department != null ? String(e.department) : null,
+      phone: e.phone != null ? String(e.phone) : null,
+      email: e.email != null ? String(e.email) : null,
     }))
     .filter((e) => e.id !== '');
+}
+
+function mapEmployee(raw: unknown): ReferenceEmployee {
+  const e = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: String(e.id ?? ''), name: String(e.name ?? ''),
+    department: e.department != null ? String(e.department) : null,
+    phone: e.phone != null ? String(e.phone) : null,
+    email: e.email != null ? String(e.email) : null,
+  };
+}
+
+export async function createEmployee(input: { name: string; department?: string; phone?: string; email?: string }): Promise<ReferenceEmployee> {
+  return mapEmployee(await http.post<unknown>('/employees', input));
+}
+
+export async function updateEmployee(id: string, input: { name?: string; department?: string; phone?: string; email?: string }): Promise<ReferenceEmployee> {
+  return mapEmployee(await http.patch<unknown>(`/employees/${id}`, input));
+}
+
+export async function deleteEmployee(id: string): Promise<void> {
+  await http.del(`/employees/${id}`);
 }
 
 export async function getModels(): Promise<ReferenceModel[]> {

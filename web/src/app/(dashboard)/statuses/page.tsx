@@ -73,7 +73,7 @@ export default function StatusesPage() {
                   </div>
                   {!status.is_active && <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-muted">{t('statuses.inactive')}</span>}
                   <PermissionGate permission={PERMISSIONS.STATUS_UPDATE}>
-                    <button type="button" className="rounded-md p-1.5 text-ink-faint opacity-0 transition-opacity hover:bg-brand/10 hover:text-brand group-hover:opacity-100" title={t('statuses.edit')} onClick={() => setModal({ mode: 'edit', status })}>
+                    <button type="button" className="rounded-md p-1.5 text-ink-faint opacity-100 transition-opacity hover:bg-brand/10 hover:text-brand sm:opacity-0 sm:group-hover:opacity-100" title={t('statuses.edit')} onClick={() => setModal({ mode: 'edit', status })}>
                       <Pencil className="h-4 w-4" />
                     </button>
                   </PermissionGate>
