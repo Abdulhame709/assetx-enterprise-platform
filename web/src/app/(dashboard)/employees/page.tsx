@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Building2, FilterX, Mail, Pencil, Phone, Plus, Search, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, FileSpreadsheet, FilterX, Mail, Pencil, Phone, Plus, Search, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
 import { deleteEmployee, getEmployees, ReferenceEmployee } from '@/features/reference/api';
 import { EmployeeFormModal } from '@/features/reference/components/EmployeeFormModal';
 import { useAsync } from '@/lib/use-async';
@@ -70,7 +71,7 @@ export default function EmployeesPage() {
   ];
 
   return <div className="space-y-4">
-    <PageHeader title={t('nav.employees')} subtitle={t('employees.subtitle')} actions={<PermissionGate permission={PERMISSIONS.EMPLOYEE_CREATE}><Button variant="primary" size="sm" onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> {t('employees.new')}</Button></PermissionGate>} />
+    <PageHeader title={t('nav.employees')} subtitle={t('employees.subtitle')} actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.EMPLOYEE_CREATE}><Link href="/import-data?resource=employees" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.EMPLOYEE_CREATE}><Button variant="primary" size="sm" onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> {t('employees.new')}</Button></PermissionGate></div>} />
 
     <section aria-label={t('employees.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <MetricCard icon={UsersRound} label={t('employees.total')} value={employees.length.toLocaleString(locale)} tone="brand" />

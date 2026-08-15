@@ -6,7 +6,8 @@
  * so no delete action is offered (contract parity, no fake buttons).
  */
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Pencil, Plus, Search, Tag, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronRight, FileSpreadsheet, Pencil, Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -107,13 +108,7 @@ export default function AssetTypesPage() {
       <PageHeader
         title={t('assetTypes.title')}
         subtitle={t('assetTypes.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
-        actions={
-          <PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}>
-            <Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create', parent: null })}>
-              <Plus className="h-4 w-4" /> {t('assetTypes.new')}
-            </Button>
-          </PermissionGate>
-        }
+        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}><Link href="/import-data?resource=categories" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}><Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create', parent: null })}><Plus className="h-4 w-4" /> {t('assetTypes.new')}</Button></PermissionGate></div>}
       />
 
       <Card className="p-0">

@@ -218,7 +218,7 @@ export default function MovementsPage() {
       header: t('movements.requested'),
       render: (m) => (
         <div className="text-xs">
-          <div className="text-ink">{formatDateTime(m.created_at)}</div>
+          <div className="text-ink">{formatDateTime(m.created_at, locale)}</div>
           <div className="text-ink-faint">{t('movements.by')} {shortRef(t('movements.by'), m.performed_by)}</div>
         </div>
       ),
@@ -233,7 +233,7 @@ export default function MovementsPage() {
       header: t('movements.decided'),
       render: (m) => (
         <div className="text-xs text-ink-muted">
-          {m.approved_at ? formatDateTime(m.approved_at) : '—'}
+          {m.approved_at ? formatDateTime(m.approved_at, locale) : '—'}
           {m.approved_by ? <div className="text-ink-faint">{t('movements.by')} {shortRef(t('movements.by'), m.approved_by)}</div> : null}
         </div>
       ),

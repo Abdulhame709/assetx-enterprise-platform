@@ -2,7 +2,8 @@
 
 /** Asset statuses — governed master data with StatusColor support (README §13.9). */
 import { FormEvent, useMemo, useState } from 'react';
-import { CircleDot, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import Link from 'next/link';
+import { CircleDot, FileSpreadsheet, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -58,11 +59,7 @@ export default function StatusesPage() {
       <PageHeader
         title={t('statuses.title')}
         subtitle={t('statuses.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale))}
-        actions={
-          <PermissionGate permission={PERMISSIONS.STATUS_CREATE}>
-            <Button size="sm" onClick={() => setModal({ mode: 'create' })}><Plus className="h-4 w-4" /> {t('statuses.new')}</Button>
-          </PermissionGate>
-        }
+        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.STATUS_CREATE}><Link href="/import-data?resource=statuses" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.STATUS_CREATE}><Button size="sm" onClick={() => setModal({ mode: 'create' })}><Plus className="h-4 w-4" /> {t('statuses.new')}</Button></PermissionGate></div>}
       />
       <Card className="p-0">
         <div className="border-b border-line p-3">

@@ -6,7 +6,8 @@
  * → delete (DELETE, guarded by backend when children exist). All via real API.
  */
 import { useState } from 'react';
-import { Plus, Search } from 'lucide-react';
+import Link from 'next/link';
+import { FileSpreadsheet, Plus, Search } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -60,13 +61,7 @@ export default function LocationsPage() {
       <PageHeader
         title={t('locationPage.title')}
         subtitle={t('locationPage.summary').replace('{total}', total.toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
-        actions={
-          <PermissionGate permission={PERMISSIONS.LOCATION_CREATE}>
-            <Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create-root' })}>
-              <Plus className="h-4 w-4" /> {t('locationPage.newRoot')}
-            </Button>
-          </PermissionGate>
-        }
+        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Link href="/import-data?resource=locations" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create-root' })}><Plus className="h-4 w-4" /> {t('locationPage.newRoot')}</Button></PermissionGate></div>}
       />
 
       <Card className="p-0">
