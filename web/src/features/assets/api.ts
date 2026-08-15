@@ -8,6 +8,7 @@
 import { http, API_BASE_URL, ApiError } from '@/lib/api/client';
 import {
   AssetAnalyticsSummary,
+  AssetDepreciation,
   AssetDetail,
   AssetMovement,
   AssetQuery,
@@ -95,6 +96,12 @@ export async function getAsset(id: string, token?: string | null, names: NameLoo
   // "not found" — the page renders its standard error state with retry.
   if (!mapped) throw new ApiError(404, 'Asset not found or no longer active.', 'ASSET_NOT_FOUND');
   return mapped;
+}
+
+/** Load the live depreciation calculation from the backend for an asset. */
+export async function getAssetDepreciation(id: string, token?: string | null): Promise<AssetDepreciation | null> {
+  if (AUTH_MODE !== 'real') return null;
+  return http.get<AssetDepreciation | null>(`/assets/${id}/depreciation`, token);
 }
 
 export async function getLifecycleState(id: string, token?: string | null): Promise<LifecycleState> {

@@ -83,6 +83,13 @@ export class AssetController {
     });
   }
 
+  @Get(':id/depreciation')
+  @RequirePermission('asset.view')
+  getDepreciation(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    return this.assets.getDepreciation(id, user.tenant_id);
+  }
+
   @Get(':id')
   @RequirePermission('asset.view')
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {

@@ -12,6 +12,7 @@ import {
   UpdateAssetInput,
 } from '../../core/ports/asset.port';
 import { DATABASE_PORT } from '../../core/ports/tokens';
+import { generateBaseAssetCode, generateFullAssetCode } from '../../application/asset-algorithms';
 
 @Injectable()
 export class AssetRepository implements AssetPort {
@@ -19,19 +20,12 @@ export class AssetRepository implements AssetPort {
 
   /** Generate base code YYYY-NNNN using the first gap (BR-CODE-001). */
   async nextBaseCode(year: number): Promise<string> {
-    // Find the first unused NNNN for the year (gap reuse).
-    const { rows } = await this.db.query<{ n: number }>(
-      `SELECT generate_series(1, (SELECT GREATEST(count(*)+1, 1) FROM assets WHERE base_asset_code LIKE $1))
-         AS n
-       EXCEPT
-       SELECT DISTINCT substring(base_asset_code from '-(\\d+)$')::int
-         FROM assets WHERE base_asset_code LIKE $1
-       ORDER BY n
-       LIMIT 1`,
+    const { rows } = await this.db.query<{ base_asset_code: string }>(
+      `SELECT base_asset_code FROM assets
+       WHERE base_asset_code LIKE $1`,
       [`${year}-%`],
     );
-    const seq = rows[0] ? rows[0].n : 1;
-    return `${year}-${String(seq).padStart(4, '0')}`;
+    return generateBaseAssetCode(year, rows.map((row) => row.base_asset_code));
   }
 
   async create(input: CreateAssetInput): Promise<AssetSummary> {
@@ -42,11 +36,15 @@ export class AssetRepository implements AssetPort {
       `SELECT full_path FROM locations WHERE id = $1 LIMIT 1`,
       [input.location_id],
     );
-    const locSlug = (loc.rows[0]?.full_path ?? 'loc')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\u0600-\u06FF]+/g, '-');
-    const full_asset_code = `${base_asset_code}@${locSlug}`;
+    const usedFullCodes = await this.db.query<{ full_asset_code: string }>(
+      `SELECT full_asset_code FROM assets WHERE base_asset_code = $1`,
+      [base_asset_code],
+    );
+    const full_asset_code = generateFullAssetCode(
+      base_asset_code,
+      loc.rows[0]?.full_path ?? 'location',
+      usedFullCodes.rows.map((row) => row.full_asset_code),
+    );
 
     const { rows } = await this.db.query<Asset>(
       `INSERT INTO assets

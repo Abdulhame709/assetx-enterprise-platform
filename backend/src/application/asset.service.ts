@@ -13,6 +13,15 @@ import { AUDIT_EVENTS } from '../core/constants/audit-events';
 import { EventBus } from '../core/events/event-bus';
 import { DOMAIN_EVENTS } from '../core/events/event-types';
 import { EVENT_BUS } from '../core/ports/tokens';
+import { calculateDepreciation, DepreciationResult } from './asset-algorithms';
+
+export interface AssetDepreciation extends DepreciationResult {
+  asset_id: string;
+  purchase_price: number;
+  purchase_date: string;
+  depreciation_rate: number;
+  useful_life: number | null;
+}
 
 @Injectable()
 export class AssetService {
@@ -59,6 +68,32 @@ export class AssetService {
   async getById(id: string, tenantId: string): Promise<Asset | null> {
     await this.db.setTenant(tenantId);
     return this.assets.findById(id, tenantId);
+  }
+
+  /**
+   * Calculates the live straight-line depreciation view defined in README §13.
+   * It intentionally does not persist a derived value: the result must reflect
+   * the current date and the source purchase/depreciation fields at read time.
+   */
+  async getDepreciation(id: string, tenantId: string): Promise<AssetDepreciation | null> {
+    const asset = await this.getById(id, tenantId);
+    if (!asset) throw new Error('ASSET_NOT_FOUND');
+    if (!asset.purchase_date || asset.depreciation_rate === null) return null;
+
+    const purchasePrice = Number(asset.purchase_price);
+    const depreciationRate = Number(asset.depreciation_rate);
+    return {
+      asset_id: asset.id,
+      purchase_price: purchasePrice,
+      purchase_date: asset.purchase_date,
+      depreciation_rate: depreciationRate,
+      useful_life: asset.useful_life,
+      ...calculateDepreciation({
+        purchasePrice,
+        depreciationRate,
+        purchaseDate: asset.purchase_date,
+      }),
+    };
   }
 
   async update(id: string, tenantId: string, input: UpdateAssetInput): Promise<AssetSummary | null> {

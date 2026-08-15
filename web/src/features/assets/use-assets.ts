@@ -2,6 +2,7 @@
 
 import {
   AssetAnalyticsSummary,
+  AssetDepreciation,
   AssetDetail,
   AssetMovement,
   AssetQuery,
@@ -12,6 +13,7 @@ import {
 import {
   getAnalyticsSummary,
   getAsset,
+  getAssetDepreciation,
   getAssetAudit,
   getAssetMovements,
   getLifecycleTransitions,
@@ -59,13 +61,14 @@ export function useAsset360(id: string): AsyncState<Asset360Data> {
   const names = useNames();
   return useAsync<Asset360Data>(
     async () => {
-      const [d, lc, mv, au] = await Promise.all([
+      const [d, lc, mv, au, dp] = await Promise.all([
         getAsset(id, undefined, names),
         getLifecycleTransitions(id),
         getAssetMovements(id),
         getAssetAudit(id),
+        getAssetDepreciation(id),
       ]);
-      return { detail: d, lifecycle: lc, movements: mv, audit: au };
+      return { detail: d, lifecycle: lc, movements: mv, audit: au, depreciation: dp };
     },
     [id, names],
   );
@@ -76,4 +79,5 @@ export interface Asset360Data {
   lifecycle: LifecycleTransitions | null;
   movements: AssetMovement[];
   audit: AuditEvent[];
+  depreciation: AssetDepreciation | null;
 }

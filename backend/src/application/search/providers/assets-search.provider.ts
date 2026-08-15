@@ -8,6 +8,7 @@ import { AssetPort } from '../../../core/ports/asset.port';
 import { SearchCriteria } from '../search-query-builder';
 import { SearchProvider, SearchResult } from '../../../core/ports/search-provider.port';
 import { ASSET_PORT } from '../../../core/ports/tokens';
+import { smartSearch } from '../../asset-algorithms';
 
 @Injectable()
 export class AssetsSearchProvider implements SearchProvider {
@@ -21,12 +22,33 @@ export class AssetsSearchProvider implements SearchProvider {
       ...this.toFilter(criteria),
     });
     return {
-      items: res.items,
+      items: this.rankWithSmartSearch(res.items, criteria.q),
       total: res.total,
       page: criteria.page,
       limit: criteria.limit,
       hasMore: criteria.page * criteria.limit < res.total,
     };
+  }
+
+  /**
+   * SQL remains responsible for tenant-safe filtering; README §13 supplies
+   * deterministic relevance ordering across name and generated asset codes.
+   */
+  private rankWithSmartSearch<T extends { id: string; name: string; base_asset_code: string; full_asset_code: string }>(
+    items: T[],
+    query: string | undefined,
+  ): T[] {
+    if (!query?.trim()) return items;
+    const candidates = items.map((item) => ({
+      item,
+      name: item.name,
+      baseAssetCode: item.base_asset_code,
+      fullAssetCode: item.full_asset_code,
+    }));
+    const scores = new Map(
+      smartSearch(candidates, query).map(({ item, score }) => [item.item.id, score]),
+    );
+    return [...items].sort((left, right) => (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0));
   }
 
   private toFilter(c: SearchCriteria): Omit<Parameters<AssetPort['searchAdvanced']>[0], 'tenant_id'> {

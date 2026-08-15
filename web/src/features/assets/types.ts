@@ -36,6 +36,20 @@ export interface AssetDetail extends AssetSummary {
   updated_at: string;
 }
 
+/** Read-only, live calculation returned by GET /assets/:id/depreciation. */
+export interface AssetDepreciation {
+  asset_id: string;
+  purchase_price: number;
+  purchase_date: string;
+  depreciation_rate: number;
+  useful_life: number | null;
+  yearsOwned: number;
+  bookValue: number;
+  depreciationPercentage: number;
+  ageYears: number;
+  ageMonths: number;
+}
+
 export interface AssetQuery {
   q?: string;
   category_id?: string;

@@ -55,7 +55,7 @@ export default function AssetDetailPage() {
       </Link>
 
       <AsyncBoundary state={state}>
-        {({ detail, lifecycle, movements, audit }: Asset360Data) => (
+        {({ detail, lifecycle, movements, audit, depreciation }: Asset360Data) => (
           <>
             {/* Header */}
             <Card className="mb-4">
@@ -128,6 +128,9 @@ export default function AssetDetailPage() {
                     <InfoRow label="Purchase date" value={formatDate(detail.purchase_date)} />
                     <InfoRow label="Depreciation rate" value={detail.depreciation_rate ? `${detail.depreciation_rate}%` : '—'} />
                     <InfoRow label="Useful life" value={detail.useful_life ? `${detail.useful_life} years` : '—'} />
+                    <InfoRow label="Book value" value={depreciation ? formatCurrency(depreciation.bookValue) : '—'} />
+                    <InfoRow label="Depreciated" value={depreciation ? `${depreciation.depreciationPercentage.toFixed(1)}%` : '—'} />
+                    <InfoRow label="Asset age" value={depreciation ? `${depreciation.ageYears}y ${depreciation.ageMonths}m` : '—'} />
                   </CardBody>
                 </Card>
               </div>
