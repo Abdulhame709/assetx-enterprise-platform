@@ -85,7 +85,7 @@ describe('Master Data — integration (real PostgreSQL + RLS)', () => {
 
   // ---------- Asset Status ----------
   it('Status — creates and updates a colored lifecycle status with tenant isolation', async () => {
-    const statuses = new StatusService(new StatusRepository(h.db), h.db);
+    const statuses = new StatusService(new StatusRepository(h.db), h.db, h.audit);
     const created = await statuses.create({ tenant_id: h.tenantA, name: 'Awaiting inspection', color: '#2563eb' });
     expect(created.color).toBe('#2563eb');
     expect(created.is_active).toBe(true);
