@@ -1,13 +1,8 @@
 'use client';
 
-/**
- * Inventory — operational cycle list (real backend contract).
- * Each row = one cycle with its computed summary (progress/verified counts),
- * not a static page. Create → snapshot; Open → /inventory/[id].
- */
 import Link from 'next/link';
 import { useState } from 'react';
-import { ClipboardList, Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckCircle2, ClipboardCheck, ClipboardList, PackageCheck, PlayCircle } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -22,107 +17,55 @@ import { useCycles } from '@/features/inventory/use-inventory';
 import { CycleFormModal } from '@/features/inventory/components/CycleFormModal';
 import { CycleStatus } from '@/features/inventory/api';
 
-const CYCLE_TONE: Record<CycleStatus, BadgeTone> = {
-  new: 'neutral',
-  in_progress: 'warning',
-  closed: 'success',
-};
+const CYCLE_TONE: Record<CycleStatus, BadgeTone> = { new: 'neutral', in_progress: 'warning', closed: 'success' };
 
-function formatDate(d: string | null, locale: string): string {
-  return d ? new Date(d).toLocaleDateString(locale) : '—';
-}
+function formatDate(date: string | null, locale: string): string { return date ? new Date(date).toLocaleDateString(locale) : '—'; }
 
 export default function InventoryPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const state = useCycles();
   const toast = useToast();
   const { label, t, locale } = useI18n();
+  const cycles = state.data ?? [];
+  const activeCycles = cycles.filter(({ cycle }) => cycle.status === 'in_progress').length;
+  const closedCycles = cycles.filter(({ cycle }) => cycle.status === 'closed').length;
+  const totalExpected = cycles.reduce((total, item) => total + (item.summary?.expected_assets ?? 0), 0);
+  const totalPending = cycles.reduce((total, item) => total + (item.summary?.not_inventoried ?? 0), 0);
+  const formatMessage = (key: string, values: Record<string, number>) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(locale)), t(key));
 
-  return (
-    <div>
-      <PageHeader
-        title={t('inventory.cycle')}
-        subtitle={`${state.data?.length ?? 0} ${t('inventory.cycles')}`}
-        actions={
-          <PermissionGate permission={PERMISSIONS.INVENTORY_CREATE}>
-            <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-4 w-4" /> {t('inventory.newCycle')}
-            </Button>
-          </PermissionGate>
-        }
-      />
+  return <div className="space-y-4">
+    <PageHeader title={t('inventory.cycle')} subtitle={formatMessage('inventory.subtitle', { count: cycles.length })} actions={<PermissionGate permission={PERMISSIONS.INVENTORY_CREATE}><Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}><ClipboardCheck className="h-4 w-4" /> {t('inventory.newCycle')}</Button></PermissionGate>} />
 
-      <Card className="p-0">
-        <CardBody className="p-0">
-          {state.status === 'loading' && <LoadingState rows={4} />}
-          {state.status === 'error' && <ErrorState message={humanError(state.error)} onRetry={state.reload} />}
-          {state.status === 'success' && state.data && state.data.length === 0 && (
-            <EmptyState
-              title={t('inventory.noCycles')}
-              description={t('inventory.createCycleHint')}
-              actionLabel={t('inventory.createCycle')}
-              onAction={() => setCreateOpen(true)}
-            />
-          )}
-          {state.status === 'success' && state.data && state.data.length > 0 && (
-            <div className="divide-y divide-line">
-              {state.data.map(({ cycle, summary }) => {
-                const total = summary?.expected_assets ?? 0;
-                const done = summary?.inventoried ?? 0;
-                const verifiedText = summary ? `${done}/${total} ${t('inventory.countedComplete')} ${summary.completion}%` : t('inventory.summaryUnavailable');
-                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                return (
-                  <div key={cycle.id} className="flex flex-wrap items-center gap-4 px-4 py-3 hover:bg-surface-muted/60">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted text-ink-muted">
-                      <ClipboardList className="h-5 w-5" />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-ink">{t('inventory.cycle')} {cycle.year}</span>
-                        <Badge tone={CYCLE_TONE[cycle.status]}>{label(cycle.status)}</Badge>
-                        {cycle.status === 'closed' && <CheckCircle2 className="h-4 w-4 text-success" />}
-                      </div>
-                      <p className="mt-0.5 text-xs text-ink-faint">
-                        {cycle.start_date ? `${t('inventory.started')} ${formatDate(cycle.start_date, locale)}` : t('inventory.notStarted')} · {cycle.end_date ? `${t('inventory.closed')} ${formatDate(cycle.end_date, locale)}` : t('inventory.notClosed')}
-                        {' · '}
-                        <Link href={`/inventory/${cycle.id}`} className="text-brand hover:underline">{verifiedText}</Link>
-                      </p>
-                    </div>
-                    {summary && (
-                      <div className="w-40 shrink-0">
-                        <div className="mb-1 flex justify-between text-xs text-ink-faint">
-                          <span>{done}/{total}</span>
-                          <span>{pct}%</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
-                          <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                      </div>
-                    )}
-                    <Link href={`/inventory/${cycle.id}`}>
-                      <Button variant="secondary" size="sm">
-                        {t('inventory.open')} <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
-                      </Button>
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardBody>
-      </Card>
+    <section aria-label={t('inventory.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <MetricCard icon={ClipboardList} label={t('inventory.totalCycles')} value={cycles.length.toLocaleString(locale)} tone="brand" />
+      <MetricCard icon={PlayCircle} label={t('inventory.activeCycles')} value={activeCycles.toLocaleString(locale)} tone="warning" />
+      <MetricCard icon={PackageCheck} label={t('inventory.snapshotAssets')} value={totalExpected.toLocaleString(locale)} tone="success" />
+      <MetricCard icon={CalendarDays} label={t('inventory.pendingCount')} value={totalPending.toLocaleString(locale)} tone="danger" />
+    </section>
 
-      {createOpen && (
-        <CycleFormModal
-          open
-          onClose={() => setCreateOpen(false)}
-          onCreated={(cyc, snapshotCount) => {
-            toast.success(t('inventory.cycleCreated'), `${t('inventory.cycle')} ${cyc.year} — ${snapshotCount} ${t('inventory.snapshotted')}`);
-            setCreateOpen(false);
-            state.reload();
-          }}
-        />
-      )}
-    </div>
-  );
+    <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-label={t('inventory.reviewTitle')}>
+      <div className="flex flex-wrap items-start justify-between gap-3"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-soft text-brand"><ClipboardCheck className="h-4 w-4" /></span><div><h2 className="text-sm font-semibold text-ink">{t('inventory.reviewTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('inventory.reviewSummary', { total: cycles.length, closed: closedCycles })}</p></div></div><span className="rounded-full bg-surface-muted px-3 py-1 text-xs font-medium text-ink-muted">{formatMessage('inventory.activeSummary', { count: activeCycles })}</span></div>
+    </section>
+
+    <Card className="overflow-hidden p-0 shadow-card"><CardBody className="p-0">
+      {state.status === 'loading' && <LoadingState rows={4} />}
+      {state.status === 'error' && <ErrorState message={humanError(state.error, t('common.genericError'), locale)} onRetry={state.reload} />}
+      {state.status === 'success' && cycles.length === 0 && <EmptyState title={t('inventory.noCycles')} description={t('inventory.createCycleHint')} actionLabel={t('inventory.createCycle')} onAction={() => setCreateOpen(true)} />}
+      {state.status === 'success' && cycles.length > 0 && <div className="divide-y divide-line">{cycles.map(({ cycle, summary }) => {
+        const expected = summary?.expected_assets ?? 0;
+        const inventoried = summary?.inventoried ?? 0;
+        const completion = summary?.completion ?? 0;
+        const pending = summary?.not_inventoried ?? Math.max(expected - inventoried, 0);
+        const toneClass = cycle.status === 'closed' ? 'bg-success-soft text-success' : cycle.status === 'in_progress' ? 'bg-warning-soft text-warning' : 'bg-brand-soft text-brand';
+        return <div key={cycle.id} className="p-4 transition-colors hover:bg-surface-muted/50 sm:p-5"><div className="flex flex-wrap items-start gap-4"><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${toneClass}`}><ClipboardList className="h-5 w-5" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="text-sm font-semibold text-ink">{t('inventory.cycle')} {cycle.year}</h3><Badge tone={CYCLE_TONE[cycle.status]}>{label(cycle.status)}</Badge>{cycle.status === 'closed' && <CheckCircle2 className="h-4 w-4 text-success" aria-label={t('inventory.closed')} />}</div><p className="mt-1 text-xs text-ink-muted">{cycle.start_date ? `${t('inventory.started')} ${formatDate(cycle.start_date, locale)}` : t('inventory.notStarted')} <span className="px-1 text-ink-faint">·</span> {cycle.end_date ? `${t('inventory.closed')} ${formatDate(cycle.end_date, locale)}` : t('inventory.notClosed')}</p></div><Link href={`/inventory/${cycle.id}`}><Button variant="secondary" size="sm">{t('inventory.open')} <ArrowRight className="h-4 w-4 rtl:-scale-x-100" /></Button></Link></div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3"><MiniMetric label={t('inventory.expected')} value={expected.toLocaleString(locale)} /><MiniMetric label={t('inventory.counted')} value={inventoried.toLocaleString(locale)} /><MiniMetric label={t('inventory.pending')} value={pending.toLocaleString(locale)} tone={pending > 0 ? 'danger' : 'default'} /></div>
+          <div className="mt-4"><div className="mb-1.5 flex items-center justify-between text-xs"><span className="font-medium text-ink-muted">{t('inventory.progress')}</span><span className="font-semibold tabular-nums text-ink">{completion}%</span></div><div className="h-2 overflow-hidden rounded-full bg-surface-muted"><div className="h-full rounded-full bg-brand transition-[width] duration-200" style={{ width: `${Math.min(Math.max(completion, 0), 100)}%` }} /></div></div>
+        </div>;
+      })}</div>}
+    </CardBody></Card>
+    {createOpen && <CycleFormModal open onClose={() => setCreateOpen(false)} onCreated={(cycle, snapshotCount) => { toast.success(t('inventory.cycleCreated'), `${t('inventory.cycle')} ${cycle.year} — ${snapshotCount} ${t('inventory.snapshotted')}`); setCreateOpen(false); state.reload(); }} />}
+  </div>;
 }
+
+function MiniMetric({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'danger' }) { return <div className="rounded-lg border border-line bg-surface px-3 py-2"><p className="text-xs text-ink-faint">{label}</p><p className={tone === 'danger' ? 'mt-1 text-sm font-semibold tabular-nums text-danger' : 'mt-1 text-sm font-semibold tabular-nums text-ink'}>{value}</p></div>; }
+function MetricCard({ icon: Icon, label, value, tone }: { icon: typeof ClipboardList; label: string; value: string; tone: 'brand' | 'success' | 'warning' | 'danger' }) { const toneClass = { brand: 'bg-brand-soft text-brand', success: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', danger: 'bg-danger-soft text-danger' }[tone]; return <div className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4"><div className="flex items-start justify-between gap-3"><span className={`grid h-9 w-9 place-items-center rounded-lg ${toneClass}`}><Icon className="h-4 w-4" /></span><span className="text-2xl font-semibold tabular-nums text-ink">{value}</span></div><p className="mt-3 text-xs font-medium text-ink-muted">{label}</p></div>; }
