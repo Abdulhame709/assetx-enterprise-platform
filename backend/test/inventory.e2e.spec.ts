@@ -168,4 +168,39 @@ describe('Inventory — E2E HTTP (RBAC, cycle lifecycle)', () => {
     }, adminToken);
     expect(rejectedAfterClose.status).toBe(409);
   });
+
+  it('admin creates, starts, and completes a maintenance order through the API', async () => {
+    const admin = await req('POST', '/auth/login', { username: 'admin', password: 'AdminPass123' });
+    const adminToken = admin.json.accessToken;
+    const db = app.get<DatabasePort>(DATABASE_PORT);
+    await db.setTenant(demo);
+    const category = (await db.query<{ id: string }>('SELECT id FROM asset_categories WHERE tenant_id = $1 LIMIT 1', [demo])).rows[0];
+    const location = (await db.query<{ id: string }>('SELECT id FROM locations WHERE tenant_id = $1 LIMIT 1', [demo])).rows[0];
+    const goodStatus = (await db.query<{ id: string }>("SELECT id FROM statuses WHERE tenant_id = $1 AND name = 'Good'", [demo])).rows[0];
+
+    const asset = await req('POST', '/assets', {
+      name: 'API Maintenance Test Asset', category_id: category.id, location_id: location.id, status_id: goodStatus.id,
+    }, adminToken);
+    expect(asset.status).toBe(201);
+
+    const created = await req('POST', `/assets/${asset.json.id}/maintenance`, {
+      maintenance_type: 'preventive', priority: 'high', technician_name: 'API Technician',
+    }, adminToken);
+    expect(created.status).toBe(201);
+    expect(created.json.workflow_status).toBe('open');
+    expect(created.json.maintenance_code).toMatch(/^MNT-\d{4}-\d{4}$/);
+
+    const started = await req('PATCH', `/maintenance/${created.json.id}/start`, {}, adminToken);
+    expect(started.status).toBe(200);
+    expect(started.json.workflow_status).toBe('in_progress');
+
+    const assetOrders = await req('GET', `/assets/${asset.json.id}/maintenance`, undefined, adminToken);
+    expect(assetOrders.status).toBe(200);
+    expect(assetOrders.json).toHaveLength(1);
+
+    const completed = await req('PATCH', `/maintenance/${created.json.id}/complete`, { cost: 150 }, adminToken);
+    expect(completed.status).toBe(200);
+    expect(completed.json.workflow_status).toBe('completed');
+    expect(Number(completed.json.cost)).toBe(150);
+  });
 });

@@ -20,6 +20,9 @@ import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
 import { TransferAssetModal, EndOfLifeModal } from '@/features/assets/components/AssetLifecycleModals';
+import { MaintenanceOrderPanel } from '@/features/maintenance/components/MaintenanceOrderPanel';
+import { getAssetMaintenanceOrders } from '@/features/maintenance/api';
+import { useAsync } from '@/lib/use-async';
 
 type Tab = 'overview' | 'lifecycle' | 'movements' | 'maintenance' | 'audit' | 'attachments';
 
@@ -193,15 +196,7 @@ export default function AssetDetailPage() {
 
             {/* Maintenance */}
             {tab === 'maintenance' && (
-              <Card>
-                <CardHeader title={t('assetDetail.maintenance')} subtitle={t('assetDetail.maintenanceUnavailable')} />
-                <CardBody>
-                  <EmptyState
-                    title={t('assetDetail.maintenanceHistory')}
-                    description={t('assetDetail.maintenanceUnavailableDesc')}
-                  />
-                </CardBody>
-              </Card>
+              <AssetMaintenanceTab assetId={detail.id} assetName={detail.name} />
             )}
 
             {/* Audit */}
@@ -284,6 +279,21 @@ export default function AssetDetailPage() {
         )}
       </AsyncBoundary>
     </div>
+  );
+}
+
+function AssetMaintenanceTab({ assetId, assetName }: { assetId: string; assetName: string }) {
+  const { t } = useI18n();
+  const orders = useAsync(() => getAssetMaintenanceOrders(assetId), [assetId]);
+  return (
+    <Card>
+      <CardHeader title={t('assetDetail.maintenance')} subtitle={t('maintenance.assetSubtitle')} />
+      <CardBody>
+        <AsyncBoundary state={orders}>
+          {(data) => <MaintenanceOrderPanel assetId={assetId} assetName={assetName} orders={data} onChanged={orders.reload} compact />}
+        </AsyncBoundary>
+      </CardBody>
+    </Card>
   );
 }
 

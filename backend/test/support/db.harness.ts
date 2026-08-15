@@ -28,6 +28,8 @@ import { RecordService } from '../../src/application/record.service';
 import { InventoryResultService } from '../../src/application/inventory-result.service';
 import { MovementRepository } from '../../src/infrastructure/repositories/movement.repository';
 import { MovementService } from '../../src/application/movement.service';
+import { MaintenanceRepository } from '../../src/infrastructure/repositories/maintenance.repository';
+import { MaintenanceService } from '../../src/application/maintenance.service';
 import { ReportingRepository } from '../../src/infrastructure/repositories/reporting.repository';
 import { ReportingService } from '../../src/application/reporting.service';
 import { seedPermissions } from '../../src/bootstrap/permission-seed';
@@ -100,6 +102,7 @@ export interface Harness {
   records: RecordService;
   inventoryResult: InventoryResultService;
   movements: MovementService;
+  maintenance: MaintenanceService;
   reporting: ReportingService;
   audit: AuditService;
   compliance: ComplianceService;
@@ -167,6 +170,8 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(migration006);
   const migration007 = fs.readFileSync(path.join(migrationsDir, '007_runtime_grants.sql'), 'utf8');
   await db.exec(migration007);
+  const migration008 = fs.readFileSync(path.join(migrationsDir, '008_maintenance_orders_workflow.sql'), 'utf8');
+  await db.exec(migration008);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
@@ -200,7 +205,10 @@ export async function createHarness(): Promise<Harness> {
          ('${tid}','Inventory Team','field'),
          ('${tid}','Maintenance','maintenance'),
          ('${tid}','Employee','employee');
-       INSERT INTO statuses (tenant_id, name, color) VALUES ('${tid}','Good','#27ae60');
+       INSERT INTO statuses (tenant_id, name, color) VALUES
+         ('${tid}','Good','#27ae60'),
+         ('${tid}','Maintenance','#e67e22')
+       ON CONFLICT (tenant_id, name) DO NOTHING;
        INSERT INTO locations (tenant_id, name, path, full_path, level_number)
          VALUES ('${tid}','HQ','hq','HQ',0);
        INSERT INTO asset_categories (tenant_id, name) VALUES ('${tid}','IT');`,
@@ -249,6 +257,7 @@ export async function createHarness(): Promise<Harness> {
   const records = new RecordService(cycleRepo, recordRepo, db);
   const inventoryResult = new InventoryResultService(cycleRepo, resultRepo, db);
   const movements = new MovementService(new MovementRepository(db), assetRepo, db, audit, bus);
+  const maintenance = new MaintenanceService(new MaintenanceRepository(db), db, audit);
   const reporting = new ReportingService(new ReportingRepository(db), db);
   const compliance = new ComplianceService(db, audit, bus);
   const csvStrategy = new CsvExportStrategy(new CsvGenerator());
@@ -300,5 +309,5 @@ export async function createHarness(): Promise<Harness> {
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, maintenance, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

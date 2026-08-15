@@ -59,6 +59,9 @@ import { InventoryController } from './api/inventory/inventory.controller';
 import { MovementService } from './application/movement.service';
 import { MovementRepository } from './infrastructure/repositories/movement.repository';
 import { MovementController } from './api/movements/movement.controller';
+import { MaintenanceService } from './application/maintenance.service';
+import { MaintenanceRepository } from './infrastructure/repositories/maintenance.repository';
+import { MaintenanceController } from './api/maintenance/maintenance.controller';
 import { ReportingService } from './application/reporting.service';
 import { ReportingRepository } from './infrastructure/repositories/reporting.repository';
 import { DashboardController } from './api/dashboard/dashboard.controller';
@@ -127,6 +130,7 @@ import {
   RECORD_PORT,
   RESULT_PORT,
   MOVEMENT_PORT,
+  MAINTENANCE_PORT,
   REPORTING_PORT,
   AUDIT_PORT,
   EVENT_BUS,
@@ -193,6 +197,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     { provide: RECORD_PORT, useClass: RecordRepository },
     { provide: RESULT_PORT, useClass: ResultRepository },
     { provide: MOVEMENT_PORT, useClass: MovementRepository },
+    { provide: MAINTENANCE_PORT, useClass: MaintenanceRepository },
     { provide: REPORTING_PORT, useClass: ReportingRepository },
     { provide: AUDIT_PORT, useClass: AuditRepository },
     AuditService,
@@ -262,6 +267,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     RecordService,
     InventoryResultService,
     MovementService,
+    MaintenanceService,
     ReportingService,
     {
       provide: AuthGuard,
@@ -283,7 +289,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     HealthController, AuthController, UsersController, TenantController, AssetController, AssetAnalyticsController, LifecycleController,
     LocationController, CategoryController, ModelController, EmployeeController,
     StatusController,
-    InventoryController, MovementController, DashboardController, AuditController, ComplianceController,
+    InventoryController, MovementController, MaintenanceController, DashboardController, AuditController, ComplianceController,
     NotificationController, ExportController, SearchController, SavedSearchController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],

@@ -51,6 +51,8 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
   await db.exec(migration006);
   const migration007 = fs.readFileSync(path.join(migrationsDir, '007_runtime_grants.sql'), 'utf8');
   await db.exec(migration007);
+  const migration008 = fs.readFileSync(path.join(migrationsDir, '008_maintenance_orders_workflow.sql'), 'utf8');
+  await db.exec(migration008);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
@@ -70,7 +72,10 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
        ('${tenantId}','Asset Manager','manager'),
        ('${tenantId}','Employee','employee')
      ON CONFLICT (tenant_id, name) DO NOTHING;
-     INSERT INTO statuses (tenant_id, name, color) VALUES ('${tenantId}','Good','#27ae60');
+     INSERT INTO statuses (tenant_id, name, color) VALUES
+       ('${tenantId}','Good','#27ae60'),
+       ('${tenantId}','Maintenance','#e67e22')
+     ON CONFLICT (tenant_id, name) DO NOTHING;
      INSERT INTO asset_categories (tenant_id, name) VALUES ('${tenantId}','IT');
      INSERT INTO locations (tenant_id, name, path, full_path, level_number)
        VALUES ('${tenantId}','HQ','hq','HQ',0);`,

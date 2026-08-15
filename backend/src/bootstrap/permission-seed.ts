@@ -18,6 +18,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
     'notification.view', 'notification.manage',
+    'maintenance.view', 'maintenance.create', 'maintenance.manage',
     'search.global', 'search.save',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
@@ -32,6 +33,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
     'export.assets', 'export.movements', 'export.inventory', 'export.dashboard',
     'notification.view', 'search.global', 'search.save',
+    'maintenance.view', 'maintenance.create', 'maintenance.manage',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
     'category.view', 'category.create', 'category.update', 'category.delete',
@@ -55,7 +57,7 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'location.view', 'category.view', 'model.view', 'employee.view', 'status.view',
   ],
   'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view', 'status.view', 'notification.view'],
-  Maintenance: ['asset.view', 'movement.view', 'location.view', 'status.view', 'notification.view'],
+  Maintenance: ['asset.view', 'movement.view', 'location.view', 'status.view', 'notification.view', 'maintenance.view', 'maintenance.create', 'maintenance.manage'],
   Employee: ['asset.view', 'location.view', 'status.view', 'notification.view'],
 };
 
