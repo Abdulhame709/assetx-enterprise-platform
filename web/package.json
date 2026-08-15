@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && ./scripts/prepare-standalone.sh",
+    "build": "NODE_ENV=production next build && ./scripts/prepare-standalone.sh",
     "start": "node .next/standalone/server.js",
     "lint": "eslint .",
     "test": "vitest run"

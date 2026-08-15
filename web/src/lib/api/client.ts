@@ -6,8 +6,21 @@
  * - throws ApiError with status + message for structured handling.
  */
 
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? '/api';
+/**
+ * Browser calls stay same-origin by default so that the Next.js proxy can
+ * reach the backend from the server. A public localhost value would otherwise
+ * point to the end user's own device, which breaks login and session refresh
+ * from phones or external previews.
+ */
+export function resolveApiBaseUrl(configuredUrl = process.env.NEXT_PUBLIC_API_URL): string {
+  const value = configuredUrl?.trim();
+  if (!value || /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?(?:\/|$)/i.test(value)) {
+    return '/api';
+  }
+  return value.replace(/\/$/, '');
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   readonly status: number;

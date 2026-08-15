@@ -49,10 +49,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         const raw = localStorage.getItem(SESSION_KEY);
         if (!raw) { setStatus('unauthenticated'); return; }
 
+        // Backward-compatible recovery for sessions saved before tokens had
+        // dedicated keys. This prevents a valid persisted login from being
+        // discarded solely because the page was refreshed after an upgrade.
+        const storedSession = JSON.parse(raw) as Session;
+        if (storedSession.accessToken && !tokenStore.getAccess()) {
+          tokenStore.set(storedSession.accessToken, storedSession.refreshToken ?? null);
+        }
+
         if (AUTH_MODE === 'mock') {
-          const s = JSON.parse(raw) as Session;
-          setSession(s);
-          if (s.accessToken) tokenStore.set(s.accessToken, s.refreshToken ?? null);
+          setSession(storedSession);
+          if (storedSession.accessToken) tokenStore.set(storedSession.accessToken, storedSession.refreshToken ?? null);
           setStatus('authenticated');
           return;
         }
