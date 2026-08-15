@@ -8,6 +8,7 @@ This directory contains the **executable, verified** AssetX database implementat
 |---|---|
 | `migrations/001_init.sql` | Full schema: 24 tables, 6 enums, PK/FK, indexes, constraints, RLS policies, triggers, computed inventory-result view |
 | `seed/001_seed.sql` | Reference seed data: roles, statuses, channels, categories, templates, settings, location root |
+| `seed/002_permissions.sql` | Idempotent permission catalog seed and role-to-permission links; requires `app.tenant_id` |
 | `verification/verify.sql` | Verification queries (schema, RLS, FKs, uniques, seed, LTREE) |
 | `spec/ERD.mmd` | Final entity-relationship diagram (Mermaid) |
 
@@ -35,9 +36,10 @@ psql "$DATABASE_URL" -f db/migrations/001_init.sql
 # 2. Seed (requires app.tenant_id context set by the app; for a manual first tenant,
 #    set the context before running tenant-scoped seed inserts)
 psql "$DATABASE_URL" -f db/seed/001_seed.sql
+psql "$DATABASE_URL" -f db/seed/002_permissions.sql
 ```
 
-RLS relies on the session setting `app.tenant_id` being set by the API layer (resolved by `current_tenant_id()`). Set it per request, e.g.:
+RLS relies on the session setting `app.tenant_id` being set by the API layer (resolved by `current_tenant_id()`). The same context must be set before running both seed files so tenant-scoped records and permission links are created for the intended tenant. Set it per request, e.g.:
 
 ```sql
 SELECT set_config('app.tenant_id', '<tenant-uuid>', true);  -- transaction-local
