@@ -1,21 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { Archive, Boxes, CheckCircle2, Copy, Download, FileSpreadsheet, FilterX, Pencil, Plus, Search, SlidersHorizontal, Trash2, UserRound, Wrench } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Archive, Boxes, CheckCircle2, ChevronLeft, Copy, Download, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Search, SlidersHorizontal, Trash2, UserRound, Wrench } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Card, CardBody } from '@/components/ui/Card';
-import { EnterpriseTable, EColumn } from '@/components/ui/EnterpriseTable';
+import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useAnalytics, useAssetList } from '@/features/assets/use-assets';
-import { AssetSummary } from '@/features/assets/types';
+import { AssetDetail, AssetSummary } from '@/features/assets/types';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
-import { deleteAsset, disposeAsset, downloadAssetExport, getAsset, getCategories, type AssetDetail } from '@/features/assets/api';
+import { deleteAsset, disposeAsset, downloadAssetExport, getAsset, getCategories } from '@/features/assets/api';
 import { getLocationsTree } from '@/features/assets/components/reference-selects';
 import { getEmployees, getStatuses, type ReferenceEmployee, type ReferenceStatus } from '@/features/reference/api';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
@@ -29,10 +28,10 @@ export default function AssetsPage() {
   const [category, setCategory] = useState<string | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [statusId, setStatusId] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState('full_asset_code');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [showMobileDetail, setShowMobileDetail] = useState(false);
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
   const [statuses, setStatuses] = useState<ReferenceStatus[]>([]);
@@ -45,8 +44,12 @@ export default function AssetsPage() {
   const [disposing, setDisposing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { data, status, error, reload } = useAssetList({
-    q, category_id: category ?? undefined, location_id: location ?? undefined,
-    status_id: statusId ?? undefined, page, limit: 20,
+    q,
+    category_id: category ?? undefined,
+    location_id: location ?? undefined,
+    status_id: statusId ?? undefined,
+    page: 1,
+    limit: 60,
   });
   const { data: analytics } = useAnalytics();
   const toast = useToast();
@@ -56,8 +59,8 @@ export default function AssetsPage() {
   const formatMessage = (key: string, values: Record<string, string | number>) =>
     Object.entries(values).reduce((message, [name, value]) => message.replace(`{${name}}`, String(value)), t(key));
   const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(locale);
+  const activeAsset = useMemo(() => data?.items.find((asset) => asset.id === activeId) ?? data?.items[0] ?? null, [activeId, data?.items]);
   const hasActiveFilters = Boolean(q.trim() || category || location || statusId);
-  const displayedCount = data?.items.length ?? 0;
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => undefined);
@@ -66,9 +69,18 @@ export default function AssetsPage() {
     getEmployees().then(setEmployees).catch(() => undefined);
   }, []);
 
-  const statusName = (id: string | null): string => statuses.find((s) => s.id === id)?.name ?? '—';
+  useEffect(() => {
+    const firstAsset = data?.items[0];
+    if (!firstAsset) {
+      setActiveId(null);
+      return;
+    }
+    if (!activeId || !data.items.some((asset) => asset.id === activeId)) setActiveId(firstAsset.id);
+  }, [activeId, data?.items]);
+
+  const statusName = (id: string | null): string => statuses.find((item) => item.id === id)?.name ?? t('workspace.unknownStatus');
   const statusTone = (id: string | null): BadgeTone => {
-    const color = statuses.find((s) => s.id === id)?.color?.toLowerCase();
+    const color = statuses.find((item) => item.id === id)?.color?.toLowerCase();
     if (!color) return 'neutral';
     if (['#27ae60', '#2ecc71'].includes(color)) return 'success';
     if (['#e67e22', '#f39c12'].includes(color)) return 'warning';
@@ -76,23 +88,12 @@ export default function AssetsPage() {
     return 'neutral';
   };
 
-  const columns: EColumn<AssetSummary>[] = [
-    { key: 'full_asset_code', header: t('common.code'), width: '150px', sortable: true },
-    { key: 'name', header: t('common.name'), sortable: true, render: (row) => (
-      <Link href={`/assets/${row.id}`} className="font-medium text-brand hover:underline">{row.name}</Link>
-    ) },
-    { key: 'location_id', header: t('common.location'), render: (row) => row._locationName ?? '—' },
-    { key: 'employee_id', header: t('common.custodian'), render: (row) => row._employeeName ?? '—' },
-    { key: 'status_id', header: t('common.status'), render: (row) =>
-      row.status_id ? <Badge tone={statusTone(row.status_id)}>{statusName(row.status_id)}</Badge> :
-        <Badge tone={row.is_active ? 'success' : 'neutral'}>{row.is_active ? t('common.active') : t('common.inactive')}</Badge> },
-    { key: 'quantity', header: t('common.quantity'), align: 'center', render: (row) => <span className="text-ink-muted">{row.quantity}</span> },
-    { key: 'purchase_price', header: t('common.value'), align: 'right', sortable: true, accessor: (row) => Number(row.purchase_price || 0), render: (row) => formatCurrency(row.purchase_price) },
-  ];
-
   const onSaved = (asset: AssetDetail, verb: 'created' | 'updated') => {
     toast.success(verb === 'created' ? t('common.assetCreated') : t('assetDetail.updatedToast'), asset.name);
+    setFormOpen(false);
     setSelected([]);
+    setActiveId(asset.id);
+    setShowMobileDetail(true);
     reload();
   };
 
@@ -118,16 +119,8 @@ export default function AssetsPage() {
     }
   };
 
-  const openFormForSelected = async (mode: 'edit' | 'copy') => {
-    if (selected.length !== 1) return;
-    await openForm(selected[0], mode);
-  };
-
   const onDeleteAsset = async (assetId: string) => {
-    const approved = await confirm({
-      title: t('assetActions.deleteTitle'), message: t('assetActions.deleteMessage'),
-      tone: 'danger', confirmLabel: t('assetActions.delete'),
-    });
+    const approved = await confirm({ title: t('assetActions.deleteTitle'), message: t('assetActions.deleteMessage'), tone: 'danger', confirmLabel: t('assetActions.delete') });
     if (!approved) return;
     setDeleting(true);
     try {
@@ -142,17 +135,11 @@ export default function AssetsPage() {
     }
   };
 
-  const onDeleteSelected = async () => {
-    if (selected.length !== 1) return;
-    await onDeleteAsset(selected[0]);
-  };
-
   const onDisposeSelected = async () => {
-    if (selected.length === 0) return;
+    if (!selected.length) return;
     const approved = await confirm({
       title: formatMessage('assetActions.disposeTitle', { count: selected.length }),
-      message: t('assetActions.disposeMessage'),
-      tone: 'danger', confirmLabel: t('assetActions.disposeConfirm'),
+      message: t('assetActions.disposeMessage'), tone: 'danger', confirmLabel: t('assetActions.disposeConfirm'),
     });
     if (!approved) return;
     setDisposing(true);
@@ -160,13 +147,19 @@ export default function AssetsPage() {
     setDisposing(false);
     const succeeded = results.filter((result) => result.status === 'fulfilled').length;
     const failed = results.length - succeeded;
-    if (succeeded > 0) toast.success(t('common.disposalRequestsCreated'), formatMessage('assetActions.disposeSuccessSummary', { count: succeeded }));
-    if (failed > 0) {
-      const firstError = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
-      toast.error(t('common.someRequestsFailed'), failed === 1 ? humanError(firstError?.reason) : formatMessage('assetActions.disposeFailedSummary', { count: failed }));
-    }
+    if (succeeded) toast.success(t('common.disposalRequestsCreated'), formatMessage('assetActions.disposeSuccessSummary', { count: succeeded }));
+    if (failed) toast.error(t('common.someRequestsFailed'), formatMessage('assetActions.disposeFailedSummary', { count: failed }));
     setSelected([]);
     reload();
+  };
+
+  const selectAsset = (asset: AssetSummary) => {
+    setActiveId(asset.id);
+    setShowMobileDetail(true);
+  };
+
+  const toggleSelection = (assetId: string) => {
+    setSelected((current) => current.includes(assetId) ? current.filter((id) => id !== assetId) : [...current, assetId]);
   };
 
   return (
@@ -174,7 +167,7 @@ export default function AssetsPage() {
       <PageHeader
         title={t('nav.assets')}
         subtitle={formatMessage('assets.subtitle', { count: data?.total ?? 0 })}
-        actions={<div className="flex items-center gap-2">
+        actions={<div className="flex flex-wrap items-center gap-2">
           <PermissionGate permission={PERMISSIONS.EXPORT_ASSETS}>
             <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}><Download className="h-4 w-4" /> {t('common.export')}</Button>
           </PermissionGate>
@@ -194,68 +187,101 @@ export default function AssetsPage() {
         <MetricCard icon={Wrench} label={t('assets.maintenance')} value={metricValue(analytics?.maintenance_assets)} tone="danger" />
       </section>
 
-      <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-labelledby="asset-controls-title">
-        <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand"><SlidersHorizontal className="h-4 w-4" /></span>
-            <div>
-              <h2 id="asset-controls-title" className="text-sm font-semibold text-ink">{t('assets.controlsTitle')}</h2>
-              <p className="text-xs text-ink-muted">{formatMessage('assets.resultsSummary', { shown: displayedCount, total: data?.total ?? 0 })}</p>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,0.9fr)]">
+        <section className={`${showMobileDetail ? 'hidden lg:block' : ''} lg:order-2`} aria-label={t('workspace.assetBrowser')}>
+          <Card className="h-full overflow-hidden p-0 shadow-card">
+            <div className="border-b border-line bg-surface-raised p-3">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand"><Search className="h-4 w-4" /></span>
+                  <div>
+                    <h2 className="text-sm font-semibold text-ink">{t('workspace.smartSearch')}</h2>
+                    <p className="text-xs text-ink-muted">{formatMessage('workspace.assetCount', { count: data?.total ?? 0 })}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowFilters((open) => !open)} aria-expanded={showFilters}>
+                  <ListFilter className="h-4 w-4" /> <span className="sr-only sm:not-sr-only">{showFilters ? t('workspace.hideFilters') : t('workspace.showFilters')}</span>
+                </Button>
+              </div>
+              <label className="relative block">
+                <span className="sr-only">{t('workspace.smartSearch')}</span>
+                <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+                <input autoFocus value={q} onChange={(event) => setQ(event.target.value)} placeholder={t('assets.search')} className="ax-input w-full py-2.5 ps-9" />
+              </label>
+              {showFilters && (
+                <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+                  <SearchableSelect options={categories} value={category} onChange={setCategory} placeholder={t('common.type')} />
+                  <SearchableSelect options={locations} value={location} onChange={setLocation} placeholder={t('common.location')} />
+                  <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={setStatusId} placeholder={t('common.status')} />
+                  {hasActiveFilters && <Button variant="ghost" size="sm" onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); }}><FilterX className="h-3.5 w-3.5" /> {t('assets.clearFilters')}</Button>}
+                </div>
+              )}
             </div>
-          </div>
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); setPage(1); }}>
-              <FilterX className="h-3.5 w-3.5" /> {t('assets.clearFilters')}
-            </Button>
-          )}
-        </div>
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(260px,1.8fr)_repeat(3,minmax(150px,1fr))]">
-          <label className="relative block">
-            <span className="sr-only">{t('assets.search')}</span>
-            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-            <input value={q} onChange={(event) => { setQ(event.target.value); setPage(1); }} placeholder={t('assets.search')} className="ax-input w-full py-2 ps-9" />
-          </label>
-          <SearchableSelect options={categories} value={category} onChange={(value) => { setCategory(value); setPage(1); }} placeholder={t('common.type')} />
-          <SearchableSelect options={locations} value={location} onChange={(value) => { setLocation(value); setPage(1); }} placeholder={t('common.location')} />
-          <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={(value) => { setStatusId(value); setPage(1); }} placeholder={t('common.status')} />
-        </div>
-      </section>
+
+            {selected.length > 0 && (
+              <div className="flex items-center justify-between gap-2 border-b border-brand/20 bg-brand-soft/45 px-3 py-2">
+                <p className="text-xs font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p>
+                <Button variant="ghost" size="sm" onClick={() => setSelected([])}>{t('assets.clearSelection')}</Button>
+              </div>
+            )}
+
+            <div className="max-h-[580px] overflow-y-auto p-2" aria-live="polite">
+              {status === 'loading' && <WorkspaceState text={t('common.loading')} />}
+              {error && <WorkspaceState text={humanError(error, t('common.genericError'), locale)} retry={reload} />}
+              {!error && status !== 'loading' && (data?.items.length ?? 0) === 0 && <WorkspaceState text={t('workspace.noAssetsFound')} />}
+              {data?.items.map((asset) => (
+                <AssetListItem
+                  key={asset.id}
+                  asset={asset}
+                  active={asset.id === activeAsset?.id}
+                  checked={selected.includes(asset.id)}
+                  statusName={asset.status_id ? statusName(asset.status_id) : asset.is_active ? t('common.active') : t('common.inactive')}
+                  tone={asset.status_id ? statusTone(asset.status_id) : asset.is_active ? 'success' : 'neutral'}
+                  onOpen={() => selectAsset(asset)}
+                  onToggle={() => toggleSelection(asset.id)}
+                />
+              ))}
+            </div>
+          </Card>
+        </section>
+
+        <section className={`${showMobileDetail ? '' : 'hidden lg:block'} lg:order-1`} aria-label={t('workspace.assetDetail')}>
+          <Card className="min-h-[430px] shadow-card">
+            <div className="mb-4 flex items-center justify-between gap-2 lg:hidden">
+              <Button variant="ghost" size="sm" onClick={() => setShowMobileDetail(false)}><ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t('workspace.backToList')}</Button>
+            </div>
+            {activeAsset ? (
+              <AssetPreview
+                asset={activeAsset}
+                statusName={activeAsset.status_id ? statusName(activeAsset.status_id) : activeAsset.is_active ? t('common.active') : t('common.inactive')}
+                statusTone={activeAsset.status_id ? statusTone(activeAsset.status_id) : activeAsset.is_active ? 'success' : 'neutral'}
+                locale={locale}
+                t={t}
+                onEdit={() => void openForm(activeAsset.id, 'edit')}
+                onCopy={() => void openForm(activeAsset.id, 'copy')}
+                onDelete={() => void onDeleteAsset(activeAsset.id)}
+                deleting={deleting}
+              />
+            ) : <WorkspaceState text={t('workspace.selectAsset')} />}
+          </Card>
+        </section>
+      </div>
 
       {selected.length > 0 && (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/25 bg-brand-soft/45 px-4 py-3" aria-label={t('assets.selectionTitle')}>
-          <div className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white"><CheckCircle2 className="h-4 w-4" /></span>
-            <div>
-              <p className="text-sm font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p>
-              <p className="text-xs text-ink-muted">{t('assets.selectionHint')}</p>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" onClick={() => setSelected([])}>{t('assets.clearSelection')}</Button>
-        </section>
-      )}
-
-      <Card className="overflow-hidden p-0 shadow-card"><CardBody className="p-0">
-        <EnterpriseTable
-          columns={columns} rows={data?.items ?? []} rowKey={(row) => row.id}
-          loading={status === 'loading'} error={error ? humanError(error, t('common.genericError'), locale) : null} onRetry={reload}
-          page={page} pageSize={20} total={data?.total ?? 0} onPageChange={setPage}
-          sortKey={sortKey} sortDir={sortDir} onSortChange={(key, direction) => { setSortKey(key); setSortDir(direction); }}
-          selectable selectedKeys={selected} onSelectionChange={setSelected} defaultHiddenColumns={['quantity']}
-          toolbarActions={selected.length > 0 ? <>
+        <section className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/25 bg-surface-raised px-4 py-3 shadow-lg" aria-label={t('assets.selectionTitle')}>
+          <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white"><SlidersHorizontal className="h-4 w-4" /></span><p className="text-sm font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p></div>
+          <div className="flex flex-wrap gap-2">
             <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}>
-              <Button variant="secondary" size="sm" disabled={selected.length !== 1} onClick={() => void openFormForSelected('edit')}><Pencil className="h-3.5 w-3.5" /> {t('assetActions.edit')}</Button>
-              <Button variant="secondary" size="sm" disabled={selected.length !== 1} onClick={() => void openFormForSelected('copy')}><Copy className="h-3.5 w-3.5" /> {t('assetActions.copy')}</Button>
-              <Button variant="secondary" size="sm" disabled={selected.length === 0} onClick={() => setBulkOpen(true)}><SlidersHorizontal className="h-3.5 w-3.5" /> {t('assetActions.bulkEdit')} ({selected.length})</Button>
-            </PermissionGate>
-            <PermissionGate permission={PERMISSIONS.ASSET_DELETE}>
-              <Button variant="danger" size="sm" disabled={selected.length !== 1} loading={deleting} onClick={() => void onDeleteSelected()}><Trash2 className="h-3.5 w-3.5" /> {t('assetActions.delete')}</Button>
+              <Button variant="secondary" size="sm" disabled={selected.length !== 1} onClick={() => void openForm(selected[0], 'edit')}><Pencil className="h-3.5 w-3.5" /> {t('assetActions.edit')}</Button>
+              <Button variant="secondary" size="sm" disabled={selected.length !== 1} onClick={() => void openForm(selected[0], 'copy')}><Copy className="h-3.5 w-3.5" /> {t('assetActions.copy')}</Button>
+              <Button variant="secondary" size="sm" onClick={() => setBulkOpen(true)}><SlidersHorizontal className="h-3.5 w-3.5" /> {t('assetActions.bulkEdit')}</Button>
             </PermissionGate>
             <PermissionGate permission={PERMISSIONS.MOVEMENT_CREATE}>
-              <Button variant="danger" size="sm" loading={disposing} onClick={() => void onDisposeSelected()}><Archive className="h-3.5 w-3.5" /> {t('common.dispose')} ({selected.length})</Button>
+              <Button variant="danger" size="sm" loading={disposing} onClick={() => void onDisposeSelected()}><Archive className="h-3.5 w-3.5" /> {t('common.dispose')}</Button>
             </PermissionGate>
-          </> : undefined}
-        />
-      </CardBody></Card>
+          </div>
+        </section>
+      )}
 
       {formOpen && <AssetFormModal open mode={formMode} asset={formAsset} onClose={() => setFormOpen(false)} onSaved={onSaved} />}
       {bulkOpen && <AssetBulkEditModal
@@ -263,27 +289,65 @@ export default function AssetsPage() {
         employees={employees.map((employee) => ({ value: employee.id, label: employee.department ? `${employee.name} · ${employee.department}` : employee.name }))}
         statuses={statuses.map((item) => ({ value: item.id, label: item.name }))}
         onClose={() => setBulkOpen(false)}
-        onSaved={(result) => {
-          toast.success(t(result.failed.length ? 'assetActions.bulkPartial' : 'assetActions.bulkDone'), `${result.updated.length}/${selected.length}`);
-          setSelected([]);
-          reload();
-        }}
+        onSaved={(result) => { toast.success(t(result.failed.length ? 'assetActions.bulkPartial' : 'assetActions.bulkDone'), `${result.updated.length}/${selected.length}`); setSelected([]); reload(); }}
       />}
     </div>
   );
 }
 
-function MetricCard({ icon: Icon, label, value, tone }: { icon: typeof Boxes; label: string; value: string; tone: 'brand' | 'success' | 'warning' | 'danger' }) {
-  const toneClass = {
-    brand: 'bg-brand-soft text-brand', success: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', danger: 'bg-danger-soft text-danger',
-  }[tone];
+function AssetListItem({ asset, active, checked, statusName, tone, onOpen, onToggle }: { asset: AssetSummary; active: boolean; checked: boolean; statusName: string; tone: BadgeTone; onOpen: () => void; onToggle: () => void }) {
   return (
-    <div className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4">
-      <div className="flex items-start justify-between gap-3">
-        <span className={`grid h-9 w-9 place-items-center rounded-lg ${toneClass}`}><Icon className="h-4 w-4" /></span>
-        <span className="text-2xl font-semibold tabular-nums text-ink">{value}</span>
+    <div className={`group mb-1 rounded-lg border p-2 transition-colors ${active ? 'border-brand bg-brand-soft/45' : 'border-transparent hover:border-line hover:bg-surface-muted'}`}>
+      <div className="flex items-start gap-2">
+        <input type="checkbox" aria-label={asset.name} checked={checked} onChange={onToggle} className="mt-1 h-4 w-4 rounded border-line text-brand focus:ring-brand" />
+        <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
+          <div className="flex items-start justify-between gap-2"><span className="truncate text-sm font-semibold text-ink">{asset.name}</span><Badge tone={tone}>{statusName}</Badge></div>
+          <p className="mt-1 truncate text-xs font-medium text-brand">{asset.full_asset_code}</p>
+          <p className="mt-1 truncate text-xs text-ink-muted">{asset._locationName ?? '—'} <span className="px-1 text-ink-faint">·</span> {asset.quantity}</p>
+        </button>
       </div>
-      <p className="mt-3 text-xs font-medium text-ink-muted">{label}</p>
     </div>
   );
+}
+
+function AssetPreview({ asset, statusName, statusTone, locale, t, onEdit, onCopy, onDelete, deleting }: { asset: AssetSummary; statusName: string; statusTone: BadgeTone; locale: string; t: (key: string) => string; onEdit: () => void; onCopy: () => void; onDelete: () => void; deleting: boolean }) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold text-ink">{asset.name}</h2><Badge tone={statusTone}>{statusName}</Badge></div>
+          <p className="mt-2 font-mono text-sm text-brand">{asset.full_asset_code}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}><Button variant="secondary" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /> {t('assetActions.edit')}</Button><Button variant="secondary" size="sm" onClick={onCopy}><Copy className="h-4 w-4" /> {t('assetActions.copy')}</Button></PermissionGate>
+          <PermissionGate permission={PERMISSIONS.ASSET_DELETE}><Button variant="ghost" size="sm" loading={deleting} onClick={onDelete}><Trash2 className="h-4 w-4 text-danger" /> <span className="text-danger">{t('assetActions.delete')}</span></Button></PermissionGate>
+        </div>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <PreviewField label={t('common.type')} value={asset._categoryName ?? '—'} />
+        <PreviewField label={t('common.location')} value={asset._locationName ?? '—'} />
+        <PreviewField label={t('common.custodian')} value={asset._employeeName ?? '—'} />
+        <PreviewField label={t('common.quantity')} value={String(asset.quantity)} />
+        <PreviewField label={t('common.value')} value={formatCurrency(asset.purchase_price, locale)} />
+        <PreviewField label={t('workspace.recordState')} value={asset.is_active ? t('common.active') : t('common.inactive')} />
+      </div>
+      <div className="mt-6 border-t border-line pt-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t('workspace.moreDetails')}</p>
+        <Link href={`/assets/${asset.id}`} className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline">{t('workspace.openFullRecord')} <ChevronLeft className="h-4 w-4 rtl:rotate-180" /></Link>
+      </div>
+    </div>
+  );
+}
+
+function PreviewField({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg border border-line bg-surface-muted/60 px-3 py-2.5"><p className="text-xs text-ink-muted">{label}</p><p className="mt-1 truncate text-sm font-semibold text-ink">{value}</p></div>;
+}
+
+function WorkspaceState({ text, retry }: { text: string; retry?: () => void }) {
+  return <div className="flex min-h-48 flex-col items-center justify-center gap-3 px-4 text-center"><Filter className="h-7 w-7 text-ink-faint" /><p className="max-w-xs text-sm text-ink-muted">{text}</p>{retry && <Button variant="secondary" size="sm" onClick={retry}>إعادة المحاولة</Button>}</div>;
+}
+
+function MetricCard({ icon: Icon, label, value, tone }: { icon: typeof Boxes; label: string; value: string; tone: 'brand' | 'success' | 'warning' | 'danger' }) {
+  const toneClass = { brand: 'bg-brand-soft text-brand', success: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', danger: 'bg-danger-soft text-danger' }[tone];
+  return <div className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4"><div className="flex items-start justify-between gap-3"><span className={`grid h-9 w-9 place-items-center rounded-lg ${toneClass}`}><Icon className="h-4 w-4" /></span><span className="text-2xl font-semibold tabular-nums text-ink">{value}</span></div><p className="mt-3 text-xs font-medium text-ink-muted">{label}</p></div>;
 }
