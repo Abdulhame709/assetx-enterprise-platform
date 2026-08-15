@@ -44,7 +44,7 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
     try {
       await startMaintenanceOrder(order.id);
       onChanged();
-    } catch (err) { setError(humanError(err)); }
+    } catch (err) { setError(humanError(err, t('common.genericError'), locale)); }
     finally { setWorkingId(null); }
   };
 
@@ -103,7 +103,7 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
 }
 
 function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }: { assetId: string; assetName: string; onClose: () => void; onCreated: () => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [maintenanceType, setMaintenanceType] = useState('preventive');
   const [technician, setTechnician] = useState('');
   const [technicianContact, setTechnicianContact] = useState('');
@@ -116,7 +116,7 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
     try {
       await createMaintenanceOrder(assetId, { maintenance_type: maintenanceType.trim() || undefined, technician_name: technician.trim() || undefined, technician_contact: technicianContact.trim() || undefined, priority, next_maintenance_date: nextDate || undefined });
       onCreated();
-    } catch (err) { setError(humanError(err)); }
+    } catch (err) { setError(humanError(err, t('common.genericError'), locale)); }
     finally { setSaving(false); }
   };
   return (
@@ -144,7 +144,7 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
 }
 
 function CompleteMaintenanceOrderModal({ order, onClose, onCompleted }: { order: MaintenanceOrder; onClose: () => void; onCompleted: () => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [cost, setCost] = useState(order.cost?.toString() ?? '');
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [nextDate, setNextDate] = useState(order.next_maintenance_date?.slice(0, 10) ?? '');
@@ -155,7 +155,7 @@ function CompleteMaintenanceOrderModal({ order, onClose, onCompleted }: { order:
     try {
       await completeMaintenanceOrder(order.id, { end_date: endDate || undefined, cost: cost.trim() ? Number(cost) : undefined, next_maintenance_date: nextDate || undefined });
       onCompleted();
-    } catch (err) { setError(humanError(err)); }
+    } catch (err) { setError(humanError(err, t('common.genericError'), locale)); }
     finally { setSaving(false); }
   };
   return (

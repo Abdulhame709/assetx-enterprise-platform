@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowRightLeft, UserCheck, RotateCcw, Wrench, Trash2, Archive,
-  Eye, Check, X, Download,
+  Eye, Check, X, Download, ClipboardCheck, FilterX,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -102,6 +102,11 @@ export default function MovementsPage() {
   const canReject = can(PERMISSIONS.MOVEMENT_REJECT);
   const data = state.data;
   const rows = data?.page.items ?? [];
+  const approvedVisible = rows.filter((movement) => movement.status === 'approved').length;
+  const rejectedVisible = rows.filter((movement) => movement.status === 'rejected').length;
+  const formatMessage = (key: string, values: Record<string, number>) => Object.entries(values).reduce(
+    (text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(locale)), t(key),
+  );
 
   const filtered =
     tab !== 'pending' ||
@@ -113,6 +118,7 @@ export default function MovementsPage() {
   const resetPage = () => setPage(1);
   const onTab = (t: StatusTab) => { setTab(t); resetPage(); };
   const onType = (v: string | null) => { setType((v ?? 'all') as 'all' | MovementType); resetPage(); };
+  const clearFilters = () => { setType('all'); setAssetId(null); setDateFrom(''); setDateTo(''); setPage(1); };
 
   /** Unified decision flow: confirm → PATCH → toast → reload (backend authoritative). */
   const decide = async (m: MovementRow, decision: 'approve' | 'reject') => {
@@ -137,7 +143,7 @@ export default function MovementsPage() {
       setSelected(null);
       state.reload();
     } catch (err) {
-      toast.error(t('movements.actionFailed'), humanError(err));
+      toast.error(t('movements.actionFailed'), humanError(err, t('common.genericError'), locale));
       setSelected(null);
       state.reload(); // e.g. MOVEMENT_NOT_PENDING — refresh stale row
     } finally {
@@ -151,7 +157,7 @@ export default function MovementsPage() {
       await downloadMovementsExport('csv');
       toast.success(t('movements.exportReady'), t('movements.exportDownloaded'));
     } catch (err) {
-      toast.error(t('movements.exportFailed'), humanError(err));
+      toast.error(t('movements.exportFailed'), humanError(err, t('common.genericError'), locale));
     } finally {
       setExporting(false);
     }
@@ -234,23 +240,23 @@ export default function MovementsPage() {
     },
     {
       key: 'actions',
-      header: '',
+      header: t('movements.actions'),
       align: 'right',
       width: '120px',
       render: (m) => (
-        <div className="flex items-center justify-end gap-1">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           {m.status === 'pending' && canApprove && (
-            <Button variant="ghost" size="sm" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`}
+            <Button variant="secondary" size="sm" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'approve')}>
-              <Check className="h-4 w-4 text-success" />
+              <Check className="h-3.5 w-3.5 text-success" /> <span className="hidden lg:inline">{t('movements.approve')}</span>
             </Button>
           )}
           {m.status === 'pending' && canReject && (
             <Button variant="ghost" size="sm" aria-label={`${t('movements.reject')} ${label(m.movement_type)}`}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'reject')}>
-              <X className="h-4 w-4 text-danger" />
+              <X className="h-3.5 w-3.5 text-danger" /> <span className="hidden lg:inline">{t('movements.reject')}</span>
             </Button>
           )}
           <Button variant="ghost" size="sm" aria-label={t('movements.view')} onClick={() => setSelected(m)}>
@@ -262,7 +268,7 @@ export default function MovementsPage() {
   ];
 
   return (
-    <div>
+    <div className="space-y-4">
       <PageHeader
         title={t('movements.title')}
         subtitle={
@@ -279,21 +285,38 @@ export default function MovementsPage() {
         }
       />
 
-      <div className="mb-3">
+      <section aria-label={t('movements.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <MetricCard icon={ClipboardCheck} label={t('movements.pendingApprovals')} value={(data?.pendingTotal ?? 0).toLocaleString(locale)} tone="warning" />
+        <MetricCard icon={ArrowRightLeft} label={t('movements.displayedMovements')} value={(data?.page.total ?? 0).toLocaleString(locale)} tone="brand" />
+        <MetricCard icon={Check} label={t('movements.approvedInView')} value={approvedVisible.toLocaleString(locale)} tone="success" />
+        <MetricCard icon={X} label={t('movements.rejectedInView')} value={rejectedVisible.toLocaleString(locale)} tone="danger" />
+      </section>
+
+      <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-labelledby="movement-filters-title">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 id="movement-filters-title" className="text-sm font-semibold text-ink">{t('movements.filterTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('movements.filterSummary', { count: data?.page.total ?? 0 })}</p></div>{filtered && <Button variant="ghost" size="sm" onClick={clearFilters}><FilterX className="h-3.5 w-3.5" /> {t('movements.clearFilters')}</Button>}</div>
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)]">
+          <SearchableSelect options={typeOptions} value={type} onChange={onType} placeholder={t('movements.filterType')} />
+          <SearchableSelect options={assetOptions} value={assetId} onChange={(value) => { setAssetId(value); resetPage(); }} placeholder={t('movements.allAssets')} clearable />
+          <Input type="date" value={dateFrom} aria-label={t('movements.fromDate')} onChange={(event) => { setDateFrom(event.target.value); resetPage(); }} />
+          <Input type="date" value={dateTo} aria-label={t('movements.toDate')} onChange={(event) => { setDateTo(event.target.value); resetPage(); }} />
+        </div>
+      </section>
+
+      <section aria-label={t('movements.status')}>
         <Tabs items={[
           { id: 'pending', label: t('movements.pending') }, { id: 'all', label: t('movements.all') },
           { id: 'approved', label: t('movements.approved') }, { id: 'rejected', label: t('movements.rejected') },
         ]} value={tab} onChange={onTab} />
-      </div>
+      </section>
 
-      <Card className="p-0">
+      <Card className="overflow-hidden p-0 shadow-card">
         <CardBody className="p-0">
           <EnterpriseTable
             columns={columns}
             rows={rows}
             rowKey={(m) => m.id}
             loading={state.status === 'loading'}
-            error={state.status === 'error' ? humanError(state.error) : null}
+            error={state.status === 'error' ? humanError(state.error, t('common.genericError'), locale) : null}
             onRetry={state.reload}
             page={page}
             pageSize={filter.limit}
@@ -309,37 +332,6 @@ export default function MovementsPage() {
                     : t('movements.noneDesc')
                 }
               />
-            }
-            toolbarActions={
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="w-44">
-                  <SearchableSelect options={typeOptions} value={type} onChange={onType} placeholder={t('movements.filterType')} />
-                </div>
-                <div className="w-56">
-                  <SearchableSelect
-                    options={assetOptions}
-                    value={assetId}
-                    onChange={(v) => { setAssetId(v); resetPage(); }}
-                    placeholder={t('movements.allAssets')}
-                    clearable
-                  />
-                </div>
-                <Input
-                  type="date"
-                  className="w-36"
-                  value={dateFrom}
-                  aria-label={t('movements.fromDate')}
-                  onChange={(e) => { setDateFrom(e.target.value); resetPage(); }}
-                />
-                <span className="text-xs text-ink-faint">{t('movements.toDate')}</span>
-                <Input
-                  type="date"
-                  className="w-36"
-                  value={dateTo}
-                  aria-label={t('movements.toDate')}
-                  onChange={(e) => { setDateTo(e.target.value); resetPage(); }}
-                />
-              </div>
             }
           />
         </CardBody>
@@ -358,4 +350,9 @@ export default function MovementsPage() {
       )}
     </div>
   );
+}
+
+function MetricCard({ icon: Icon, label, value, tone }: { icon: typeof ClipboardCheck; label: string; value: string; tone: 'brand' | 'success' | 'warning' | 'danger' }) {
+  const toneClass = { brand: 'bg-brand-soft text-brand', success: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', danger: 'bg-danger-soft text-danger' }[tone];
+  return <div className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4"><div className="flex items-start justify-between gap-3"><span className={`grid h-9 w-9 place-items-center rounded-lg ${toneClass}`}><Icon className="h-4 w-4" /></span><span className="text-2xl font-semibold tabular-nums text-ink">{value}</span></div><p className="mt-3 text-xs font-medium text-ink-muted">{label}</p></div>;
 }
