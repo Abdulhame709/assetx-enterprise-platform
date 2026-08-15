@@ -74,4 +74,28 @@ describe('Master Data — E2E HTTP (RBAC, auth, duplicate)', () => {
     const noAuth = await req('GET', '/locations');
     expect(noAuth.status).toBe(401);
   });
+
+  it('admin manages asset statuses while an employee is forbidden', async () => {
+    const admin = await req('POST', '/auth/login', { username: 'admin', password: 'AdminPass123' });
+    const adminToken = admin.json.accessToken;
+    const created = await req('POST', '/statuses', { name: 'Awaiting inspection', color: '#2563eb' }, adminToken);
+    expect(created.status).toBe(201);
+    expect(created.json.color).toBe('#2563eb');
+
+    const listed = await req('GET', '/statuses', undefined, adminToken);
+    expect(listed.status).toBe(200);
+    expect(listed.json.some((status: { id: string }) => status.id === created.json.id)).toBe(true);
+
+    const updated = await req('PATCH', `/statuses/${created.json.id}`, { name: 'Inspection queued', color: '#7c3aed' }, adminToken);
+    expect(updated.status).toBe(200);
+    expect(updated.json.name).toBe('Inspection queued');
+
+    const employee = await req('POST', '/auth/login', { username: 'md_emp', password: 'Pass123456' });
+    const forbidden = await req('POST', '/statuses', { name: 'Unauthorized', color: '#ef4444' }, employee.json.accessToken);
+    expect(forbidden.status).toBe(403);
+
+    const invalidColor = await req('POST', '/statuses', { name: 'Invalid color', color: 'purple' }, adminToken);
+    expect(invalidColor.status).toBe(400);
+    expect(invalidColor.json.error.code).toBe('VALIDATION_ERROR');
+  });
 });

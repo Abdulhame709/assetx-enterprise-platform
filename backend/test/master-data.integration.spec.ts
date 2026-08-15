@@ -4,6 +4,8 @@
  * Reference: FRS FR-LOC/FR-CAT/FR-EMP · Security (ADR-004)
  */
 import { createHarness, Harness } from './support/db.harness';
+import { StatusService } from '../src/application/status.service';
+import { StatusRepository } from '../src/infrastructure/repositories/status.repository';
 
 describe('Master Data — integration (real PostgreSQL + RLS)', () => {
   let h: Harness;
@@ -79,5 +81,21 @@ describe('Master Data — integration (real PostgreSQL + RLS)', () => {
     const listA = await h.employees.list(h.tenantA);
     expect(listA.some((x) => x.name === 'Ali')).toBe(true);
     expect(listA.some((x) => x.name === 'Bob')).toBe(false);
+  });
+
+  // ---------- Asset Status ----------
+  it('Status — creates and updates a colored lifecycle status with tenant isolation', async () => {
+    const statuses = new StatusService(new StatusRepository(h.db), h.db);
+    const created = await statuses.create({ tenant_id: h.tenantA, name: 'Awaiting inspection', color: '#2563eb' });
+    expect(created.color).toBe('#2563eb');
+    expect(created.is_active).toBe(true);
+
+    const updated = await statuses.update(created.id, h.tenantA, { name: 'Awaiting technical inspection', color: '#7c3aed' });
+    expect(updated?.name).toBe('Awaiting technical inspection');
+    expect(updated?.color).toBe('#7c3aed');
+
+    await expect(statuses.create({ tenant_id: h.tenantA, name: 'Awaiting technical inspection' })).rejects.toThrow('DUPLICATE_STATUS');
+    await expect(statuses.create({ tenant_id: h.tenantA, name: 'Bad color', color: 'blue' })).rejects.toThrow('COLOR_INVALID');
+    expect(await statuses.getById(created.id, h.tenantB)).toBeNull();
   });
 });

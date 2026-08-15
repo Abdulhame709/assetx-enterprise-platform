@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 export type BadgeTone = 'neutral' | 'brand' | 'success' | 'warning' | 'danger' | 'info';
 
@@ -40,6 +41,7 @@ export function StatusIndicator({ tone = 'neutral', label }: { tone?: BadgeTone;
 
 /** LifecycleStateBadge — semantic badge for the 8 lifecycle states. */
 export function LifecycleStateBadge({ state }: { state: string }) {
+  const { label } = useI18n();
   const map: Record<string, BadgeTone> = {
     draft: 'neutral',
     registered: 'info',
@@ -50,6 +52,5 @@ export function LifecycleStateBadge({ state }: { state: string }) {
     disposed: 'danger',
     archived: 'neutral',
   };
-  const label = state.replace(/_/g, ' ');
-  return <Badge tone={map[state] ?? 'neutral'}>{label}</Badge>;
+  return <Badge tone={map[state] ?? 'neutral'}>{label(state)}</Badge>;
 }

@@ -21,6 +21,7 @@ import {
 } from '../api';
 
 const statusTone = { open: 'neutral', in_progress: 'warning', completed: 'success', cancelled: 'danger' } as const;
+const maintenanceTypeKey: Record<string, string> = { preventive: 'maintenance.type.preventive', corrective: 'maintenance.corrective' };
 
 interface PanelProps {
   assetId?: string;
@@ -48,9 +49,8 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
   };
 
   return (
-    <div className="space-y-4">
+    <div className={compact ? 'space-y-3' : 'space-y-4'}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        {!compact && <p className="text-sm text-ink-muted">{t('maintenance.ordersSubtitle')}</p>}
         {assetId && can(PERMISSIONS.MAINTENANCE_CREATE) && (
           <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> {t('maintenance.create')}</Button>
         )}
@@ -77,7 +77,7 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
                 <tr key={order.id}>
                   {!assetId && <td className="px-3 py-3 text-ink"><div>{order.asset_name ?? '—'}</div><div className="text-xs text-ink-muted">{order.asset_code ?? ''}</div></td>}
                   <td className="px-3 py-3 font-mono text-xs text-ink">{order.maintenance_code ?? '—'}</td>
-                  <td className="px-3 py-3 text-ink">{order.maintenance_type || t('maintenance.corrective')}</td>
+                  <td className="px-3 py-3 text-ink">{order.maintenance_type ? (maintenanceTypeKey[order.maintenance_type] ? t(maintenanceTypeKey[order.maintenance_type]) : order.maintenance_type) : t('maintenance.corrective')}</td>
                   <td className="px-3 py-3"><Badge tone={order.priority === 'critical' || order.priority === 'high' ? 'danger' : 'neutral'}>{t(`maintenance.priority.${order.priority ?? 'medium'}`)}</Badge></td>
                   <td className="px-3 py-3"><Badge tone={statusTone[order.workflow_status]}>{t(`maintenance.status.${order.workflow_status}`)}</Badge></td>
                   <td className="px-3 py-3 text-ink-muted">{formatDate(order.next_maintenance_date, locale)}</td>
@@ -122,7 +122,12 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
   return (
     <Modal open onClose={onClose} title={t('maintenance.createTitle').replace('{name}', assetName)} size="md">
       <form onSubmit={submit} className="space-y-4">
-        <Field label={t('maintenance.type')}><Input value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} required /></Field>
+        <Field label={t('maintenance.type')}>
+          <select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
+            <option value="preventive">{t('maintenance.type.preventive')}</option>
+            <option value="corrective">{t('maintenance.corrective')}</option>
+          </select>
+        </Field>
         <Field label={t('maintenance.technician')}><Input value={technician} onChange={(event) => setTechnician(event.target.value)} /></Field>
         <Field label={t('maintenance.technicianContact')}><Input value={technicianContact} onChange={(event) => setTechnicianContact(event.target.value)} /></Field>
         <Field label={t('maintenance.priority')}>

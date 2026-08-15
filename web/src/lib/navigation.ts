@@ -17,6 +17,7 @@ import {
   Settings,
   MapPin,
   Tags,
+  CircleDot,
   Users,
   Bell,
   Upload,
@@ -62,6 +63,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'nav.locations', href: '/locations', icon: MapPin, permission: PERMISSIONS.LOCATION_VIEW },
       { label: 'nav.assetTypes', href: '/asset-types', icon: Tags, permission: PERMISSIONS.CATEGORY_VIEW },
+      { label: 'nav.statuses', href: '/statuses', icon: CircleDot, permission: PERMISSIONS.STATUS_VIEW },
       { label: 'nav.employees', href: '/employees', icon: Users, permission: PERMISSIONS.EMPLOYEE_VIEW },
     ],
   },

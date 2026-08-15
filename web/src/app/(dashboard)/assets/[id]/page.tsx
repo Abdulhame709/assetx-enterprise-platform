@@ -151,12 +151,12 @@ export default function AssetDetailPage() {
                       </div>
                       <p className="mb-2 text-sm font-medium text-ink">{t('assetDetail.allowedTransitions')}</p>
                       <ul className="space-y-2">
-                        {lifecycle.allowedTransitions.map((t) => (
-                          <li key={`${t.from}-${t.to}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
-                            <span className="capitalize text-ink-muted">{label(t.from)}</span>
+                        {lifecycle.allowedTransitions.map((transition) => (
+                          <li key={`${transition.from}-${transition.to}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
+                            <span className="capitalize text-ink-muted">{label(transition.from)}</span>
                             <span className="text-brand">→</span>
-                            <span className="font-medium text-ink capitalize">{label(t.to)}</span>
-                            {t.reason && <span className="text-xs text-ink-faint">{t.reason}</span>}
+                            <span className="font-medium text-ink capitalize">{label(transition.to)}</span>
+                            {transition.reason && <span className="text-xs text-ink-faint">{locale === 'ar' ? t('assetDetail.transitionRule') : transition.reason}</span>}
                           </li>
                         ))}
                         {lifecycle.allowedTransitions.length === 0 && (
@@ -185,7 +185,7 @@ export default function AssetDetailPage() {
                         title: <span className="capitalize">{label(m.movement_type)}</span>,
                         meta: <Badge tone={TONE[m.status] ?? 'neutral'}>{label(m.status)}</Badge>,
                         description: m.reason ?? '',
-                        time: relativeTime(m.created_at),
+                        time: relativeTime(m.created_at, locale),
                         tone: TONE[m.status],
                       }))}
                     />
@@ -204,8 +204,8 @@ export default function AssetDetailPage() {
               <Card>
                 <CardHeader title={t('assetDetail.auditInfo')} subtitle={t('assetDetail.auditSubtitle')} />
                 <CardBody>
-                  <InfoRow label={t('assetDetail.created')} value={relativeTime(detail.created_at)} />
-                  <InfoRow label={t('assetDetail.lastUpdated')} value={relativeTime(detail.updated_at)} />
+                  <InfoRow label={t('assetDetail.created')} value={relativeTime(detail.created_at, locale)} />
+                  <InfoRow label={t('assetDetail.lastUpdated')} value={relativeTime(detail.updated_at, locale)} />
                   <div className="pt-2">
                     {audit.length === 0 ? (
                       <EmptyState title={t('assetDetail.noAudit')} />
@@ -214,7 +214,7 @@ export default function AssetDetailPage() {
                         entries={audit.map((e) => ({
                           id: e.id,
                           title: label(e.action_type),
-                          meta: <span className="text-ink-faint">{relativeTime(e.created_at)}</span>,
+                          meta: <span className="text-ink-faint">{relativeTime(e.created_at, locale)}</span>,
                           time: new Date(e.created_at).toLocaleString(),
                         }))}
                       />

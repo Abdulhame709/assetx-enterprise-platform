@@ -5,7 +5,7 @@
  */
 import { http } from '@/lib/api/client';
 
-export interface ReferenceStatus { id: string; name: string; color: string | null; }
+export interface ReferenceStatus { id: string; name: string; color: string | null; is_active: boolean; }
 export interface ReferenceEmployee { id: string; name: string; department: string | null; }
 export interface ReferenceModel { id: string; name: string; category_id: string | null; }
 
@@ -19,14 +19,20 @@ function asArray(raw: unknown): Record<string, unknown>[] {
 export async function getStatuses(): Promise<ReferenceStatus[]> {
   const raw = await http.get<unknown>('/statuses');
   return asArray(raw)
-    .map((s) => ({ id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null }))
+    .map((s) => ({ id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null, is_active: s.is_active !== false }))
     .filter((s) => s.id !== '');
 }
 
 export async function createStatus(input: { name: string; color?: string }): Promise<ReferenceStatus> {
   const raw = await http.post<unknown>('/statuses', input);
   const s = (raw ?? {}) as Record<string, unknown>;
-  return { id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null };
+  return { id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null, is_active: s.is_active !== false };
+}
+
+export async function updateStatus(id: string, input: { name?: string; color?: string }): Promise<ReferenceStatus> {
+  const raw = await http.patch<unknown>(`/statuses/${id}`, input);
+  const s = (raw ?? {}) as Record<string, unknown>;
+  return { id: String(s.id ?? ''), name: String(s.name ?? ''), color: s.color != null ? String(s.color) : null, is_active: s.is_active !== false };
 }
 
 export async function getEmployees(): Promise<ReferenceEmployee[]> {

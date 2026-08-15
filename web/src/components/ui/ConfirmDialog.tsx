@@ -11,6 +11,7 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState, Reac
 import { AlertTriangle } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from './Button';
+import { useI18n } from '@/lib/i18n';
 
 export type ConfirmTone = 'default' | 'danger' | 'warning';
 
@@ -29,6 +30,7 @@ interface ConfirmApi {
 const ConfirmContext = createContext<ConfirmApi | null>(null);
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   const [state, setState] = useState<ConfirmOptions & { open: boolean } | null>(null);
   const resolver = useRef<((v: boolean) => void) | null>(null);
 
@@ -47,8 +49,8 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
 
   const api = useMemo<ConfirmApi>(() => ({ confirm }), [confirm]);
 
-  const confirmLabel = state?.confirmLabel ?? 'Confirm';
-  const cancelLabel = state?.cancelLabel ?? 'Cancel';
+  const confirmLabel = state?.confirmLabel ?? t('common.confirm');
+  const cancelLabel = state?.cancelLabel ?? t('common.cancel');
   const isDanger = state?.tone === 'danger' || state?.tone === 'warning';
 
   return (
