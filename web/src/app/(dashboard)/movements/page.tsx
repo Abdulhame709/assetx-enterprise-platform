@@ -38,13 +38,6 @@ import { MovementDetailModal, STATUS_TONE } from '@/features/movements/component
 
 type StatusTab = 'pending' | 'all' | 'approved' | 'rejected';
 
-const STATUS_TABS: { id: StatusTab; label: string }[] = [
-  { id: 'pending', label: 'Pending approvals' },
-  { id: 'all', label: 'All movements' },
-  { id: 'approved', label: 'Approved' },
-  { id: 'rejected', label: 'Rejected' },
-];
-
 const TYPE_ICON: Record<MovementType, typeof ArrowRightLeft> = {
   transfer: ArrowRightLeft,
   assignment: UserCheck,
@@ -89,7 +82,7 @@ export default function MovementsPage() {
   const [decidingId, setDecidingId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
-  const { label } = useI18n();
+  const { label, t, locale } = useI18n();
   const toast = useToast();
   const { confirm } = useConfirm();
   const can = useCan();
@@ -125,12 +118,12 @@ export default function MovementsPage() {
   const decide = async (m: MovementRow, decision: 'approve' | 'reject') => {
     const approve = decision === 'approve';
     const ok = await confirm({
-      title: approve ? `Approve this ${label(m.movement_type).toLowerCase()}?` : `Reject this ${label(m.movement_type).toLowerCase()}?`,
+      title: (approve ? t('movements.approvePrompt') : t('movements.rejectPrompt')).replace('{type}', label(m.movement_type)),
       message: approve
-        ? `${m._assetName ?? shortRef('Asset', m.asset_id)} — the movement effect is applied to the asset immediately.`
-        : `${m._assetName ?? shortRef('Asset', m.asset_id)} — the asset stays unchanged.`,
+        ? t('movements.applyEffect').replace('{asset}', m._assetName ?? shortRef(t('movements.asset'), m.asset_id))
+        : t('movements.noChange').replace('{asset}', m._assetName ?? shortRef(t('movements.asset'), m.asset_id)),
       tone: approve ? 'default' : 'danger',
-      confirmLabel: approve ? 'Approve' : 'Reject',
+      confirmLabel: approve ? t('movements.approve') : t('movements.reject'),
     });
     if (!ok) return;
     setDecidingId(m.id);
@@ -138,13 +131,13 @@ export default function MovementsPage() {
       if (approve) await approveMovement(m.id);
       else await rejectMovement(m.id);
       toast.success(
-        approve ? 'Movement approved' : 'Movement rejected',
-        approve ? 'The effect was applied to the asset.' : 'No changes were made to the asset.',
+        approve ? t('movements.approvedToast') : t('movements.rejectedToast'),
+        approve ? t('movements.effectApplied') : t('movements.noChanges'),
       );
       setSelected(null);
       state.reload();
     } catch (err) {
-      toast.error('Action failed', humanError(err));
+      toast.error(t('movements.actionFailed'), humanError(err));
       setSelected(null);
       state.reload(); // e.g. MOVEMENT_NOT_PENDING — refresh stale row
     } finally {
@@ -156,17 +149,17 @@ export default function MovementsPage() {
     setExporting(true);
     try {
       await downloadMovementsExport('csv');
-      toast.success('Export ready', 'The movements CSV file was downloaded.');
+      toast.success(t('movements.exportReady'), t('movements.exportDownloaded'));
     } catch (err) {
-      toast.error('Export failed', humanError(err));
+      toast.error(t('movements.exportFailed'), humanError(err));
     } finally {
       setExporting(false);
     }
   };
 
   const typeOptions = useMemo(
-    () => [{ value: 'all', label: 'All types' }, ...MOVEMENT_TYPES.map((t) => ({ value: t, label: label(t) }))],
-    [label],
+    () => [{ value: 'all', label: t('movements.allTypes') }, ...MOVEMENT_TYPES.map((movementType) => ({ value: movementType, label: label(movementType) }))],
+    [label, t],
   );
   const assetOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
@@ -177,7 +170,7 @@ export default function MovementsPage() {
   const columns: EColumn<MovementRow>[] = [
     {
       key: 'movement_type',
-      header: 'Type',
+      header: t('movements.type'),
       render: (m) => {
         const Icon = TYPE_ICON[m.movement_type] ?? ArrowRightLeft;
         return (
@@ -194,20 +187,20 @@ export default function MovementsPage() {
     },
     {
       key: 'asset',
-      header: 'Asset',
+      header: t('movements.asset'),
       render: (m) => (
         <Link href={`/assets/${m.asset_id}`} className="group block min-w-0">
           <span className="block truncate text-sm font-medium text-brand group-hover:underline">
-            {m._assetName ?? shortRef('Asset', m.asset_id)}
+            {m._assetName ?? shortRef(t('movements.asset'), m.asset_id)}
           </span>
           <span className="block font-mono text-[11px] text-ink-faint">{m._assetCode ?? ''}</span>
         </Link>
       ),
     },
-    { key: 'route', header: 'From → To', render: (m) => <RouteCell m={m} />, width: '220px' },
+    { key: 'route', header: t('movements.fromTo'), render: (m) => <RouteCell m={m} />, width: '220px' },
     {
       key: 'reason',
-      header: 'Reason / reference',
+      header: t('movements.reasonRef'),
       render: (m) => (
         <span className="block max-w-[220px] truncate text-xs text-ink-muted" title={m.reason ?? m.reference_number ?? ''}>
           {m.reason ?? m.reference_number ?? '—'}
@@ -216,26 +209,26 @@ export default function MovementsPage() {
     },
     {
       key: 'created_at',
-      header: 'Requested',
+      header: t('movements.requested'),
       render: (m) => (
         <div className="text-xs">
           <div className="text-ink">{formatDateTime(m.created_at)}</div>
-          <div className="text-ink-faint">by {shortRef('User', m.performed_by)}</div>
+          <div className="text-ink-faint">{t('movements.by')} {shortRef(t('movements.by'), m.performed_by)}</div>
         </div>
       ),
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('movements.status'),
       render: (m) => <Badge tone={STATUS_TONE[m.status]}>{label(m.status)}</Badge>,
     },
     {
       key: 'approved_at',
-      header: 'Decided',
+      header: t('movements.decided'),
       render: (m) => (
         <div className="text-xs text-ink-muted">
           {m.approved_at ? formatDateTime(m.approved_at) : '—'}
-          {m.approved_by ? <div className="text-ink-faint">by {shortRef('User', m.approved_by)}</div> : null}
+          {m.approved_by ? <div className="text-ink-faint">{t('movements.by')} {shortRef(t('movements.by'), m.approved_by)}</div> : null}
         </div>
       ),
     },
@@ -247,20 +240,20 @@ export default function MovementsPage() {
       render: (m) => (
         <div className="flex items-center justify-end gap-1">
           {m.status === 'pending' && canApprove && (
-            <Button variant="ghost" size="sm" aria-label={`Approve ${label(m.movement_type)}`}
+            <Button variant="ghost" size="sm" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'approve')}>
               <Check className="h-4 w-4 text-success" />
             </Button>
           )}
           {m.status === 'pending' && canReject && (
-            <Button variant="ghost" size="sm" aria-label={`Reject ${label(m.movement_type)}`}
+            <Button variant="ghost" size="sm" aria-label={`${t('movements.reject')} ${label(m.movement_type)}`}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'reject')}>
               <X className="h-4 w-4 text-danger" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" aria-label="View movement" onClick={() => setSelected(m)}>
+          <Button variant="ghost" size="sm" aria-label={t('movements.view')} onClick={() => setSelected(m)}>
             <Eye className="h-4 w-4" />
           </Button>
         </div>
@@ -271,23 +264,26 @@ export default function MovementsPage() {
   return (
     <div>
       <PageHeader
-        title="Movements"
+        title={t('movements.title')}
         subtitle={
           data
-            ? `${data.pendingTotal} pending approval · ${data.page.total} shown by current filter`
-            : 'Movement requests & approvals'
+            ? t('movements.summary').replace('{pending}', data.pendingTotal.toLocaleString(locale)).replace('{total}', data.page.total.toLocaleString(locale))
+            : t('movements.subtitle')
         }
         actions={
           <PermissionGate permission={PERMISSIONS.EXPORT_MOVEMENTS}>
             <Button variant="secondary" size="sm" onClick={onExport} loading={exporting}>
-              <Download className="h-4 w-4" /> Export CSV
+              <Download className="h-4 w-4" /> {t('movements.exportCsv')}
             </Button>
           </PermissionGate>
         }
       />
 
       <div className="mb-3">
-        <Tabs items={STATUS_TABS} value={tab} onChange={onTab} />
+        <Tabs items={[
+          { id: 'pending', label: t('movements.pending') }, { id: 'all', label: t('movements.all') },
+          { id: 'approved', label: t('movements.approved') }, { id: 'rejected', label: t('movements.rejected') },
+        ]} value={tab} onChange={onTab} />
       </div>
 
       <Card className="p-0">
@@ -306,25 +302,25 @@ export default function MovementsPage() {
             searchable={false}
             empty={
               <EmptyState
-                title={tab === 'pending' && !filtered ? 'No pending approvals' : 'No movements found'}
+                title={tab === 'pending' && !filtered ? t('movements.nonePending') : t('movements.none')}
                 description={
                   tab === 'pending' && !filtered
-                    ? 'New transfer, disposal and retirement requests will appear here for approval.'
-                    : 'Try widening the filters or the date range.'
+                    ? t('movements.nonePendingDesc')
+                    : t('movements.noneDesc')
                 }
               />
             }
             toolbarActions={
               <div className="flex flex-wrap items-center gap-2">
                 <div className="w-44">
-                  <SearchableSelect options={typeOptions} value={type} onChange={onType} placeholder="Movement type" />
+                  <SearchableSelect options={typeOptions} value={type} onChange={onType} placeholder={t('movements.filterType')} />
                 </div>
                 <div className="w-56">
                   <SearchableSelect
                     options={assetOptions}
                     value={assetId}
                     onChange={(v) => { setAssetId(v); resetPage(); }}
-                    placeholder="All assets"
+                    placeholder={t('movements.allAssets')}
                     clearable
                   />
                 </div>
@@ -332,15 +328,15 @@ export default function MovementsPage() {
                   type="date"
                   className="w-36"
                   value={dateFrom}
-                  aria-label="From date"
+                  aria-label={t('movements.fromDate')}
                   onChange={(e) => { setDateFrom(e.target.value); resetPage(); }}
                 />
-                <span className="text-xs text-ink-faint">to</span>
+                <span className="text-xs text-ink-faint">{t('movements.toDate')}</span>
                 <Input
                   type="date"
                   className="w-36"
                   value={dateTo}
-                  aria-label="To date"
+                  aria-label={t('movements.toDate')}
                   onChange={(e) => { setDateTo(e.target.value); resetPage(); }}
                 />
               </div>

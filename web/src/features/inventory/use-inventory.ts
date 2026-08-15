@@ -7,11 +7,13 @@ import {
   getCycle,
   getRecords,
   getInventoryLookups,
+  getLocationSuggestions,
   enrichRecords,
   InventoryCycle,
   CycleSummary,
   InventoryRecordRow,
   InventoryLookups,
+  LocationInventorySuggestion,
 } from './api';
 
 /** Cycle + its computed summary for list rows. */
@@ -40,20 +42,22 @@ export interface CycleDetailData {
   summary: CycleSummary | null;
   records: InventoryRecordRow[];
   lookups: InventoryLookups;
+  locationSuggestions: LocationInventorySuggestion[];
 }
 
 /** Full cycle detail: cycle + summary + enriched records + reference lookups. */
 export function useCycleDetail(id: string): AsyncState<CycleDetailData> {
   return useAsync<CycleDetailData>(
     async () => {
-      const [cycle, summary, records, lookups] = await Promise.all([
+      const [cycle, summary, records, lookups, locationSuggestions] = await Promise.all([
         getCycle(id),
         getSummary(id).catch(() => null),
         getRecords(id),
         getInventoryLookups(),
+        getLocationSuggestions(id),
       ]);
       if (!cycle) throw new Error('CYCLE_NOT_FOUND');
-      return { cycle, summary, records: enrichRecords(records, lookups), lookups };
+      return { cycle, summary, records: enrichRecords(records, lookups), lookups, locationSuggestions };
     },
     [id],
   );

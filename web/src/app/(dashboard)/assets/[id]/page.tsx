@@ -23,15 +23,6 @@ import { TransferAssetModal, EndOfLifeModal } from '@/features/assets/components
 
 type Tab = 'overview' | 'lifecycle' | 'movements' | 'maintenance' | 'audit' | 'attachments';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'lifecycle', label: 'Lifecycle' },
-  { id: 'movements', label: 'Movement History' },
-  { id: 'maintenance', label: 'Maintenance' },
-  { id: 'audit', label: 'Audit' },
-  { id: 'attachments', label: 'Attachments' },
-];
-
 const TONE: Record<string, BadgeTone> = {
   approved: 'success', pending: 'warning', rejected: 'danger',
 };
@@ -44,14 +35,22 @@ export default function AssetDetailPage() {
   const [endOfLife, setEndOfLife] = useState<'dispose' | 'retire' | null>(null);
   const state = useAsset360(id);
   usePublishCrumbTitle(state.data?.detail?.name ?? null);
-  const { label } = useI18n();
+  const { label, t, locale } = useI18n();
   const toast = useToast();
   const can = useCan();
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'overview', label: t('assetDetail.overview') },
+    { id: 'lifecycle', label: t('assetDetail.lifecycle') },
+    { id: 'movements', label: t('assetDetail.movements') },
+    { id: 'maintenance', label: t('assetDetail.maintenance') },
+    { id: 'audit', label: t('assetDetail.audit') },
+    { id: 'attachments', label: t('assetDetail.attachments') },
+  ];
 
   return (
     <div>
       <Link href="/assets" className="mb-3 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink">
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> Back to assets
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('assetDetail.back')}
       </Link>
 
       <AsyncBoundary state={state}>
@@ -66,34 +65,34 @@ export default function AssetDetailPage() {
                     <Badge tone="neutral">{detail.full_asset_code}</Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
-                    <Meta label="Category" value={detail._categoryName ?? '—'} />
-                    <Meta label="Location" value={detail._locationName ?? '—'} />
-                    <Meta label="Custodian" value={detail._employeeName ?? '—'} />
-                    <Meta label="Status" value={detail.status_id ? (detail._statusName ?? '—') : (detail.is_active ? 'Active' : 'Inactive')} />
-                    {detail.is_active === false ? <Badge tone="danger">Deactivated</Badge> : null}
-                    <Meta label="Value" value={formatCurrency(detail.purchase_price)} />
+                    <Meta label={t('assetDetail.category')} value={detail._categoryName ?? '—'} />
+                    <Meta label={t('assetDetail.location')} value={detail._locationName ?? '—'} />
+                    <Meta label={t('assetDetail.custodian')} value={detail._employeeName ?? '—'} />
+                    <Meta label={t('assetDetail.status')} value={detail.status_id ? (detail._statusName ?? '—') : (detail.is_active ? t('assetDetail.active') : t('assetDetail.inactive'))} />
+                    {detail.is_active === false ? <Badge tone="danger">{t('assetDetail.deactivated')}</Badge> : null}
+                    <Meta label={t('assetDetail.value')} value={formatCurrency(detail.purchase_price, locale)} />
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {lifecycle && (
                     <div className="flex items-center gap-2 rounded-lg bg-surface-muted px-3 py-2">
-                      <span className="text-xs text-ink-muted">Lifecycle</span>
+                      <span className="text-xs text-ink-muted">{t('assetDetail.lifecycle')}</span>
                       <LifecycleStateBadge state={lifecycle.state} />
                     </div>
                   )}
                   <ActionMenu
-                    triggerLabel="Asset actions"
+                    triggerLabel={t('assetDetail.actions')}
                     items={[
                       ...(can(PERMISSIONS.ASSET_UPDATE)
-                        ? [{ key: 'edit', label: 'Edit', icon: Pencil, onClick: () => setEditOpen(true) }]
+                        ? [{ key: 'edit', label: t('assetDetail.edit'), icon: Pencil, onClick: () => setEditOpen(true) }]
                         : []),
                       ...(can(PERMISSIONS.ASSET_TRANSFER)
-                        ? [{ key: 'transfer', label: 'Transfer', icon: ArrowRightLeft, onClick: () => setTransferOpen(true) }]
+                        ? [{ key: 'transfer', label: t('assetDetail.transfer'), icon: ArrowRightLeft, onClick: () => setTransferOpen(true) }]
                         : []),
                       ...(can(PERMISSIONS.MOVEMENT_CREATE)
                         ? [
-                            { key: 'retire', label: 'Retire', icon: Archive, onClick: () => setEndOfLife('retire') },
-                            { key: 'dispose', label: 'Dispose', icon: Trash2, tone: 'danger' as const, onClick: () => setEndOfLife('dispose') },
+                            { key: 'retire', label: t('assetDetail.retire'), icon: Archive, onClick: () => setEndOfLife('retire') },
+                            { key: 'dispose', label: t('assetDetail.dispose'), icon: Trash2, tone: 'danger' as const, onClick: () => setEndOfLife('dispose') },
                           ]
                         : []),
                     ]}
@@ -104,33 +103,33 @@ export default function AssetDetailPage() {
 
             {/* Tabs */}
             <div className="mb-4">
-              <Tabs items={TABS} value={tab} onChange={setTab} />
+              <Tabs items={tabs} value={tab} onChange={setTab} />
             </div>
 
             {/* Overview */}
             {tab === 'overview' && (
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <Card>
-                  <CardHeader title="Basic Information" />
+                  <CardHeader title={t('assetDetail.basicInfo')} />
                   <CardBody>
-                    <InfoRow label="Code" value={detail.full_asset_code} />
-                    <InfoRow label="Base code" value={detail.base_asset_code} />
-                    <InfoRow label="Serial number" value={humanId(detail.serial_number)} />
-                    <InfoRow label="Barcode" value={humanId(detail.barcode)} />
-                    <InfoRow label="Reference" value={humanId(detail.reference_number)} />
-                    <InfoRow label="Description" value={detail.description || '—'} />
+                    <InfoRow label={t('common.code')} value={detail.full_asset_code} />
+                    <InfoRow label={t('assetDetail.baseCode')} value={detail.base_asset_code} />
+                    <InfoRow label={t('assetDetail.serialNumber')} value={humanId(detail.serial_number)} />
+                    <InfoRow label={t('assetDetail.barcode')} value={humanId(detail.barcode)} />
+                    <InfoRow label={t('assetDetail.reference')} value={humanId(detail.reference_number)} />
+                    <InfoRow label={t('assetDetail.description')} value={detail.description || '—'} />
                   </CardBody>
                 </Card>
                 <Card>
-                  <CardHeader title="Financial Information" />
+                  <CardHeader title={t('assetDetail.financialInfo')} />
                   <CardBody>
-                    <InfoRow label="Purchase price" value={formatCurrency(detail.purchase_price)} />
-                    <InfoRow label="Purchase date" value={formatDate(detail.purchase_date)} />
-                    <InfoRow label="Depreciation rate" value={detail.depreciation_rate ? `${detail.depreciation_rate}%` : '—'} />
-                    <InfoRow label="Useful life" value={detail.useful_life ? `${detail.useful_life} years` : '—'} />
-                    <InfoRow label="Book value" value={depreciation ? formatCurrency(depreciation.bookValue) : '—'} />
-                    <InfoRow label="Depreciated" value={depreciation ? `${depreciation.depreciationPercentage.toFixed(1)}%` : '—'} />
-                    <InfoRow label="Asset age" value={depreciation ? `${depreciation.ageYears}y ${depreciation.ageMonths}m` : '—'} />
+                    <InfoRow label={t('assetDetail.purchasePrice')} value={formatCurrency(detail.purchase_price, locale)} />
+                    <InfoRow label={t('assetDetail.purchaseDate')} value={formatDate(detail.purchase_date, locale)} />
+                    <InfoRow label={t('assetDetail.depreciationRate')} value={detail.depreciation_rate ? `${detail.depreciation_rate}%` : '—'} />
+                    <InfoRow label={t('assetDetail.usefulLife')} value={detail.useful_life ? `${detail.useful_life} ${locale === 'ar' ? 'سنة' : 'years'}` : '—'} />
+                    <InfoRow label={t('assetDetail.bookValue')} value={depreciation ? formatCurrency(depreciation.bookValue, locale) : '—'} />
+                    <InfoRow label={t('assetDetail.depreciated')} value={depreciation ? `${depreciation.depreciationPercentage.toFixed(1)}%` : '—'} />
+                    <InfoRow label={t('assetDetail.assetAge')} value={depreciation ? (locale === 'ar' ? `${depreciation.ageYears} سنة و${depreciation.ageMonths} شهر` : `${depreciation.ageYears}y ${depreciation.ageMonths}m`) : '—'} />
                   </CardBody>
                 </Card>
               </div>
@@ -139,15 +138,15 @@ export default function AssetDetailPage() {
             {/* Lifecycle */}
             {tab === 'lifecycle' && (
               <Card>
-                <CardHeader title="Lifecycle" subtitle="Current derived state + allowed transitions" />
+                <CardHeader title={t('assetDetail.lifecycle')} subtitle={t('assetDetail.lifecycleSubtitle')} />
                 <CardBody>
                   {lifecycle ? (
                     <>
                       <div className="mb-3 flex items-center gap-2">
-                        <span className="text-sm text-ink-muted">Current state:</span>
+                        <span className="text-sm text-ink-muted">{t('assetDetail.currentState')}</span>
                         <LifecycleStateBadge state={lifecycle.state} />
                       </div>
-                      <p className="mb-2 text-sm font-medium text-ink">Allowed transitions</p>
+                      <p className="mb-2 text-sm font-medium text-ink">{t('assetDetail.allowedTransitions')}</p>
                       <ul className="space-y-2">
                         {lifecycle.allowedTransitions.map((t) => (
                           <li key={`${t.from}-${t.to}`} className="flex flex-wrap items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
@@ -158,12 +157,12 @@ export default function AssetDetailPage() {
                           </li>
                         ))}
                         {lifecycle.allowedTransitions.length === 0 && (
-                          <li className="text-sm text-ink-muted">This asset is in a terminal state with no outgoing transitions.</li>
+                          <li className="text-sm text-ink-muted">{t('assetDetail.terminal')}</li>
                         )}
                       </ul>
                     </>
                   ) : (
-                    <EmptyState title="No lifecycle data" />
+                    <EmptyState title={t('assetDetail.noLifecycle')} />
                   )}
                 </CardBody>
               </Card>
@@ -172,10 +171,10 @@ export default function AssetDetailPage() {
             {/* Movements */}
             {tab === 'movements' && (
               <Card>
-                <CardHeader title="Movement History" subtitle="Assignment, transfer, return, disposal" />
+                <CardHeader title={t('assetDetail.movements')} subtitle={t('assetDetail.movementSubtitle')} />
                 <CardBody>
                   {movements.length === 0 ? (
-                    <EmptyState title="No movements" description="No asset movements have been recorded." />
+                    <EmptyState title={t('assetDetail.noMovements')} description={t('assetDetail.noMovementsDesc')} />
                   ) : (
                     <Timeline
                       entries={movements.map((m) => ({
@@ -195,11 +194,11 @@ export default function AssetDetailPage() {
             {/* Maintenance */}
             {tab === 'maintenance' && (
               <Card>
-                <CardHeader title="Maintenance" subtitle="No maintenance API on the backend yet" />
+                <CardHeader title={t('assetDetail.maintenance')} subtitle={t('assetDetail.maintenanceUnavailable')} />
                 <CardBody>
                   <EmptyState
-                    title="Maintenance history"
-                    description="The maintenance module (orders API) is not implemented on the backend yet; records will appear here once it ships."
+                    title={t('assetDetail.maintenanceHistory')}
+                    description={t('assetDetail.maintenanceUnavailableDesc')}
                   />
                 </CardBody>
               </Card>
@@ -208,13 +207,13 @@ export default function AssetDetailPage() {
             {/* Audit */}
             {tab === 'audit' && (
               <Card>
-                <CardHeader title="Audit Information" subtitle="Creation and modification history" />
+                <CardHeader title={t('assetDetail.auditInfo')} subtitle={t('assetDetail.auditSubtitle')} />
                 <CardBody>
-                  <InfoRow label="Created" value={relativeTime(detail.created_at)} />
-                  <InfoRow label="Last updated" value={relativeTime(detail.updated_at)} />
+                  <InfoRow label={t('assetDetail.created')} value={relativeTime(detail.created_at)} />
+                  <InfoRow label={t('assetDetail.lastUpdated')} value={relativeTime(detail.updated_at)} />
                   <div className="pt-2">
                     {audit.length === 0 ? (
-                      <EmptyState title="No audit events" />
+                      <EmptyState title={t('assetDetail.noAudit')} />
                     ) : (
                       <Timeline
                         entries={audit.map((e) => ({
@@ -233,9 +232,9 @@ export default function AssetDetailPage() {
             {/* Attachments */}
             {tab === 'attachments' && (
               <Card>
-                <CardHeader title="Attachments" subtitle="No storage backend yet" />
+                <CardHeader title={t('assetDetail.attachments')} subtitle={t('assetDetail.attachmentsUnavailable')} />
                 <CardBody>
-                  <EmptyState title="No attachments" description="Attachment storage (object storage) is not implemented on the backend yet." />
+                  <EmptyState title={t('assetDetail.noAttachments')} description={t('assetDetail.attachmentsUnavailableDesc')} />
                 </CardBody>
               </Card>
             )}
@@ -248,7 +247,7 @@ export default function AssetDetailPage() {
                 asset={detail}
                 onClose={() => setEditOpen(false)}
                 onSaved={(a) => {
-                  toast.success('Asset updated', a.name);
+                  toast.success(t('assetDetail.updatedToast'), a.name);
                   setEditOpen(false);
                   state.reload();
                 }}
@@ -261,7 +260,7 @@ export default function AssetDetailPage() {
                 assetName={detail.name}
                 onClose={() => setTransferOpen(false)}
                 onDone={(message) => {
-                  toast.success('Transfer requested', message);
+                  toast.success(t('assetDetail.transferToast'), message);
                   setTransferOpen(false);
                   state.reload();
                 }}
@@ -275,7 +274,7 @@ export default function AssetDetailPage() {
                 assetName={detail.name}
                 onClose={() => setEndOfLife(null)}
                 onDone={(message) => {
-                  toast.success(endOfLife === 'dispose' ? 'Disposal requested' : 'Retirement requested', message);
+                  toast.success(endOfLife === 'dispose' ? t('assetDetail.disposalToast') : t('assetDetail.retirementToast'), message);
                   setEndOfLife(null);
                   state.reload();
                 }}

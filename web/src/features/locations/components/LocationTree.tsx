@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/states';
 import { LocationNode, LocationType } from '../api';
+import { useI18n } from '@/lib/i18n';
 
 const TYPE_ICON: Record<LocationType, typeof Building2> = {
   building: Building2,
@@ -35,6 +36,7 @@ interface LocationTreeProps {
 }
 
 export function LocationTree({ locations, search, canCreate, onAddChild, onEdit, onDelete }: LocationTreeProps) {
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const childrenOf = useMemo(() => {
@@ -125,7 +127,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
           >
             <button
               type="button"
-              aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+              aria-label={isCollapsed ? t('locationTree.expand') : t('locationTree.collapse')}
               onClick={() => hasChildren && toggle(node.id)}
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded-md text-ink-faint transition-transform',
@@ -141,8 +143,8 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium text-ink">{node.name}</span>
-                <Badge tone="neutral" className="capitalize">{node.location_type}</Badge>
-                {!node.is_active && <Badge tone="warning">Disabled</Badge>}
+                <Badge tone="neutral" className="capitalize">{t(`locationForm.type.${node.location_type}`)}</Badge>
+                {!node.is_active && <Badge tone="warning">{t('locationTree.disabled')}</Badge>}
               </div>
               {depth > 0 && <p className="truncate text-xs text-ink-faint">{node.full_path}</p>}
             </div>
@@ -152,7 +154,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
               {canCreate && (
                 <button
                   type="button"
-                  title="Add child location"
+                  title={t('locationTree.addChild')}
                   className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                   onClick={() => onAddChild(node)}
                 >
@@ -161,7 +163,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
               )}
               <button
                 type="button"
-                title="Edit location"
+                title={t('locationTree.edit')}
                 className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                 onClick={() => onEdit(node)}
               >
@@ -169,7 +171,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
               </button>
               <button
                 type="button"
-                title="Delete location"
+                title={t('locationTree.delete')}
                 className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger"
                 onClick={() => onDelete(node)}
               >

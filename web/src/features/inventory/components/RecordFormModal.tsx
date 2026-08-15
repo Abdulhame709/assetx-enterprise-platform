@@ -35,7 +35,7 @@ interface Props {
 }
 
 export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSaved }: Props) {
-  const { label } = useI18n();
+  const { label, t } = useI18n();
   const isRecount = record.result !== 'not_inventoried';
   const [qty, setQty] = useState('');
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
     e.preventDefault();
     setError(null);
     const q = Number(qty);
-    if (qty === '' || Number.isNaN(q) || q < 0) { setError('Enter the counted quantity (0 = missing).'); return; }
+    if (qty === '' || Number.isNaN(q) || q < 0) { setError(t('inventoryRecord.quantityInvalid')); return; }
     setSaving(true);
     try {
       const payload = {
@@ -98,44 +98,44 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
   const employeeOptions = [...lookups.employees.values()].map((p) => ({ value: p.id, label: p.department ? `${p.name} · ${p.department}` : p.name }));
 
   return (
-    <Modal open={open} onClose={onClose} title={`${isRecount ? 'Re-count' : 'Count'} — ${record._assetName ?? 'asset'}`} size="md">
+    <Modal open={open} onClose={onClose} title={`${isRecount ? t('inventoryRecord.recount') : t('inventoryRecord.count')} — ${record._assetName ?? t('inventoryRecord.asset')}`} size="md">
       {/* Expected snapshot */}
       <div className="mb-4 rounded-lg bg-surface-muted px-3 py-2 text-xs text-ink-muted">
-        <span className="font-medium text-ink">Expected:</span> qty {record.expected_quantity ?? '—'}
+        <span className="font-medium text-ink">{t('inventoryRecord.expected')}</span> {t('inventoryRecord.quantity')} {record.expected_quantity ?? '—'}
         {record._assetCode ? ` · ${record._assetCode}` : ''}
         {` · ${record._expectedLocation ?? '—'}`}
         {record._expectedStatus ? ` · ${record._expectedStatus}` : ''}
-        {record._expectedEmployee ? ` · custodian ${record._expectedEmployee}` : ''}
+        {record._expectedEmployee ? ` · ${t('inventoryRecord.custodian')} ${record._expectedEmployee}` : ''}
       </div>
       <form onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Counted quantity *" hint={`Expected ${record.expected_quantity ?? '—'} · 0 marks the asset missing.`}>
+          <Field label={t('inventoryRecord.countedQuantity')} hint={t('inventoryRecord.quantityHint').replace('{count}', String(record.expected_quantity ?? '—'))}>
             <Input type="number" min={0} step={1} value={qty} onChange={(e) => setQty(e.target.value)} autoFocus required />
           </Field>
-          <Field label="Actual location">
-            <SearchableSelect options={locationOptions} value={locationId} onChange={setLocationId} placeholder="Found at…" clearable={false} />
+          <Field label={t('inventoryRecord.actualLocation')}>
+            <SearchableSelect options={locationOptions} value={locationId} onChange={setLocationId} placeholder={t('inventoryRecord.foundAt')} clearable={false} />
           </Field>
-          <Field label="Actual status">
-            <SearchableSelect options={statusOptions} value={statusId} onChange={setStatusId} placeholder="Condition…" />
+          <Field label={t('inventoryRecord.actualStatus')}>
+            <SearchableSelect options={statusOptions} value={statusId} onChange={setStatusId} placeholder={t('inventoryRecord.condition')} />
           </Field>
-          <Field label="Actual custodian">
-            <SearchableSelect options={employeeOptions} value={employeeId} onChange={setEmployeeId} placeholder="Who holds it…" />
+          <Field label={t('inventoryRecord.actualCustodian')}>
+            <SearchableSelect options={employeeOptions} value={employeeId} onChange={setEmployeeId} placeholder={t('inventoryRecord.holder')} />
           </Field>
         </div>
-        <Field label="Notes">
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Observations (optional)" />
+        <Field label={t('inventoryRecord.notes')}>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('inventoryRecord.notesPlaceholder')} />
         </Field>
         {preview && (
           <div className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm">
-            <span className="text-ink-muted">Result (computed on save):</span>
+            <span className="text-ink-muted">{t('inventoryRecord.resultPreview')}</span>
             <Badge tone={RESULT_TONE[preview]}>{label(preview)}</Badge>
-            {isRecount && <span className="text-xs text-ink-faint">Saving resets verification on this record.</span>}
+            {isRecount && <span className="text-xs text-ink-faint">{t('inventoryRecord.recountNotice')}</span>}
           </div>
         )}
         {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" size="sm" loading={saving}>Save count</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('inventoryRecord.cancel')}</Button>
+          <Button type="submit" variant="primary" size="sm" loading={saving}>{t('inventoryRecord.save')}</Button>
         </div>
       </form>
     </Modal>

@@ -27,7 +27,7 @@ function Row({ label, value }: { label: string; value?: string | null }) {
 }
 
 export function AuditDetailModal({ open, event, onClose }: Props) {
-  const { label, locale } = useI18n();
+  const { label, locale, t } = useI18n();
   if (!event) return null;
   const e = event;
   return (
@@ -37,18 +37,18 @@ export function AuditDetailModal({ open, event, onClose }: Props) {
         {e.table_name ? <Badge tone="neutral">{e.table_name}</Badge> : null}
       </div>
       <div className="rounded-lg border border-line px-3">
-        <Row label="Time" value={formatDateTime(e.created_at, locale)} />
-        <Row label="Actor" value={shortRef('User', e.user_id)} />
-        <Row label="Entity" value={e.table_name} />
-        <Row label="Record" value={shortRef('Record', e.record_id)} />
-        <Row label="IP address" value={e.ip_address} />
-        <Row label="Geo" value={e.geo} />
-        <Row label="Device" value={e.device_fingerprint} />
-        <Row label="User agent" value={e.user_agent} />
+        <Row label={t('audit.time')} value={formatDateTime(e.created_at, locale)} />
+        <Row label={t('audit.actor')} value={shortRef(t('audit.user'), e.user_id)} />
+        <Row label={t('audit.entity')} value={e.table_name} />
+        <Row label={t('audit.record')} value={shortRef(t('audit.record'), e.record_id)} />
+        <Row label={t('audit.ipAddress')} value={e.ip_address} />
+        <Row label={t('audit.geo')} value={e.geo} />
+        <Row label={t('audit.device')} value={e.device_fingerprint} />
+        <Row label={t('audit.userAgent')} value={e.user_agent} />
       </div>
       {e.details ? (
         <div className="mt-3">
-          <p className="mb-1 text-xs font-medium text-ink-faint">Details (raw payload)</p>
+          <p className="mb-1 text-xs font-medium text-ink-faint">{t('audit.rawDetails')}</p>
           <pre className="max-h-56 overflow-auto rounded-lg bg-surface-muted p-3 text-xs text-ink-muted">
             {JSON.stringify(e.details, null, 2)}
           </pre>

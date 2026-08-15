@@ -12,6 +12,7 @@ import { cn } from '@/lib/cn';
 import { Button } from './Button';
 import { TableSkeleton } from './Skeleton';
 import { EmptyState, ErrorState } from './states';
+import { useI18n } from '@/lib/i18n';
 
 export interface EColumn<T> {
   key: string;
@@ -68,10 +69,12 @@ export function EnterpriseTable<T>({
   page = 1, pageSize = 20, total = rows.length, onPageChange,
   sortKey, sortDir, onSortChange,
   selectable, selectedKeys, onSelectionChange,
-  searchable, searchValue, onSearch, searchPlaceholder = 'Search…',
+  searchable, searchValue, onSearch, searchPlaceholder,
   exportable, onExport, toolbarActions,
   defaultHiddenColumns = [], empty, className,
 }: ETableProps<T>) {
+  const { t, locale } = useI18n();
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('table.search');
   // column visibility (uncontrolled internal set)
   const [hidden, setHidden] = useState<Set<string>>(new Set(defaultHiddenColumns));
   const columns = allColumns.filter((c) => !(c.hideable && hidden.has(c.key)));
@@ -133,26 +136,26 @@ export function EnterpriseTable<T>({
               <input
                 value={searchValue ?? ''}
                 onChange={(e) => onSearch?.(e.target.value)}
-                placeholder={searchPlaceholder}
-                aria-label={searchPlaceholder}
+                placeholder={resolvedSearchPlaceholder}
+                aria-label={resolvedSearchPlaceholder}
                 className="ax-input w-full py-1.5 ps-8 sm:w-56"
               />
             </div>
           )}
           {selectable && selectedKeys && selectedKeys.length > 0 && (
-            <span className="text-sm text-ink-muted">{selectedKeys.length} selected</span>
+            <span className="text-sm text-ink-muted">{selectedKeys.length.toLocaleString(locale)} {t('table.selected')}</span>
           )}
           <div className="ms-auto flex flex-wrap items-center gap-2 max-sm:w-full">
             {toolbarActions}
             {exportable && onExport && (
               <Button variant="secondary" size="sm" onClick={onExport}>
-                <Download className="h-3.5 w-3.5" /> Export
+                <Download className="h-3.5 w-3.5" /> {t('table.export')}
               </Button>
             )}
             {visible.length > 0 && (
               <div className="relative">
-                <Button variant="secondary" size="sm" aria-label="Toggle columns">
-                  <Columns3 className="h-3.5 w-3.5" /> Columns
+                <Button variant="secondary" size="sm" aria-label={t('table.toggleColumns')}>
+                  <Columns3 className="h-3.5 w-3.5" /> {t('table.columns')}
                 </Button>
                 <ColumnMenu<T>
                   options={visible}
@@ -179,7 +182,7 @@ export function EnterpriseTable<T>({
               <tr>
                 {selectable && onSelectionChange && selectedKeys && (
                   <th className="w-10 px-3 py-2.5">
-                    <input type="checkbox" aria-label="Select all rows" checked={allSelected} onChange={toggleAll} />
+                    <input type="checkbox" aria-label={t('table.selectAll')} checked={allSelected} onChange={toggleAll} />
                   </th>
                 )}
                 {columns.map((c) => {
@@ -220,7 +223,7 @@ export function EnterpriseTable<T>({
                   <tr key={k} className={cn('hover:bg-surface-muted/50', checked && 'bg-brand-soft/40')}>
                     {selectable && onSelectionChange && selectedKeys && (
                       <td className="px-3 py-2.5">
-                        <input type="checkbox" aria-label="Select row" checked={checked} onChange={() => toggleRow(k)} />
+                        <input type="checkbox" aria-label={t('table.selectRow')} checked={checked} onChange={() => toggleRow(k)} />
                       </td>
                     )}
                     {columns.map((c) => (
@@ -240,13 +243,13 @@ export function EnterpriseTable<T>({
       {onPageChange && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 text-sm">
           <span className="text-ink-muted">
-            {page} / {totalPages} · {total.toLocaleString()} results
+            {page.toLocaleString(locale)} / {totalPages.toLocaleString(locale)} · {total.toLocaleString(locale)} {t('table.results')}
           </span>
           <div className="flex gap-1">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label="Previous page">
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label={t('table.previous')}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label="Next page">
+            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label={t('table.next')}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -261,6 +264,7 @@ function ColumnMenu<T>({ options, hidden, onToggle }: {
   hidden: Set<string>;
   onToggle: (k: string) => void;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <div className="relative" onMouseLeave={() => setOpen(false)}>
@@ -270,7 +274,7 @@ function ColumnMenu<T>({ options, hidden, onToggle }: {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <Columns3 className="h-3.5 w-3.5" /> Columns
+        <Columns3 className="h-3.5 w-3.5" /> {t('table.columns')}
       </button>
       {open && (
         <ul role="menu" className="absolute end-0 z-30 mt-1 min-w-[180px] rounded-xl border border-line bg-surface-overlay py-1 shadow-pop">

@@ -119,7 +119,7 @@ export default function InventoryCyclePage() {
 
       <AsyncBoundary state={state}>
         {(data: CycleDetailData) => {
-          const { cycle, summary, records } = data;
+          const { cycle, summary, records, locationSuggestions } = data;
           const writableNow = writable(data);
           const filtered = records.filter((r) => !resultFilter || r.result === resultFilter);
 
@@ -164,6 +164,37 @@ export default function InventoryCyclePage() {
                   <KpiCard label={t('inventory.missing')} value={summary.missing.toLocaleString()} icon={PackageX} tone="danger" />
                   <KpiCard label={t('inventory.transferredUncounted')} value={`${summary.transferred} / ${summary.not_inventoried}`} icon={ArrowLeftRight} tone="neutral" />
                 </div>
+              )}
+
+              {locationSuggestions.length > 0 && (
+                <Card className="mb-4">
+                  <CardBody>
+                    <h2 className="text-base font-semibold text-ink">{t('inventory.aiLocationTitle')}</h2>
+                    <p className="mt-1 text-sm text-ink-muted">{t('inventory.aiLocationSubtitle')}</p>
+                    <div className="mt-3 space-y-2">
+                      {locationSuggestions.map((suggestion) => {
+                        const record = records.find((item) => item.id === suggestion.record_id);
+                        const reasons = suggestion.reasonCodes.map((code) => {
+                          if (code === 'LOCATION_MISMATCH') return t('inventory.aiLocationMismatch');
+                          if (code === 'QUANTITY_VARIANCE') return t('inventory.aiQuantityVariance');
+                          return t('inventory.aiLocationUnresolved');
+                        });
+                        return (
+                          <div key={suggestion.record_id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-ink">{suggestion.asset_name} <span className="font-mono text-xs text-ink-faint">{suggestion.asset_code}</span></p>
+                              <p className="text-xs text-ink-muted">{suggestion.expected_location ?? '—'} ← {suggestion.actual_location ?? '—'} · {reasons.join(' ')}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Badge tone={suggestion.riskLevel === 'high' ? 'danger' : 'warning'}>{suggestion.riskLevel === 'high' ? t('inventory.aiRiskHigh') : t('inventory.aiRiskMedium')} {suggestion.riskScore}%</Badge>
+                              {record && writableNow && <Button variant="secondary" size="sm" onClick={() => setCountRecord(record)}>{t('inventory.aiReview')}</Button>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardBody>
+                </Card>
               )}
 
               {/* Records */}

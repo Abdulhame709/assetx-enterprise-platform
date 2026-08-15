@@ -56,6 +56,27 @@ export interface DepreciationResult {
   ageMonths: number;
 }
 
+/**
+ * L1 location-inventory assistant. It only classifies a discrepancy and never
+ * mutates an asset, an inventory record, or a movement. The caller must retain
+ * the human confirmation and movement-approval steps defined by the workflow.
+ */
+export interface LocationAnomalyInput {
+  expectedLocationId?: string | null;
+  actualLocationId?: string | null;
+  expectedQuantity?: number | null;
+  actualQuantity?: number | null;
+}
+
+export interface LocationAnomalySuggestion {
+  isAnomaly: boolean;
+  riskScore: number;
+  riskLevel: 'none' | 'medium' | 'high';
+  reasonCodes: Array<'LOCATION_MISMATCH' | 'QUANTITY_VARIANCE' | 'LOCATION_UNRESOLVED'>;
+  recommendedAction: 'none' | 'review_location' | 'confirm_transfer';
+  requiresHumanConfirmation: boolean;
+}
+
 function text(value: unknown): string {
   return String(value ?? '').trim();
 }
@@ -246,5 +267,37 @@ export function calculateDepreciation(input: DepreciationInput): DepreciationRes
     depreciationPercentage,
     ageYears: Math.max(0, ageYears),
     ageMonths: Math.max(0, ageMonths),
+  };
+}
+
+export function assessLocationAnomaly(input: LocationAnomalyInput): LocationAnomalySuggestion {
+  const expected = input.expectedLocationId ?? null;
+  const actual = input.actualLocationId ?? null;
+  const expectedQuantity = Number(input.expectedQuantity ?? 0);
+  const actualQuantity = Number(input.actualQuantity ?? 0);
+
+  // Missing/zero counts remain an inventory-result concern, not a transfer recommendation.
+  if (actualQuantity <= 0 || expected === actual) {
+    return {
+      isAnomaly: false, riskScore: 0, riskLevel: 'none', reasonCodes: [],
+      recommendedAction: 'none', requiresHumanConfirmation: false,
+    };
+  }
+
+  if (!expected || !actual) {
+    return {
+      isAnomaly: true, riskScore: 55, riskLevel: 'medium', reasonCodes: ['LOCATION_UNRESOLVED'],
+      recommendedAction: 'review_location', requiresHumanConfirmation: true,
+    };
+  }
+
+  const quantityVariance = expectedQuantity !== actualQuantity;
+  return {
+    isAnomaly: true,
+    riskScore: quantityVariance ? 90 : 70,
+    riskLevel: quantityVariance ? 'high' : 'medium',
+    reasonCodes: quantityVariance ? ['LOCATION_MISMATCH', 'QUANTITY_VARIANCE'] : ['LOCATION_MISMATCH'],
+    recommendedAction: 'confirm_transfer',
+    requiresHumanConfirmation: true,
   };
 }

@@ -9,6 +9,7 @@ import { DatabasePort } from '../core/ports/database.port';
 import { CyclePort, ResultPort } from '../core/ports/inventory.port';
 import { InventoryRecordResult, InventorySummary } from '../core/entities/inventory.entity';
 import { CYCLE_PORT, DATABASE_PORT, RESULT_PORT } from '../core/ports/tokens';
+import { assessLocationAnomaly } from './asset-algorithms';
 
 export interface MobileInventorySnapshotRecord {
   record_id: string;
@@ -116,5 +117,38 @@ export class InventoryResultService {
     );
 
     return { cycle, records: rows };
+  }
+
+  /**
+   * L1 location assistant output. This endpoint is read-only: it exposes
+   * explainable discrepancy suggestions for a reviewer, never changes asset
+   * data and never creates a transfer movement.
+   */
+  async getLocationSuggestions(cycleId: string, tenantId: string) {
+    const snapshot = await this.getMobileSnapshot(cycleId, tenantId);
+    const suggestions = snapshot.records
+      .map((record) => {
+        const assessment = assessLocationAnomaly({
+          expectedLocationId: record.expected_location_id,
+          actualLocationId: record.actual_location_id,
+          expectedQuantity: record.expected_quantity,
+          actualQuantity: record.actual_quantity,
+        });
+        return assessment.isAnomaly ? {
+          record_id: record.record_id,
+          asset_id: record.asset_id,
+          asset_code: record.asset_code,
+          asset_name: record.asset_name,
+          expected_location_id: record.expected_location_id,
+          expected_location: record.expected_location,
+          actual_location_id: record.actual_location_id,
+          actual_location: record.actual_location,
+          expected_quantity: record.expected_quantity,
+          actual_quantity: record.actual_quantity,
+          ...assessment,
+        } : null;
+      })
+      .filter((suggestion): suggestion is NonNullable<typeof suggestion> => suggestion !== null);
+    return { cycle: snapshot.cycle, suggestions };
   }
 }

@@ -1,5 +1,6 @@
 import {
   calculateDepreciation,
+  assessLocationAnomaly,
   calculateSimilarity,
   checkForDuplicates,
   cleanLocationName,
@@ -54,5 +55,14 @@ describe('AssetX README algorithms', () => {
     expect(result.bookValue).toBeCloseTo(600, 0);
     expect(result.depreciationPercentage).toBeCloseTo(40, 0);
     expect(result.ageYears).toBe(2);
+  });
+
+  it('flags only observed location discrepancies and always preserves human confirmation', () => {
+    expect(assessLocationAnomaly({ expectedLocationId: 'loc-a', actualLocationId: 'loc-a', expectedQuantity: 1, actualQuantity: 1 }))
+      .toMatchObject({ isAnomaly: false, recommendedAction: 'none' });
+    expect(assessLocationAnomaly({ expectedLocationId: 'loc-a', actualLocationId: 'loc-b', expectedQuantity: 1, actualQuantity: 1 }))
+      .toMatchObject({ isAnomaly: true, riskLevel: 'medium', recommendedAction: 'confirm_transfer', requiresHumanConfirmation: true, reasonCodes: ['LOCATION_MISMATCH'] });
+    expect(assessLocationAnomaly({ expectedLocationId: 'loc-a', actualLocationId: 'loc-b', expectedQuantity: 1, actualQuantity: 2 }))
+      .toMatchObject({ riskLevel: 'high', riskScore: 90, reasonCodes: ['LOCATION_MISMATCH', 'QUANTITY_VARIANCE'] });
   });
 });

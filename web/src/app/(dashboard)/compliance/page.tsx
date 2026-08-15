@@ -18,15 +18,16 @@ import { toTitle } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useCompliance } from '@/features/compliance/use-compliance';
 import { ComplianceCheck, IntegrityCheck } from '@/features/compliance/api';
+import { useI18n } from '@/lib/i18n';
 
-function StatusBadge({ status }: { status: 'OK' | 'WARNING' }) {
+function StatusBadge({ status, text }: { status: 'OK' | 'WARNING'; text: (key: string) => string }) {
   return status === 'OK'
-    ? <Badge tone="success">OK</Badge>
-    : <Badge tone="warning">Warning</Badge>;
+    ? <Badge tone="success">{text('compliance.ok')}</Badge>
+    : <Badge tone="warning">{text('compliance.warning')}</Badge>;
 }
 
 /** SVG score ring — same visual language as the dashboard donut. */
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, text }: { score: number; text: (key: string) => string }) {
   const r = 44;
   const c = 2 * Math.PI * r;
   const frac = Math.max(0, Math.min(100, score)) / 100;
@@ -46,16 +47,16 @@ function ScoreRing({ score }: { score: number }) {
         </text>
       </svg>
       <div>
-        <p className="text-sm font-medium text-ink">Integrity score</p>
+        <p className="text-sm font-medium text-ink">{text('compliance.integrityScore')}</p>
         <p className="mt-0.5 max-w-52 text-xs text-ink-muted">
-          Weighted 0–100 composite computed by the backend from the checks below (higher is healthier).
+          {text('compliance.scoreDescription')}
         </p>
       </div>
     </div>
   );
 }
 
-function HealthCard({ c }: { c: ComplianceCheck }) {
+function HealthCard({ c, text, locale }: { c: ComplianceCheck; text: (key: string, fallback?: string) => string; locale: 'en' | 'ar' }) {
   const warn = c.status === 'WARNING';
   return (
     <div className={cn('flex items-center justify-between gap-3 rounded-xl border p-3', warn ? 'border-warning/40 bg-warning/5' : 'border-line')}>
@@ -64,24 +65,24 @@ function HealthCard({ c }: { c: ComplianceCheck }) {
           ? <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
           : <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />}
         <div>
-          <p className="text-sm font-medium text-ink">{toTitle(c.check)}</p>
-          <p className="text-xs text-ink-faint">{c.count.toLocaleString()} item(s)</p>
+          <p className="text-sm font-medium text-ink">{text(`compliance.check.${c.check}`, toTitle(c.check))}</p>
+          <p className="text-xs text-ink-faint">{c.count.toLocaleString(locale)} {text('compliance.items')}</p>
         </div>
       </div>
-      <StatusBadge status={c.status} />
+      <StatusBadge status={c.status} text={text} />
     </div>
   );
 }
 
-function IntegrityRow({ c }: { c: IntegrityCheck }) {
+function IntegrityRow({ c, text, locale }: { c: IntegrityCheck; text: (key: string, fallback?: string) => string; locale: 'en' | 'ar' }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line/60 py-2 last:border-0">
-      <span className="text-sm text-ink">{toTitle(c.check)}</span>
+      <span className="text-sm text-ink">{text(`compliance.check.${c.check}`, toTitle(c.check))}</span>
       <div className="flex items-center gap-2 text-xs text-ink-faint">
-        <span>count {c.count}</span>
+        <span>{text('compliance.count')} {c.count.toLocaleString(locale)}</span>
         <span>·</span>
-        <span>weight {c.weight}</span>
-        <StatusBadge status={c.status} />
+        <span>{text('compliance.weight')} {c.weight}</span>
+        <StatusBadge status={c.status} text={text} />
       </div>
     </div>
   );
@@ -89,15 +90,16 @@ function IntegrityRow({ c }: { c: IntegrityCheck }) {
 
 export default function CompliancePage() {
   const state = useCompliance();
+  const { t, locale } = useI18n();
 
   return (
     <PermissionGate
       permission={PERMISSIONS.COMPLIANCE_VIEW}
-      fallback={<EmptyState title="No compliance access" description="Your role does not grant compliance.view." />}
+      fallback={<EmptyState title={t('compliance.noAccess')} description={t('compliance.noAccessDesc')} />}
     >
       <PageHeader
-        title="Compliance"
-        subtitle="Live integrity & hygiene checks — read-only, computed by the backend"
+        title={t('compliance.title')}
+        subtitle={t('compliance.subtitle')}
       />
 
       <AsyncBoundary state={state}>
@@ -105,27 +107,27 @@ export default function CompliancePage() {
           <>
             <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Card className="lg:col-span-1">
-                <CardBody><ScoreRing score={integrity.score} /></CardBody>
+                <CardBody><ScoreRing score={integrity.score} text={t} /></CardBody>
               </Card>
               <Card className="lg:col-span-2">
-                <CardHeader title="Integrity checks" subtitle="Weighted signals feeding the score" />
+                <CardHeader title={t('compliance.integrityChecks')} subtitle={t('compliance.integrityChecksSubtitle')} />
                 <CardBody>
                   {integrity.checks.length === 0
-                    ? <EmptyState title="No integrity checks returned" />
-                    : integrity.checks.map((c) => <IntegrityRow key={c.check} c={c} />)}
+                    ? <EmptyState title={t('compliance.noIntegrityChecks')} />
+                    : integrity.checks.map((c) => <IntegrityRow key={c.check} c={c} text={t} locale={locale} />)}
                 </CardBody>
               </Card>
             </div>
 
             <Card className="mb-4">
               <CardHeader
-                title="Health checks"
-                subtitle="Tenant data hygiene — live evaluation"
+                title={t('compliance.healthChecks')}
+                subtitle={t('compliance.healthChecksSubtitle')}
                 actions={<ShieldCheck className="h-4 w-4 text-ink-faint" />}
               />
               <CardBody>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                  {health.checks.map((c) => <HealthCard key={c.check} c={c} />)}
+                  {health.checks.map((c) => <HealthCard key={c.check} c={c} text={t} locale={locale} />)}
                 </div>
               </CardBody>
             </Card>
@@ -133,8 +135,8 @@ export default function CompliancePage() {
             <Card>
               <CardBody>
                 <EmptyState
-                  title="Controls, policies, violations & remediation"
-                  description="These APIs are not implemented on the backend yet. This section will light up only when the real endpoints exist — no placeholder data is shown."
+                  title={t('compliance.controlsUnavailable')}
+                  description={t('compliance.controlsUnavailableDesc')}
                 />
               </CardBody>
             </Card>

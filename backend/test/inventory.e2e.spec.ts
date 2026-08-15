@@ -139,6 +139,10 @@ describe('Inventory — E2E HTTP (RBAC, cycle lifecycle)', () => {
     expect(mobileRecord.expected_location_id).toBe(location.id);
     expect(mobileRecord.expected_location_path).toBeTruthy();
 
+    const locationSuggestions = await req('GET', `/inventory/cycles/${cycleId}/location-suggestions`, undefined, adminToken);
+    expect(locationSuggestions.status).toBe(200);
+    expect(Array.isArray(locationSuggestions.json.suggestions)).toBe(true);
+
     const counted = await req('POST', `/inventory/cycles/${cycleId}/records`, {
       asset_id: asset.json.id,
       actual_location_id: location.id,

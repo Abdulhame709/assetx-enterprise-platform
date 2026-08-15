@@ -91,6 +91,14 @@ export class InventoryController {
     return this.results.getMobileSnapshot(id, user.tenant_id);
   }
 
+  /** Read-only L1 assistant suggestions; review and movement approval stay human-led. */
+  @Get('cycles/:id/location-suggestions')
+  @RequirePermission('inventory.view')
+  locationSuggestions(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    return this.results.getLocationSuggestions(id, user.tenant_id);
+  }
+
   // ---- Records ----
   @Post('cycles/:id/records')
   @RequirePermission('inventory.execute')

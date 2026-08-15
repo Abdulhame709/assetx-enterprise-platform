@@ -40,6 +40,22 @@ export interface CycleSummary {
   completion: number;   // % inventoried
 }
 
+export interface LocationInventorySuggestion {
+  record_id: string;
+  asset_id: string;
+  asset_code: string;
+  asset_name: string;
+  expected_location: string | null;
+  actual_location: string | null;
+  expected_quantity: number | null;
+  actual_quantity: number | null;
+  riskScore: number;
+  riskLevel: 'medium' | 'high';
+  reasonCodes: Array<'LOCATION_MISMATCH' | 'QUANTITY_VARIANCE' | 'LOCATION_UNRESOLVED'>;
+  recommendedAction: 'review_location' | 'confirm_transfer';
+  requiresHumanConfirmation: true;
+}
+
 export interface InventoryRecordRow {
   id: string;
   cycle_id: string;
@@ -185,6 +201,33 @@ export async function closeCycle(id: string): Promise<InventoryCycle> {
 export async function getSummary(cycleId: string): Promise<CycleSummary | null> {
   const raw = await http.get<unknown>(`/inventory/cycles/${cycleId}/summary`);
   return mapSummary(raw);
+}
+
+export async function getLocationSuggestions(cycleId: string): Promise<LocationInventorySuggestion[]> {
+  const raw = await http.get<unknown>(`/inventory/cycles/${cycleId}/location-suggestions`);
+  const suggestions = (raw as { suggestions?: unknown[] } | null)?.suggestions ?? [];
+  return suggestions.map((value) => {
+    const row = value as Record<string, unknown>;
+    const riskLevel: LocationInventorySuggestion['riskLevel'] = row.riskLevel === 'high' ? 'high' : 'medium';
+    const recommendedAction: LocationInventorySuggestion['recommendedAction'] = row.recommendedAction === 'review_location' ? 'review_location' : 'confirm_transfer';
+    return {
+      record_id: String(row.record_id ?? ''),
+      asset_id: String(row.asset_id ?? ''),
+      asset_code: String(row.asset_code ?? ''),
+      asset_name: String(row.asset_name ?? ''),
+      expected_location: row.expected_location != null ? String(row.expected_location) : null,
+      actual_location: row.actual_location != null ? String(row.actual_location) : null,
+      expected_quantity: row.expected_quantity != null ? toNumber(row.expected_quantity) : null,
+      actual_quantity: row.actual_quantity != null ? toNumber(row.actual_quantity) : null,
+      riskScore: toNumber(row.riskScore),
+      riskLevel,
+      reasonCodes: Array.isArray(row.reasonCodes)
+        ? row.reasonCodes.filter((code): code is LocationInventorySuggestion['reasonCodes'][number] => code === 'LOCATION_MISMATCH' || code === 'QUANTITY_VARIANCE' || code === 'LOCATION_UNRESOLVED')
+        : [],
+      recommendedAction,
+      requiresHumanConfirmation: true as const,
+    };
+  }).filter((suggestion) => suggestion.record_id !== '');
 }
 
 // ---------------------------------------------------------------------------

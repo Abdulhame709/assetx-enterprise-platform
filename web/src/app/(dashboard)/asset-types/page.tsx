@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/Toast';
 import { humanError } from '@/lib/api/errors';
 import { cn } from '@/lib/cn';
 import { useAssetTypes, createAssetType, updateAssetType, AssetTypeNode } from '@/features/asset-types/use-asset-types';
+import { useI18n } from '@/lib/i18n';
 
 type ModalState =
   | { mode: 'closed' }
@@ -30,6 +31,7 @@ export default function AssetTypesPage() {
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
   const state = useAssetTypes();
   const toast = useToast();
+  const { t, locale } = useI18n();
 
   const childrenOf = useMemo(() => {
     const map = new Map<string | null, AssetTypeNode[]>();
@@ -80,12 +82,12 @@ export default function AssetTypesPage() {
   return (
     <div>
       <PageHeader
-        title="Asset Types"
-        subtitle={`${state.data?.length ?? 0} types · ${roots} roots`}
+        title={t('assetTypes.title')}
+        subtitle={t('assetTypes.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
         actions={
           <PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}>
             <Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create', parent: null })}>
-              <Plus className="h-4 w-4" /> New Type
+              <Plus className="h-4 w-4" /> {t('assetTypes.new')}
             </Button>
           </PermissionGate>
         }
@@ -98,7 +100,7 @@ export default function AssetTypesPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search asset types…"
+              placeholder={t('assetTypes.search')}
               className="ax-input ps-9"
             />
           </div>
@@ -108,13 +110,13 @@ export default function AssetTypesPage() {
           {state.status === 'error' && <ErrorState message={humanError(state.error)} onRetry={state.reload} />}
           {state.status === 'success' && rows.length === 0 && (
             <EmptyState
-              title={search ? 'No asset types match your search' : 'No asset types yet'}
+              title={search ? t('assetTypes.noMatch') : t('assetTypes.none')}
               description={
                 search
-                  ? 'Try a different name, or clear the search.'
-                  : 'Create your first type (e.g. IT, Furniture, Vehicles) to classify assets.'
+                  ? t('assetTypes.noMatchDesc')
+                  : t('assetTypes.noneDesc')
               }
-              actionLabel={!search ? 'Create type' : undefined}
+              actionLabel={!search ? t('assetTypes.create') : undefined}
               onAction={!search ? () => setModal({ mode: 'create', parent: null }) : undefined}
             />
           )}
@@ -138,7 +140,7 @@ export default function AssetTypesPage() {
                     <PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}>
                       <button
                         type="button"
-                        title="Add sub-type"
+                        title={t('assetTypes.addChild')}
                         className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                         onClick={() => setModal({ mode: 'create', parent: node })}
                       >
@@ -148,7 +150,7 @@ export default function AssetTypesPage() {
                     <PermissionGate permission={PERMISSIONS.CATEGORY_UPDATE}>
                       <button
                         type="button"
-                        title="Rename type"
+                        title={t('assetTypes.rename')}
                         className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                         onClick={() => setModal({ mode: 'edit', node })}
                       >
@@ -170,7 +172,7 @@ export default function AssetTypesPage() {
           node={modal.mode === 'edit' ? modal.node : null}
           onClose={() => setModal({ mode: 'closed' })}
           onSaved={(verb) => {
-            toast.success(verb === 'edit' ? 'Type updated' : 'Type created', 'Saved to the database.');
+            toast.success(verb === 'edit' ? t('assetTypes.updated') : t('assetTypes.created'), t('assetTypes.saved'));
             state.reload();
             setModal({ mode: 'closed' });
           }}
@@ -189,18 +191,21 @@ function AssetTypeModal({
   onClose: () => void;
   onSaved: (verb: 'create' | 'edit') => void;
 }) {
+  const { t } = useI18n();
   const [name, setName] = useState(mode === 'edit' ? node?.name ?? '' : '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { setName(mode === 'edit' ? node?.name ?? '' : ''); setError(null); }, [mode, node]);
 
-  const title = mode === 'edit' ? `Rename ${node?.name ?? 'type'}` : parent ? `Add sub-type under ${parent.name}` : 'Create asset type';
+  const title = mode === 'edit'
+    ? t('assetTypes.renameTitle').replace('{name}', node?.name ?? t('assetTypes.title'))
+    : parent ? t('assetTypes.addUnder').replace('{name}', parent.name) : t('assetTypes.createTitle');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (name.trim().length < 2) { setError('Name must be at least 2 characters.'); return; }
+    if (name.trim().length < 2) { setError(t('assetTypes.nameTooShort')); return; }
     setSaving(true);
     try {
       if (mode === 'edit' && node) await updateAssetType(node.id, { name: name.trim() });
@@ -216,14 +221,14 @@ function AssetTypeModal({
   return (
     <Modal open onClose={onClose} title={title} size="sm">
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Name" hint="Must be unique across asset types.">
+        <Field label={t('assetTypes.name')} hint={t('assetTypes.nameHint')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required minLength={2} />
         </Field>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetTypes.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>
-            {mode === 'edit' ? 'Save changes' : 'Create type'}
+            {mode === 'edit' ? t('assetTypes.save') : t('assetTypes.create')}
           </Button>
         </div>
       </form>

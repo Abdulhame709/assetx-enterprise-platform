@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 export interface SelectOption {
   value: string;
@@ -21,7 +22,9 @@ interface SearchableSelectProps {
   clearable?: boolean;
 }
 
-export function SearchableSelect({ options, value, onChange, placeholder = 'Select…', clearable = true }: SearchableSelectProps) {
+export function SearchableSelect({ options, value, onChange, placeholder, clearable = true }: SearchableSelectProps) {
+  const { t } = useI18n();
+  const resolvedPlaceholder = placeholder ?? t('select.search');
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [highlight, setHighlight] = useState(0);
@@ -47,7 +50,7 @@ export function SearchableSelect({ options, value, onChange, placeholder = 'Sele
         onClick={() => setOpen((v) => !v)}
         className="ax-input flex items-center justify-between text-start"
       >
-        <span className={selected ? 'text-ink' : 'text-ink-faint'}>{selected ? selected.label : placeholder}</span>
+        <span className={selected ? 'text-ink' : 'text-ink-faint'}>{selected ? selected.label : resolvedPlaceholder}</span>
         <ChevronDown className="h-4 w-4 text-ink-faint" />
       </button>
 
@@ -59,9 +62,9 @@ export function SearchableSelect({ options, value, onChange, placeholder = 'Sele
               autoFocus
               value={query}
               onChange={(e) => { setQuery(e.target.value); setHighlight(0); }}
-              placeholder="Search…"
+              placeholder={t('select.search')}
               className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
-              aria-label="Filter options"
+              aria-label={t('select.filterOptions')}
             />
           </div>
           <ul role="listbox" className="max-h-48 overflow-y-auto py-1">
@@ -72,10 +75,10 @@ export function SearchableSelect({ options, value, onChange, placeholder = 'Sele
                 className={cn('flex items-center justify-between px-3 py-2 text-sm text-ink-muted hover:bg-surface-muted', highlight === 0 && 'bg-surface-muted')}
                 onMouseDown={(e) => { e.preventDefault(); onChange(null); setOpen(false); setQuery(''); }}
               >
-                Clear
+                {t('select.clear')}
               </li>
             )}
-            {filtered.length === 0 && <li className="px-3 py-2 text-sm text-ink-faint">No options</li>}
+            {filtered.length === 0 && <li className="px-3 py-2 text-sm text-ink-faint">{t('select.noOptions')}</li>}
             {filtered.map((o, i) => (
               <li
                 key={o.value}

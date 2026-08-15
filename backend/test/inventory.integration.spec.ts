@@ -113,6 +113,29 @@ describe('Inventory Core — integration (real PostgreSQL + RLS)', () => {
     expect(record!.actual_location_id).toBeNull();
   });
 
+  it('Location assistant — explains an observed location mismatch without creating a movement', async () => {
+    const alternateLocation = await h.locations.create({ tenant_id: h.tenantA, name: 'Inventory review room' });
+    const { cycle } = await h.cycles.create(h.tenantA, 2034, { all: true });
+    await h.cycles.start(cycle.id, h.tenantA);
+    await h.records.record(cycle.id, h.tenantA, assetsInCycle[0], {
+      actual_location_id: alternateLocation.id,
+      actual_quantity: 1,
+    }, userId);
+
+    const suggestions = await h.inventoryResult.getLocationSuggestions(cycle.id, h.tenantA);
+    const suggestion = suggestions.suggestions.find((item) => item.asset_id === assetsInCycle[0]);
+    expect(suggestion).toMatchObject({
+      expected_location_id: h.refA.location,
+      actual_location_id: alternateLocation.id,
+      riskLevel: 'medium',
+      reasonCodes: ['LOCATION_MISMATCH'],
+      recommendedAction: 'confirm_transfer',
+      requiresHumanConfirmation: true,
+    });
+    const results = await h.inventoryResult.getResults(cycle.id, h.tenantA);
+    expect(results.find((item) => item.asset_id === assetsInCycle[0])?.result).toBe('transferred');
+  });
+
   it('Tenant isolation — cycle in A not visible from B', async () => {
     const { cycle } = await h.cycles.create(h.tenantA, 2040, { all: true });
     const fromB = await h.cycles.getById(cycle.id, h.tenantB);

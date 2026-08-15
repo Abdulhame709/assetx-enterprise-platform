@@ -47,7 +47,7 @@ const ENTITY_KEYS = ['auth', 'permission', 'asset', 'movement', 'inventory', 'co
 const PAGE_SIZE = 25;
 
 export default function AuditPage() {
-  const { label, locale } = useI18n();
+  const { label, locale, t } = useI18n();
   const toast = useToast();
   const [tab, setTab] = useState<AuditTab>('all');
   const [action, setAction] = useState<string | null>(null);
@@ -69,27 +69,27 @@ export default function AuditPage() {
 
   const columns: EColumn<AuditEventRow>[] = [
     {
-      key: 'created_at', header: 'Time', width: '170px',
+      key: 'created_at', header: t('audit.time'), width: '170px',
       render: (r) => <span className="text-xs text-ink-muted">{formatDateTime(r.created_at, locale)}</span>,
     },
     {
-      key: 'action_type', header: 'Action',
+      key: 'action_type', header: t('audit.action'),
       render: (r) => <Badge tone={actionTone(r.action_type)}>{label(r.action_type)}</Badge>,
     },
     {
-      key: 'table_name', header: 'Entity', width: '110px',
+      key: 'table_name', header: t('audit.entity'), width: '110px',
       render: (r) => r.table_name ? <Badge tone="neutral">{r.table_name}</Badge> : <span className="text-ink-faint">—</span>,
     },
     {
-      key: 'record_id', header: 'Record',
-      render: (r) => <span className="text-xs text-ink-muted">{shortRef('Record', r.record_id)}</span>,
+      key: 'record_id', header: t('audit.record'),
+      render: (r) => <span className="text-xs text-ink-muted">{shortRef(t('audit.record'), r.record_id)}</span>,
     },
     {
-      key: 'user_id', header: 'Actor',
-      render: (r) => <span className="text-xs text-ink-muted">{shortRef('User', r.user_id)}</span>,
+      key: 'user_id', header: t('audit.actor'),
+      render: (r) => <span className="text-xs text-ink-muted">{shortRef(t('audit.actor'), r.user_id)}</span>,
     },
     {
-      key: 'details', header: 'Details',
+      key: 'details', header: t('audit.details'),
       render: (r) => {
         const d = r.details as { endpoint?: string; method?: string; reason?: string } | null;
         const text = d?.endpoint ? `${d.method ?? ''} ${d.endpoint}`.trim() : d?.reason ?? '';
@@ -99,7 +99,7 @@ export default function AuditPage() {
     {
       key: 'view', header: '', align: 'right', width: '48px',
       render: (r) => (
-        <Button variant="ghost" size="sm" aria-label="View event" onClick={() => setSelected(r)}>
+        <Button variant="ghost" size="sm" aria-label={t('audit.viewEvent')} onClick={() => setSelected(r)}>
           <Eye className="h-4 w-4" />
         </Button>
       ),
@@ -110,9 +110,9 @@ export default function AuditPage() {
     setExporting(true);
     try {
       await downloadAuditExport();
-      toast.success('Export downloaded', 'Audit CSV was generated from live data.');
+      toast.success(t('audit.exportDownloaded'), t('audit.exportLiveData'));
     } catch (err) {
-      toast.error('Export failed', humanError(err));
+      toast.error(t('audit.exportFailed'), humanError(err));
     } finally {
       setExporting(false);
     }
@@ -121,15 +121,15 @@ export default function AuditPage() {
   return (
     <PermissionGate
       permission={PERMISSIONS.AUDIT_VIEW}
-      fallback={<EmptyState title="No audit access" description="Your role does not grant audit.view." />}
+      fallback={<EmptyState title={t('audit.noAccess')} description={t('audit.noAccessDesc')} />}
     >
       <PageHeader
-        title="Audit"
-        subtitle={`${state.data?.total?.toLocaleString() ?? '—'} events recorded`}
+        title={t('audit.title')}
+        subtitle={t('audit.eventsRecorded').replace('{count}', state.data?.total?.toLocaleString(locale) ?? '—')}
         actions={
           <PermissionGate permission={PERMISSIONS.EXPORT_AUDIT}>
             <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}>
-              <Download className="h-4 w-4" /> Export CSV
+              <Download className="h-4 w-4" /> {t('audit.exportCsv')}
             </Button>
           </PermissionGate>
         }
@@ -138,8 +138,8 @@ export default function AuditPage() {
       <div className="mb-4">
         <Tabs
           items={[
-            { id: 'all', label: 'All events' },
-            { id: 'security', label: 'Security' },
+            { id: 'all', label: t('audit.allEvents') },
+            { id: 'security', label: t('audit.security') },
           ]}
           value={tab}
           onChange={(k) => { setTab(k as AuditTab); setPage(1); }}
@@ -154,7 +154,7 @@ export default function AuditPage() {
                 options={ACTION_KEYS.map((k) => ({ value: k, label: label(k) }))}
                 value={action}
                 onChange={(v) => setFilter(() => setAction(v))}
-                placeholder="All actions"
+                placeholder={t('audit.allActions')}
               />
             </div>
             <div className="w-full sm:w-44">
@@ -162,7 +162,7 @@ export default function AuditPage() {
                 options={ENTITY_KEYS.map((k) => ({ value: k, label: k }))}
                 value={entity}
                 onChange={(v) => setFilter(() => setEntity(v))}
-                placeholder="All entities"
+                placeholder={t('audit.allEntities')}
               />
             </div>
             <input
@@ -170,14 +170,14 @@ export default function AuditPage() {
               value={dateFrom}
               onChange={(e) => setFilter(() => setDateFrom(e.target.value))}
               className="ax-input w-full py-1.5 sm:w-40"
-              aria-label="From date"
+              aria-label={t('audit.fromDate')}
             />
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setFilter(() => setDateTo(e.target.value))}
               className="ax-input w-full py-1.5 sm:w-40"
-              aria-label="To date"
+              aria-label={t('audit.toDate')}
             />
           </div>
           <AsyncBoundary state={state}>
@@ -191,7 +191,7 @@ export default function AuditPage() {
                 total={data.total}
                 onPageChange={setPage}
                 searchable={false}
-                empty={<EmptyState title="No audit events" description="No events match the current filters." />}
+                empty={<EmptyState title={t('audit.noEvents')} description={t('audit.noEventsDesc')} />}
               />
             )}
           </AsyncBoundary>

@@ -19,6 +19,7 @@ import { humanError } from '@/lib/api/errors';
 import { useLocations, deleteLocation, LocationNode } from '@/features/locations/use-locations';
 import { LocationTree } from '@/features/locations/components/LocationTree';
 import { LocationFormModal } from '@/features/locations/components/LocationFormModal';
+import { useI18n } from '@/lib/i18n';
 
 type ModalState =
   | { mode: 'closed' }
@@ -32,36 +33,37 @@ export default function LocationsPage() {
   const state = useLocations();
   const toast = useToast();
   const { confirm } = useConfirm();
+  const { t, locale } = useI18n();
 
   const total = state.data?.length ?? 0;
   const roots = state.data?.filter((l) => !l.parent_id).length ?? 0;
 
   const onDelete = async (node: LocationNode) => {
     const ok = await confirm({
-      title: `Delete "${node.name}"`,
-      message: 'The location will be deactivated. Locations with child locations cannot be deleted.',
+      title: t('locationPage.deleteTitle').replace('{name}', node.name),
+      message: t('locationPage.deleteMessage'),
       tone: 'danger',
-      confirmLabel: 'Delete',
+      confirmLabel: t('locationPage.delete'),
     });
     if (!ok) return;
     try {
       await deleteLocation(node.id);
-      toast.success('Location deleted', `"${node.name}" was deactivated.`);
+      toast.success(t('locationPage.deleted'), t('locationPage.deletedMessage').replace('{name}', node.name));
       state.reload();
     } catch (err) {
-      toast.error('Delete failed', humanError(err));
+      toast.error(t('locationPage.deleteFailed'), humanError(err));
     }
   };
 
   return (
     <div>
       <PageHeader
-        title="Locations"
-        subtitle={`${total} locations · ${roots} roots`}
+        title={t('locationPage.title')}
+        subtitle={t('locationPage.summary').replace('{total}', total.toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
         actions={
           <PermissionGate permission={PERMISSIONS.LOCATION_CREATE}>
             <Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create-root' })}>
-              <Plus className="h-4 w-4" /> New Root Location
+              <Plus className="h-4 w-4" /> {t('locationPage.newRoot')}
             </Button>
           </PermissionGate>
         }
@@ -74,7 +76,7 @@ export default function LocationsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search locations by name or path…"
+              placeholder={t('locationPage.search')}
               className="ax-input ps-9"
             />
           </div>
@@ -108,8 +110,8 @@ export default function LocationsPage() {
           onClose={() => setModal({ mode: 'closed' })}
           onSaved={() => {
             toast.success(
-              modal.mode === 'edit' ? 'Location updated' : 'Location created',
-              'Saved to the database.',
+              modal.mode === 'edit' ? t('locationPage.updated') : t('locationPage.created'),
+              t('locationPage.saved'),
             );
             state.reload();
           }}

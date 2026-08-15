@@ -15,6 +15,7 @@ import { humanError } from '@/lib/api/errors';
 import { getEmployees, ReferenceEmployee } from '@/features/reference/api';
 import { getLocationsTree } from './reference-selects';
 import { transferAsset, disposeAsset, retireAsset } from '../api';
+import { useI18n } from '@/lib/i18n';
 
 interface BaseProps {
   open: boolean;
@@ -25,6 +26,7 @@ interface BaseProps {
 }
 
 export function TransferAssetModal({ open, assetId, assetName, onClose, onDone }: BaseProps) {
+  const { t } = useI18n();
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
   const [employees, setEmployees] = useState<ReferenceEmployee[]>([]);
   const [toLocation, setToLocation] = useState<string | null>(null);
@@ -37,14 +39,14 @@ export function TransferAssetModal({ open, assetId, assetName, onClose, onDone }
     if (!open) return;
     setToLocation(null); setToEmployee(null); setReason(''); setError(null);
     Promise.all([getLocationsTree().then(setLocations), getEmployees().then(setEmployees)])
-      .catch((err) => setError(humanError(err, 'Could not load options.')));
+      .catch((err) => setError(humanError(err, t('assetLifecycle.loadOptionsFailed'))));
   }, [open]);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!toLocation && !toEmployee) {
-      setError('Choose a destination location and/or a new custodian.');
+      setError(t('assetLifecycle.chooseDestination'));
       return;
     }
     setSaving(true);
@@ -54,7 +56,7 @@ export function TransferAssetModal({ open, assetId, assetName, onClose, onDone }
         to_employee_id: toEmployee || undefined,
         reason: reason.trim() || undefined,
       });
-      onDone('Asset transferred and the movement was recorded.');
+      onDone(t('assetLifecycle.transferComplete'));
       onClose();
     } catch (err) {
       setError(humanError(err));
@@ -64,29 +66,29 @@ export function TransferAssetModal({ open, assetId, assetName, onClose, onDone }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={`Transfer ${assetName}`} size="md">
+    <Modal open={open} onClose={onClose} title={t('assetLifecycle.transferTitle').replace('{name}', assetName)} size="md">
       <p className="mb-4 rounded-lg bg-surface-muted px-3 py-2 text-xs text-ink-muted">
-        The asset is moved immediately and the transfer is recorded as a movement (append-only history).
+        {t('assetLifecycle.transferNotice')}
       </p>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="To location">
-          <SearchableSelect options={locations} value={toLocation} onChange={setToLocation} placeholder="Choose destination…" />
+        <Field label={t('assetLifecycle.toLocation')}>
+          <SearchableSelect options={locations} value={toLocation} onChange={setToLocation} placeholder={t('assetLifecycle.destinationPlaceholder')} />
         </Field>
-        <Field label="New custodian">
+        <Field label={t('assetLifecycle.newCustodian')}>
           <SearchableSelect
             options={employees.map((p) => ({ value: p.id, label: p.department ? `${p.name} · ${p.department}` : p.name }))}
             value={toEmployee}
             onChange={setToEmployee}
-            placeholder="Optional…"
+            placeholder={t('assetLifecycle.optional')}
           />
         </Field>
-        <Field label="Reason">
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is the asset being transferred?" />
+        <Field label={t('assetLifecycle.reason')}>
+          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('assetLifecycle.transferReason')} />
         </Field>
         {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary" size="sm" loading={saving}>Create transfer</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetLifecycle.cancel')}</Button>
+          <Button type="submit" variant="primary" size="sm" loading={saving}>{t('assetLifecycle.createTransfer')}</Button>
         </div>
       </form>
     </Modal>
@@ -96,13 +98,14 @@ export function TransferAssetModal({ open, assetId, assetName, onClose, onDone }
 export function EndOfLifeModal({
   open, kind, assetId, assetName, onClose, onDone,
 }: BaseProps & { kind: 'dispose' | 'retire' }) {
+  const { t } = useI18n();
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { if (open) { setReason(''); setError(null); } }, [open]);
 
-  const verb = kind === 'dispose' ? 'Dispose' : 'Retire';
+  const verb = kind === 'dispose' ? t('assetLifecycle.dispose') : t('assetLifecycle.retire');
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -110,7 +113,7 @@ export function EndOfLifeModal({
     try {
       if (kind === 'dispose') await disposeAsset(assetId, reason.trim() || undefined);
       else await retireAsset(assetId, reason.trim() || undefined);
-      onDone(`${verb} request created. The asset is deactivated after approval.`);
+      onDone(t('assetLifecycle.requestCreated').replace('{verb}', verb));
       onClose();
     } catch (err) {
       setError(humanError(err));
@@ -120,18 +123,18 @@ export function EndOfLifeModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={`${verb} ${assetName}`} size="sm">
+    <Modal open={open} onClose={onClose} title={t('assetLifecycle.endOfLifeTitle').replace('{verb}', verb).replace('{name}', assetName)} size="sm">
       <p className="mb-4 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
-        This creates a {verb} movement. After approval the asset is deactivated and removed from operations.
+        {t('assetLifecycle.endOfLifeNotice').replace('{verb}', verb)}
       </p>
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Reason">
-          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={`Why is the asset being ${kind === 'dispose' ? 'disposed' : 'retired'}?`} />
+        <Field label={t('assetLifecycle.reason')}>
+          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('assetLifecycle.endOfLifeReason').replace('{verb}', verb)} />
         </Field>
         {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="danger" size="sm" loading={saving}>Confirm {verb.toLowerCase()}</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetLifecycle.cancel')}</Button>
+          <Button type="submit" variant="danger" size="sm" loading={saving}>{t('assetLifecycle.confirm').replace('{verb}', verb)}</Button>
         </div>
       </form>
     </Modal>

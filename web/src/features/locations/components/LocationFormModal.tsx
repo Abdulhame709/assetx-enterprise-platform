@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/form';
 import { humanError } from '@/lib/api/errors';
 import { createLocation, updateLocation, LocationNode, LocationType } from '../api';
+import { useI18n } from '@/lib/i18n';
 
 const LOCATION_TYPES: LocationType[] = ['building', 'room', 'warehouse', 'workshop', 'outdoor'];
 
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function LocationFormModal({ open, mode, parent, node, onClose, onSaved }: Props) {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [type, setType] = useState<LocationType>('room');
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +39,14 @@ export function LocationFormModal({ open, mode, parent, node, onClose, onSaved }
   }, [open, mode, node, parent]);
 
   const title =
-    mode === 'edit' ? `Edit ${node?.name ?? 'location'}` :
-    mode === 'create-child' ? `Add child under ${parent?.name ?? ''}` :
-    'Create root location';
+    mode === 'edit' ? t('locationForm.editTitle').replace('{name}', node?.name ?? t('common.location')) :
+    mode === 'create-child' ? t('locationForm.addChildTitle').replace('{name}', parent?.name ?? '') :
+    t('locationForm.createRootTitle');
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (name.trim().length < 2) { setError('Name must be at least 2 characters.'); return; }
+    if (name.trim().length < 2) { setError(t('locationForm.nameTooShort')); return; }
     setSaving(true);
     try {
       if (mode === 'edit' && node) {
@@ -64,21 +66,21 @@ export function LocationFormModal({ open, mode, parent, node, onClose, onSaved }
   return (
     <Modal open={open} onClose={onClose} title={title} size="sm">
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Name" hint="Unique within the same parent location.">
+        <Field label={t('locationForm.name')} hint={t('locationForm.nameHint')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required minLength={2} />
         </Field>
-        <Field label="Type">
+        <Field label={t('locationForm.type')}>
           <Select value={type} onChange={(e) => setType(e.target.value as LocationType)}>
-            {LOCATION_TYPES.map((t) => (
-              <option key={t} value={t} className="capitalize">{t}</option>
+            {LOCATION_TYPES.map((typeOption) => (
+              <option key={typeOption} value={typeOption} className="capitalize">{t(`locationForm.type.${typeOption}`)}</option>
             ))}
           </Select>
         </Field>
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
+          <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('locationForm.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>
-            {mode === 'edit' ? 'Save changes' : 'Create location'}
+            {mode === 'edit' ? t('locationForm.save') : t('locationForm.create')}
           </Button>
         </div>
       </form>
