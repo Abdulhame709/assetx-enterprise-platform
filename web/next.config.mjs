@@ -7,6 +7,19 @@ const nextConfig = {
   // them to the running backend (default http://127.0.0.1:3001, overridable via
   // API_PROXY_TARGET for other environments).
   typescript: { ignoreBuildErrors: false },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
