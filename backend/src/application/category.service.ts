@@ -13,6 +13,7 @@ import { Category } from '../core/entities/category.entity';
 import { CATEGORY_PORT, DATABASE_PORT } from '../core/ports/tokens';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
+import { DomainError } from '../common/http/domain-error';
 
 @Injectable()
 export class CategoryService {
@@ -57,8 +58,16 @@ export class CategoryService {
     await this.db.setTenant(tenantId);
     const existing = await this.categories.findById(id, tenantId);
     if (!existing) throw new Error('CATEGORY_NOT_FOUND');
-    if (await this.categories.countChildren(id, tenantId)) throw new Error('CATEGORY_HAS_CHILDREN');
-    if (await this.categories.countAssets(id, tenantId)) throw new Error('CATEGORY_HAS_ASSETS');
+    const [childCategoryCount, assetCount] = await Promise.all([
+      this.categories.countChildren(id, tenantId),
+      this.categories.countAssets(id, tenantId),
+    ]);
+    if (childCategoryCount || assetCount) {
+      throw new DomainError(childCategoryCount ? 'CATEGORY_HAS_CHILDREN' : 'CATEGORY_HAS_ASSETS', {
+        child_category_count: childCategoryCount,
+        asset_count: assetCount,
+      });
+    }
     await this.categories.deactivate(id, tenantId);
     await this.audit.log({
       tenant_id: tenantId, userId,

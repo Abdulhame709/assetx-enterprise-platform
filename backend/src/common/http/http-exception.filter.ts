@@ -36,9 +36,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // Domain errors (Error with a known message)
     if (exception instanceof Error && ERROR_CODES[exception.message]) {
       const { http, code } = ERROR_CODES[exception.message];
+      const details = exception && typeof exception === 'object' && 'details' in exception
+        ? (exception as { details?: Record<string, unknown> }).details ?? {}
+        : {};
       res.status(http).json({
         data: null,
-        error: { code, message: exception.message, details: {} },
+        error: { code, message: exception.message, details },
       });
       return;
     }

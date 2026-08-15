@@ -21,7 +21,9 @@ describe('Master data deactivation — protected soft delete', () => {
   it('blocks category deactivation when it has an active child', async () => {
     const parent = await h.categories.create({ tenant_id: h.tenantA, name: 'Protected parent' });
     await h.categories.create({ tenant_id: h.tenantA, name: 'Protected child', parent_id: parent.id });
-    await expect(h.categories.deactivate(parent.id, h.tenantA, null)).rejects.toThrow('CATEGORY_HAS_CHILDREN');
+    await expect(h.categories.deactivate(parent.id, h.tenantA, null)).rejects.toMatchObject({
+      message: 'CATEGORY_HAS_CHILDREN', details: { child_category_count: 1, asset_count: 0 },
+    });
   });
 
   it('blocks category deactivation when active assets use it', async () => {
@@ -30,7 +32,9 @@ describe('Master data deactivation — protected soft delete', () => {
       tenant_id: h.tenantA, name: 'Category reference asset', category_id: category.id,
       location_id: h.refA.location, status_id: h.refA.status,
     });
-    await expect(h.categories.deactivate(category.id, h.tenantA, null)).rejects.toThrow('CATEGORY_HAS_ASSETS');
+    await expect(h.categories.deactivate(category.id, h.tenantA, null)).rejects.toMatchObject({
+      message: 'CATEGORY_HAS_ASSETS', details: { child_category_count: 0, asset_count: 1 },
+    });
   });
 
   it('deactivates an unreferenced status and excludes it from active lists', async () => {
@@ -46,6 +50,8 @@ describe('Master data deactivation — protected soft delete', () => {
       tenant_id: h.tenantA, name: 'Status reference asset', category_id: h.refA.category,
       location_id: h.refA.location, status_id: status.id,
     });
-    await expect(statuses.deactivate(status.id, h.tenantA, null)).rejects.toThrow('STATUS_HAS_ASSETS');
+    await expect(statuses.deactivate(status.id, h.tenantA, null)).rejects.toMatchObject({
+      message: 'STATUS_HAS_ASSETS', details: { asset_count: 1 },
+    });
   });
 });

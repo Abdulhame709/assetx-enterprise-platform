@@ -25,11 +25,13 @@ export const API_BASE_URL = resolveApiBaseUrl();
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
-  constructor(status: number, message: string, code?: string) {
+  readonly details: Record<string, unknown>;
+  constructor(status: number, message: string, code?: string, details: Record<string, unknown> = {}) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -83,10 +85,11 @@ export async function apiFetch<T = unknown>(
   if (!res.ok) {
     let message = res.statusText;
     let code: string | undefined;
+    let details: Record<string, unknown> = {};
     try {
       const data = (await res.json()) as {
         message?: string;
-        error?: string | { code?: string; message?: string };
+        error?: string | { code?: string; message?: string; details?: Record<string, unknown> };
         code?: string;
       };
       // Backend error envelope: { data:null, error:{ code, message } }
@@ -94,6 +97,7 @@ export async function apiFetch<T = unknown>(
       if (typeof errPayload === 'object' && errPayload !== null) {
         code = errPayload.code;
         message = errPayload.message ?? res.statusText;
+        details = errPayload.details ?? {};
       } else {
         message = data.message ?? errPayload ?? res.statusText;
         code = data.code;
@@ -101,7 +105,7 @@ export async function apiFetch<T = unknown>(
     } catch {
       /* non-json error body */
     }
-    throw new ApiError(res.status, message, code);
+    throw new ApiError(res.status, message, code, details);
   }
 
   return readBody<T>(res);

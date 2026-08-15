@@ -16,6 +16,9 @@ const MESSAGES: Record<string, string> = {
   STATUS_NOT_FOUND: 'Status not found.',
   PARENT_NOT_FOUND: 'The selected parent no longer exists.',
   LOCATION_HAS_CHILDREN: 'Cannot delete a location that has child locations.',
+  CATEGORY_HAS_CHILDREN: 'This asset type cannot be deactivated because it still has linked records.',
+  CATEGORY_HAS_ASSETS: 'This asset type cannot be deactivated because active assets use it.',
+  STATUS_HAS_ASSETS: 'This asset status cannot be deactivated because active assets use it.',
   // Assets
   ASSET_NAME_INVALID: 'Asset name must be at least 2 characters.',
   ASSET_NOT_FOUND: 'Asset not found.',
@@ -50,12 +53,50 @@ const MESSAGES: Record<string, string> = {
   SESSION_EXPIRED: 'Your session expired. Please sign in again.',
 };
 
-export function humanError(err: unknown, fallback = 'Something went wrong. Please try again.'): string {
-  const anyErr = err as { message?: string; status?: number };
-  if (anyErr?.status === 404) return 'The requested record was not found.';
-  if (anyErr?.status === 403) return MESSAGES.FORBIDDEN;
-  if (anyErr?.status === 401) return MESSAGES.SESSION_EXPIRED;
-  const raw = typeof anyErr?.message === 'string' ? anyErr.message : null;
+type ErrorDetails = { asset_count?: unknown; child_category_count?: unknown };
+type SupportedLocale = 'ar' | 'en';
+
+const asPositiveCount = (value: unknown): number => {
+  const count = typeof value === 'number' ? value : Number(value);
+  return Number.isInteger(count) && count > 0 ? count : 0;
+};
+
+const isArabic = (locale?: SupportedLocale): boolean =>
+  locale ? locale === 'ar' : typeof document !== 'undefined' && document.documentElement.lang === 'ar';
+
+function protectedDeactivationMessage(code: string, details: ErrorDetails, locale?: SupportedLocale): string | null {
+  const assetCount = asPositiveCount(details.asset_count);
+  const childCategoryCount = asPositiveCount(details.child_category_count);
+  if (!assetCount && !childCategoryCount) return null;
+
+  if (isArabic(locale)) {
+    if (code === 'STATUS_HAS_ASSETS') return `لا يمكن تعطيل هذه الحالة لأنها مستخدمة بواسطة ${assetCount} أصل نشط.`;
+    const blockers = [
+      assetCount ? `${assetCount} أصل نشط` : '',
+      childCategoryCount ? `${childCategoryCount} نوع فرعي نشط` : '',
+    ].filter(Boolean).join(' و');
+    return `لا يمكن تعطيل نوع الأصل لأنه مرتبط بـ ${blockers}.`;
+  }
+
+  if (code === 'STATUS_HAS_ASSETS') return `This status cannot be deactivated because ${assetCount} active asset${assetCount === 1 ? '' : 's'} use it.`;
+  const blockers = [
+    assetCount ? `${assetCount} active asset${assetCount === 1 ? '' : 's'}` : '',
+    childCategoryCount ? `${childCategoryCount} active child type${childCategoryCount === 1 ? '' : 's'}` : '',
+  ].filter(Boolean).join(' and ');
+  return `This asset type cannot be deactivated because it is linked to ${blockers}.`;
+}
+
+export function humanError(err: unknown, fallback = 'Something went wrong. Please try again.', locale?: SupportedLocale): string {
+  const anyErr = err as { message?: string; code?: string; status?: number; details?: ErrorDetails };
+  if (anyErr?.status === 404) return isArabic(locale) ? 'السجل المطلوب غير موجود.' : 'The requested record was not found.';
+  if (anyErr?.status === 403) return isArabic(locale) ? 'لا تملك صلاحية تنفيذ هذا الإجراء.' : MESSAGES.FORBIDDEN;
+  if (anyErr?.status === 401) return isArabic(locale) ? 'انتهت جلستك. سجّل الدخول مرة أخرى.' : MESSAGES.SESSION_EXPIRED;
+  // The API envelope carries an HTTP-level code (for example CONFLICT) and a
+  // domain-level message (for example STATUS_HAS_ASSETS). The latter is what
+  // drives actionable, count-aware user feedback.
+  const raw = typeof anyErr?.message === 'string' ? anyErr.message : typeof anyErr?.code === 'string' ? anyErr.code : null;
   if (!raw) return fallback;
+  const protectedMessage = protectedDeactivationMessage(raw, anyErr?.details ?? {}, locale);
+  if (protectedMessage) return protectedMessage;
   return MESSAGES[raw] ?? raw;
 }

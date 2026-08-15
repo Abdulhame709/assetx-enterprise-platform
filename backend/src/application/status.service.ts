@@ -13,6 +13,7 @@ import { Status } from '../core/entities/status.entity';
 import { STATUS_PORT, DATABASE_PORT } from '../core/ports/tokens';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
+import { DomainError } from '../common/http/domain-error';
 
 @Injectable()
 export class StatusService {
@@ -55,7 +56,8 @@ export class StatusService {
     await this.db.setTenant(tenantId);
     const existing = await this.statuses.findById(id, tenantId);
     if (!existing) throw new Error('STATUS_NOT_FOUND');
-    if (await this.statuses.countAssets(id, tenantId)) throw new Error('STATUS_HAS_ASSETS');
+    const assetCount = await this.statuses.countAssets(id, tenantId);
+    if (assetCount) throw new DomainError('STATUS_HAS_ASSETS', { asset_count: assetCount });
     await this.statuses.deactivate(id, tenantId);
     await this.audit.log({
       tenant_id: tenantId, userId,
