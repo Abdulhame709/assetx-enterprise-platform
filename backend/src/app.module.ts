@@ -32,6 +32,8 @@ import { DatabasePort } from './core/ports/database.port';
 import { AssetService } from './application/asset.service';
 import { AssetRepository } from './infrastructure/repositories/asset.repository';
 import { AssetController } from './api/assets/asset.controller';
+import { AssetImportController } from './api/assets/asset-import.controller';
+import { AssetImportService } from './application/asset-import.service';
 import { AssetAnalyticsController } from './api/assets/asset-analytics.controller';
 import { LifecycleController } from './api/lifecycle/lifecycle.controller';
 import { LocationService } from './application/location.service';
@@ -183,6 +185,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
       useClass: AssetRepository,
     },
     AssetService,
+    AssetImportService,
     { provide: LOCATION_PORT, useClass: LocationRepository },
     LocationService,
     { provide: CATEGORY_PORT, useClass: CategoryRepository },
@@ -286,7 +289,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     },
   ],
   controllers: [
-    HealthController, AuthController, UsersController, TenantController, AssetController, AssetAnalyticsController, LifecycleController,
+    HealthController, AuthController, UsersController, TenantController, AssetController, AssetImportController, AssetAnalyticsController, LifecycleController,
     LocationController, CategoryController, ModelController, EmployeeController,
     StatusController,
     InventoryController, MovementController, MaintenanceController, DashboardController, AuditController, ComplianceController,

@@ -27,22 +27,22 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-2 sm:p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : 'Dialog'}
-        className={cn('ax-card relative z-10 w-full p-5 shadow-pop', sizes[size])}
+        className={cn('ax-card relative z-10 my-auto flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden p-5 shadow-pop sm:max-h-[calc(100dvh-2rem)]', sizes[size])}
       >
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-base font-semibold text-ink">{title}</h2>
           <button className="rounded-lg p-1 text-ink-faint hover:bg-surface-muted hover:text-ink" onClick={onClose} aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="text-sm text-ink">{children}</div>
-        {footer && <div className="mt-5 flex justify-end gap-2">{footer}</div>}
+        <div className="min-h-0 flex-1 overflow-y-auto pe-1 text-sm text-ink">{children}</div>
+        {footer && <div className="mt-5 flex shrink-0 justify-end gap-2">{footer}</div>}
       </div>
     </div>
   );

@@ -71,7 +71,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [createdAsset, setCreatedAsset] = useState<AssetDetail | null>(null);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   useEffect(() => {
     if (!open) return;
@@ -165,7 +165,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
       }
       if (mode === 'edit') onClose();
     } catch (err) {
-      setServerError(humanError(err));
+      setServerError(humanError(err, t('common.genericError'), locale));
     } finally {
       setSaving(false);
     }
@@ -204,6 +204,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
         </div>
       ) : (
       <form onSubmit={submit} className="space-y-4">
+        <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-ink-muted">{t('assetForm.requiredHint')}</p>
         {refError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{refError}</p>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t('assetForm.assetName')} error={errors.name} className="sm:col-span-2">
@@ -269,13 +270,13 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
           </Field>
         </div>
         {serverError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{serverError}</p>}
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap justify-end gap-2 border-t border-line bg-surface px-1 pt-3">
           {mode === 'edit' && asset && (
             <Button type="button" variant="secondary" size="sm" onClick={() => setForm(formFromAsset(asset))}>{t('assetForm.revert')}</Button>
           )}
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetForm.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>
-            {mode === 'edit' ? t('assetForm.save') : t('assetForm.create')}
+            {mode === 'edit' ? t('assetForm.save') : t('assetForm.saveNew')}
           </Button>
         </div>
       </form>

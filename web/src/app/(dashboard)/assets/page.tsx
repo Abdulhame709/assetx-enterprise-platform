@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Archive, Boxes, CheckCircle2, Copy, Download, FilterX, Pencil, Plus, Search, SlidersHorizontal, Trash2, UserRound, Wrench } from 'lucide-react';
+import { Archive, Boxes, CheckCircle2, Copy, Download, FileSpreadsheet, FilterX, Pencil, Plus, Search, SlidersHorizontal, Trash2, UserRound, Wrench } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EnterpriseTable, EColumn } from '@/components/ui/EnterpriseTable';
@@ -177,6 +177,9 @@ export default function AssetsPage() {
         actions={<div className="flex items-center gap-2">
           <PermissionGate permission={PERMISSIONS.EXPORT_ASSETS}>
             <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}><Download className="h-4 w-4" /> {t('common.export')}</Button>
+          </PermissionGate>
+          <PermissionGate permission={PERMISSIONS.ASSET_CREATE}>
+            <Link href="/import-data" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link>
           </PermissionGate>
           <PermissionGate permission={PERMISSIONS.ASSET_CREATE}>
             <Button variant="primary" size="sm" onClick={() => { setFormAsset(null); setFormMode('create'); setFormOpen(true); }}><Plus className="h-4 w-4" /> {t('common.newAsset')}</Button>
