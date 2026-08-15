@@ -1,0 +1,409 @@
+﻿<Window x:Class="AssetManagement.Views.AssetTypesForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="إدارة أنواع الأصول"
+        Height="750" Width="1100"
+        MinHeight="650" MinWidth="950"
+        WindowStartupLocation="CenterScreen"
+        FlowDirection="RightToLeft"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        Background="#F5F5F5"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="MinWidth" Value="85"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="btnBorder" Background="{TemplateBinding Background}"
+                                CornerRadius="5" Padding="10,4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnBorder" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="btnBorder" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SmallButton" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="32"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="btnBorder" Background="{TemplateBinding Background}"
+                                CornerRadius="4" Padding="8,2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="btnBorder" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="btnBorder" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="InputField" TargetType="TextBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#1565C0"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ComboStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="5,4"/>
+            <Setter Property="BorderBrush" Value="#BDBDBD"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- العنوان                                     -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Border Grid.Row="0" Background="#1565C0" CornerRadius="8"
+                Padding="15,10" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="📂" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="إدارة أنواع الأصول (رئيسية + فرعية)"
+                               FontSize="18" FontWeight="Bold"
+                               Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+                <Border Grid.Column="1" Background="#1976D2" CornerRadius="5" Padding="10,3">
+                    <TextBlock x:Name="txtFormMode" Text="وضع العرض"
+                               Foreground="White" FontSize="12" FontWeight="Bold"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- المحتوى: شجرة + حقول + جدول                -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="280"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ═══ الشجرة الهرمية ═══ -->
+            <Border Grid.Column="0" Background="White" CornerRadius="8"
+                    BorderBrush="#E0E0E0" BorderThickness="1"
+                    Margin="0,0,10,0" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="🌳 شجرة الأنواع"
+                               FontSize="15" FontWeight="Bold"
+                               Foreground="#1565C0" Margin="0,0,0,8"/>
+
+                    <TreeView Grid.Row="1" x:Name="treeTypes"
+                              BorderThickness="1" BorderBrush="#E0E0E0"
+                              FontSize="14"
+                              SelectedItemChanged="treeTypes_SelectedItemChanged">
+                        <TreeView.ItemContainerStyle>
+                            <Style TargetType="TreeViewItem">
+                                <Setter Property="IsExpanded" Value="True"/>
+                                <Setter Property="Padding" Value="3"/>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                    </TreeView>
+                </Grid>
+            </Border>
+
+            <!-- ═══ اللوحة اليمنى ═══ -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- ═══ قسم الأنواع الرئيسية (إضافة سريعة) ═══ -->
+                <Border Grid.Row="0" Background="#E8F5E9" CornerRadius="8"
+                        Padding="12,10" Margin="0,0,0,8"
+                        BorderBrush="#C8E6C9" BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="60"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="كود:" FontSize="13"
+                                   FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Column="1" x:Name="txtMainTypeCode"
+                                 Style="{StaticResource InputField}"
+                                 IsEnabled="False" Background="#F0F0F0"/>
+
+                        <TextBlock Grid.Column="3" Text="نوع رئيسي:" FontSize="13"
+                                   FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Grid.Column="4" x:Name="txtMainTypeName"
+                                 Style="{StaticResource InputField}"
+                                 MaxLength="100"/>
+
+                        <StackPanel Grid.Column="5" Orientation="Horizontal" Margin="8,0,0,0">
+                            <Button x:Name="btnAddMainType" Content="➕"
+                                    Background="#4CAF50" Foreground="White"
+                                    Style="{StaticResource SmallButton}"
+                                    ToolTip="إضافة نوع رئيسي جديد"
+                                    Click="btnAddMainType_Click"/>
+                            <Button x:Name="btnEditMainType" Content="✏️"
+                                    Background="#FF8F00" Foreground="White"
+                                    Style="{StaticResource SmallButton}"
+                                    ToolTip="تعديل النوع الرئيسي المختار"
+                                    Click="btnEditMainType_Click" IsEnabled="False"/>
+                            <Button x:Name="btnDeleteMainType" Content="🗑️"
+                                    Background="#D32F2F" Foreground="White"
+                                    Style="{StaticResource SmallButton}"
+                                    ToolTip="حذف النوع الرئيسي المختار"
+                                    Click="btnDeleteMainType_Click" IsEnabled="False"/>
+                        </StackPanel>
+
+                        <TextBox x:Name="txtMainTypeID" Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+
+                <!-- ═══ حقول الأنواع الفرعية ═══ -->
+                <Border Grid.Row="1" Background="White" CornerRadius="8"
+                        Padding="15,12" Margin="0,0,0,8"
+                        BorderBrush="#E0E0E0" BorderThickness="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="8"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- عنوان القسم -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
+                                   Text="📋 بيانات النوع الفرعي"
+                                   FontSize="14" FontWeight="Bold" Foreground="#1565C0"
+                                   Margin="0,0,0,5"/>
+
+                        <!-- النوع الرئيسي والأب -->
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="النوع الرئيسي:"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                  x:Name="cmbMainType"
+                                  Style="{StaticResource ComboStyle}"
+                                  DisplayMemberPath="DisplayText"
+                                  SelectedValuePath="AssetTypeID"
+                                  SelectionChanged="cmbMainType_SelectionChanged"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="3" Text="النوع الأب:"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <ComboBox Grid.Row="2" Grid.Column="4"
+                                  x:Name="cmbParentSubType"
+                                  Style="{StaticResource ComboStyle}"
+                                  DisplayMemberPath="DisplayText"
+                                  SelectedValuePath="SubTypeID"
+                                  SelectionChanged="cmbParentSubType_SelectionChanged"/>
+
+                        <!-- الكود والاسم -->
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="الكود:"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Row="4" Grid.Column="1"
+                                 x:Name="txtSubTypeCode"
+                                 Style="{StaticResource InputField}"
+                                 IsEnabled="False" Background="#F5F5F5"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="3" Text="اسم النوع الفرعي:"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Row="4" Grid.Column="4"
+                                 x:Name="txtSubTypeName"
+                                 Style="{StaticResource InputField}"
+                                 MaxLength="100"/>
+
+                        <!-- الوصف -->
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="الوصف:"
+                                   Style="{StaticResource FieldLabel}"/>
+                        <TextBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="4"
+                                 x:Name="txtSubTypeDescription"
+                                 Style="{StaticResource InputField}"
+                                 MaxLength="300"/>
+
+                        <!-- المسار والمستوى -->
+                        <StackPanel Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3"
+                                    Orientation="Horizontal">
+                            <TextBlock Text="المستوى:" Style="{StaticResource FieldLabel}"/>
+                            <Border Background="#FF8F00" CornerRadius="10" Padding="10,2" Margin="5,0,15,0">
+                                <TextBlock x:Name="txtLevelNumber" Text="1"
+                                           Foreground="White" FontWeight="Bold" FontSize="13"/>
+                            </Border>
+                        </StackPanel>
+
+                        <CheckBox Grid.Row="8" Grid.Column="3" Grid.ColumnSpan="2"
+                                  x:Name="chkSubTypeActive"
+                                  Content="  نشط (مفعّل)"
+                                  IsChecked="True" FontSize="14"
+                                  VerticalAlignment="Center"/>
+
+                        <TextBox x:Name="txtSubTypeID" Visibility="Collapsed"/>
+                    </Grid>
+                </Border>
+
+                <!-- ═══ أزرار الأنواع الفرعية ═══ -->
+                <Border Grid.Row="2" Margin="0,0,0,8">
+                    <WrapPanel HorizontalAlignment="Center">
+                        <Button x:Name="btnNewSubType" Content="➕ فرعي جديد"
+                                Background="#4CAF50" Foreground="White"
+                                Style="{StaticResource ActionButton}"
+                                Click="btnNewSubType_Click"/>
+                        <Button x:Name="btnSaveSubType" Content="💾 حفظ"
+                                Background="#1565C0" Foreground="White"
+                                Style="{StaticResource ActionButton}"
+                                Click="btnSaveSubType_Click"/>
+                        <Button x:Name="btnEditSubType" Content="✏️ تعديل"
+                                Background="#FF8F00" Foreground="White"
+                                Style="{StaticResource ActionButton}"
+                                Click="btnEditSubType_Click" IsEnabled="False"/>
+                        <Button x:Name="btnDeleteSubType" Content="🗑️ حذف"
+                                Background="#D32F2F" Foreground="White"
+                                Style="{StaticResource ActionButton}"
+                                Click="btnDeleteSubType_Click" IsEnabled="False"/>
+                        <Button x:Name="btnCancelSubType" Content="↩️ إلغاء"
+                                Background="#757575" Foreground="White"
+                                Style="{StaticResource ActionButton}"
+                                Click="btnCancelSubType_Click"/>
+                    </WrapPanel>
+                </Border>
+
+                <!-- ═══ عنوان الجدول ═══ -->
+                <TextBlock Grid.Row="3" x:Name="txtGridTitle"
+                           Text="📋 الأنواع الفرعية"
+                           FontSize="13" FontWeight="Bold" Foreground="#555"
+                           Margin="5,0,0,5"/>
+
+                <!-- ═══ الجدول ═══ -->
+                <Border Grid.Row="4" Background="White" CornerRadius="8"
+                        BorderBrush="#E0E0E0" BorderThickness="1">
+                    <DataGrid x:Name="dgSubTypes"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              SelectionUnit="FullRow"
+                              HeadersVisibility="Column"
+                              GridLinesVisibility="Horizontal"
+                              BorderThickness="0"
+                              Background="White"
+                              RowBackground="White"
+                              AlternatingRowBackground="#F5F5F5"
+                              FontSize="13"
+                              ColumnHeaderHeight="38"
+                              RowHeight="32"
+                              SelectionChanged="dgSubTypes_SelectionChanged">
+
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#1565C0"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="FontSize" Value="13"/>
+                                <Setter Property="Padding" Value="8,0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Right"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="الكود" Binding="{Binding SubTypeCode}" Width="110"/>
+                            <DataGridTextColumn Header="اسم النوع" Binding="{Binding SubTypeName}" Width="180"/>
+                            <DataGridTextColumn Header="المسار" Binding="{Binding FullPath}" Width="*"/>
+                            <DataGridTextColumn Header="المستوى" Binding="{Binding LevelNumber}" Width="60"/>
+                            <DataGridCheckBoxColumn Header="نشط" Binding="{Binding IsActive}" Width="50"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- شريط الحالة                                 -->
+        <!-- ═══════════════════════════════════════════ -->
+        <Border Grid.Row="2" Background="#263238" CornerRadius="5" Padding="10,5" Margin="0,8,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" x:Name="txtFormStatus" Text="جاهز"
+                           Foreground="#B0BEC5" FontSize="12" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" x:Name="txtRecordCount" Text="عدد السجلات: 0"
+                           Foreground="#B0BEC5" FontSize="12" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

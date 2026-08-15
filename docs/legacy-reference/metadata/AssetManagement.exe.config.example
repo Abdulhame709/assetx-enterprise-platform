@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <startup>
+    <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.5" />
+  </startup>
+  <connectionStrings>
+    <!-- Historical SQL Server shape only; do not use this for AssetX. -->
+    <add name="AssetDB"
+         connectionString="Server=HOSTNAME;Database=DATABASE_NAME;Integrated Security=True;Connect Timeout=30;"
+         providerName="System.Data.SqlClient" />
+  </connectionStrings>
+</configuration>

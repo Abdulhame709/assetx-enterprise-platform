@@ -1,0 +1,106 @@
+﻿<UserControl x:Class="AssetManagement.Views.AuditLogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FlowDirection="RightToLeft"
+             Loaded="UserControl_Loaded">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- العنوان -->
+        <TextBlock Text="📝  سجل التدقيق والعمليات" FontSize="22"
+                  FontWeight="Bold" Foreground="#1565C0"
+                  Margin="0,0,0,15"/>
+
+        <!-- فلاتر البحث -->
+        <Border Grid.Row="1" Background="White" CornerRadius="8"
+               Padding="15" Margin="0,0,0,10"
+               BorderBrush="#E0E0E0" BorderThickness="1">
+            <WrapPanel>
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="من تاريخ:" FontSize="12" Foreground="#757575"/>
+                    <DatePicker x:Name="dpFrom" Width="150" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="إلى تاريخ:" FontSize="12" Foreground="#757575"/>
+                    <DatePicker x:Name="dpTo" Width="150" FontSize="13"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="نوع العملية:" FontSize="12" Foreground="#757575"/>
+                    <ComboBox x:Name="cmbActionType" Width="130" FontSize="13">
+                        <ComboBoxItem Content="الكل" IsSelected="True"/>
+                        <ComboBoxItem Content="إضافة"/>
+                        <ComboBoxItem Content="تعديل"/>
+                        <ComboBoxItem Content="حذف"/>
+                        <ComboBoxItem Content="دخول"/>
+                        <ComboBoxItem Content="خروج"/>
+                        <ComboBoxItem Content="نسخ احتياطي"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="المستخدم:" FontSize="12" Foreground="#757575"/>
+                    <ComboBox x:Name="cmbUser" Width="150" FontSize="13"
+                             DisplayMemberPath="FullName"
+                             SelectedValuePath="UserID"/>
+                </StackPanel>
+
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="بحث نصي:" FontSize="12" Foreground="#757575"/>
+                    <TextBox x:Name="txtSearchAudit" Width="180" FontSize="13"
+                            Padding="6,4"/>
+                </StackPanel>
+
+                <Button Content="🔍 بحث" Background="#2196F3"
+                       Foreground="White" FontSize="13"
+                       Padding="20,8" Margin="0,15,5,5"
+                       BorderThickness="0" Cursor="Hand"
+                       Click="BtnSearch_Click"/>
+
+                <Button Content="🔄 تحديث" Background="#4CAF50"
+                       Foreground="White" FontSize="13"
+                       Padding="15,8" Margin="0,15,5,5"
+                       BorderThickness="0" Cursor="Hand"
+                       Click="BtnRefresh_Click"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- الجدول -->
+        <DataGrid Grid.Row="2" x:Name="dgAuditLog"
+                 AutoGenerateColumns="False"
+                 IsReadOnly="True"
+                 CanUserAddRows="False"
+                 GridLinesVisibility="Horizontal"
+                 HeadersVisibility="Column"
+                 FontSize="13"
+                 BorderThickness="1"
+                 BorderBrush="#E0E0E0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Binding="{Binding AuditID}" Width="50"/>
+                <DataGridTextColumn Header="التاريخ والوقت"
+                    Binding="{Binding ActionDate, StringFormat={}{0:yyyy/MM/dd HH:mm:ss}}"
+                    Width="150"/>
+                <DataGridTextColumn Header="المستخدم" Binding="{Binding FullName}" Width="130"/>
+                <DataGridTextColumn Header="العملية" Binding="{Binding ActionType}" Width="80"/>
+                <DataGridTextColumn Header="الجدول" Binding="{Binding TableName}" Width="120"/>
+                <DataGridTextColumn Header="رقم السجل" Binding="{Binding RecordID}" Width="80"/>
+                <DataGridTextColumn Header="القيم القديمة" Binding="{Binding OldValues}" Width="200"/>
+                <DataGridTextColumn Header="القيم الجديدة" Binding="{Binding NewValues}" Width="*"/>
+                <DataGridTextColumn Header="جهاز العمل" Binding="{Binding Workstation}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- شريط الحالة -->
+        <Grid Grid.Row="3" Margin="0,8,0,0">
+            <TextBlock x:Name="txtAuditCount" FontSize="12"
+                      Foreground="#9E9E9E" HorizontalAlignment="Right"/>
+        </Grid>
+    </Grid>
+</UserControl>

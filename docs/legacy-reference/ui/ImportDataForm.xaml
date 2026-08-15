@@ -1,0 +1,541 @@
+﻿<Window x:Class="AssetManagement.Views.ImportDataForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="استيراد البيانات من الأكسس"
+        Height="850" Width="1000"
+        MinHeight="700" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        FlowDirection="RightToLeft"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        Background="#F0F2F5"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <!-- ستايل الأزرار -->
+        <Style x:Key="ImportButton" TargetType="Button">
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="20,5"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ستايل الأزرار الصغيرة -->
+        <Style x:Key="SmallButton" TargetType="Button">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="12,3"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ستايل التبويبات -->
+        <Style x:Key="LogTab" TargetType="TabItem">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="15,8"/>
+        </Style>
+
+        <!-- ستايل CheckBox الجداول -->
+        <Style x:Key="TableCheckBox" TargetType="CheckBox">
+            <Setter Property="Margin" Value="10,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="IsChecked" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="5,2"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- 0: العنوان -->
+            <RowDefinition Height="Auto"/>
+            <!-- 1: اختيار الملف -->
+            <RowDefinition Height="Auto"/>
+            <!-- 2: ملخص الجداول -->
+            <RowDefinition Height="Auto"/>
+            <!-- 3: اختيار الجداول ✨جديد -->
+            <RowDefinition Height="Auto"/>
+            <!-- 4: أزرار التحكم -->
+            <RowDefinition Height="*"/>
+            <!-- 5: سجل العمليات -->
+            <RowDefinition Height="Auto"/>
+            <!-- 6: شريط التقدم -->
+            <RowDefinition Height="Auto"/>
+            <!-- 7: شريط الحالة -->
+        </Grid.RowDefinitions>
+
+        <!-- ═══ Row 0: العنوان ═══ -->
+        <Border Grid.Row="0" CornerRadius="12" Padding="20,15" Margin="0,0,0,12">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0.5">
+                    <GradientStop Color="#1565C0" Offset="0"/>
+                    <GradientStop Color="#42A5F5" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="15" ShadowDepth="3"
+                                  Color="#1565C0" Opacity="0.3" Direction="270"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="📥" FontSize="28" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <StackPanel>
+                        <TextBlock Text="استيراد البيانات من Microsoft Access"
+                                   FontSize="19" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock Text="نقل البيانات من قاعدة الأكسس القديمة إلى SQL Server"
+                                   FontSize="12" Foreground="#BBDEFB"/>
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="🗄️" FontSize="40" Opacity="0.3"
+                          VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══ Row 1: اختيار الملف ═══ -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10"
+                Padding="15" Margin="0,0,0,10"
+                BorderBrush="#E2E8F0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="📁 ملف الأكسس:"
+                           FontWeight="SemiBold" VerticalAlignment="Center"
+                           Margin="0,0,10,0" Foreground="#334155"/>
+
+                <TextBox Grid.Column="1" x:Name="txtAccessFilePath"
+                         Height="38" FontSize="13" Padding="10,5"
+                         IsReadOnly="True" Background="#F8FAFC"
+                         BorderBrush="#CBD5E1" VerticalContentAlignment="Center"
+                         Text="اختر ملف قاعدة بيانات الأكسس..."
+                         Foreground="#94A3B8"/>
+
+                <Button Grid.Column="2" Content="📂 استعراض"
+                        Style="{StaticResource ImportButton}"
+                        Width="120" Background="#3B82F6"
+                        Margin="10,0,0,0"
+                        Click="btnBrowse_Click"/>
+            </Grid>
+        </Border>
+
+        <!-- ═══ Row 2: ملخص الجداول (يظهر بعد اختيار الملف) ═══ -->
+        <Border Grid.Row="2" x:Name="pnlTableSummary"
+                Background="White" CornerRadius="10"
+                Padding="12" Margin="0,0,0,10"
+                BorderBrush="#E2E8F0" BorderThickness="1"
+                Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock Text="📋 الجداول المتوفرة في ملف الأكسس:"
+                          FontWeight="Bold" Foreground="#1E40AF"
+                          Margin="0,0,0,8"/>
+                <WrapPanel x:Name="pnlTableTags"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══ Row 3: اختيار الجداول للاستيراد ✨ جديد ═══ -->
+        <Border Grid.Row="3" x:Name="pnlTableSelection"
+                Background="White" CornerRadius="10"
+                Padding="12" Margin="0,0,0,10"
+                BorderBrush="#BFDBFE" BorderThickness="1.5"
+                Visibility="Collapsed">
+            <StackPanel>
+                <!-- العنوان وأزرار التحديد -->
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                              Text="☑️ اختر الجداول المراد استيرادها:"
+                              FontWeight="Bold" Foreground="#1E40AF" FontSize="14"
+                              VerticalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="✅ تحديد الكل"
+                                Style="{StaticResource SmallButton}"
+                                Background="#3B82F6"
+                                Click="btnSelectAll_Click"/>
+                        <Button Content="❎ إلغاء الكل"
+                                Style="{StaticResource SmallButton}"
+                                Background="#94A3B8"
+                                Click="btnDeselectAll_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- صندوقات الاختيار -->
+                <Border Background="#F0F9FF" CornerRadius="8" Padding="8,5">
+                    <WrapPanel>
+                        <CheckBox x:Name="chkStatus"
+                                  Content="📊 حالات الأصول"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblStatus"/>
+                        <CheckBox x:Name="chkAssetTypes"
+                                  Content="📂 أنواع الأصول الرئيسية"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblAssetTypes"/>
+                        <CheckBox x:Name="chkSubTypes"
+                                  Content="📋 الأنواع الفرعية"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblSubTypeAssets"/>
+                        <CheckBox x:Name="chkMainLocations"
+                                  Content="🏢 المواقع الرئيسية"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblMainLocations"/>
+                        <CheckBox x:Name="chkSubLocations"
+                                  Content="🚪 المواقع الفرعية"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblSubLocations"/>
+                        <CheckBox x:Name="chkModels"
+                                  Content="🔧 الموديلات"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblAssetModels"/>
+                        <CheckBox x:Name="chkEmployees"
+                                  Content="👥 الموظفين"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblEmployees"/>
+                        <CheckBox x:Name="chkAssets"
+                                  Content="📦 الأصول"
+                                  Style="{StaticResource TableCheckBox}"
+                                  Tag="tblAssets"/>
+                    </WrapPanel>
+                </Border>
+
+                <!-- تحذير التبعيات -->
+                <TextBlock x:Name="txtDependencyWarning"
+                          Text=""
+                          FontSize="11" Foreground="#DC2626"
+                          Margin="5,5,0,0"
+                          TextWrapping="Wrap"
+                          Visibility="Collapsed"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ═══ Row 4: أزرار التحكم ═══ -->
+        <Border Grid.Row="4" Margin="0,0,0,10">
+            <WrapPanel HorizontalAlignment="Center">
+                <Button x:Name="btnImportSelected" Content="📥 استيراد الجداول المحددة"
+                        Style="{StaticResource ImportButton}"
+                        Width="220" Background="#16A34A"
+                        IsEnabled="False" Margin="5,0"
+                        Click="btnImportSelected_Click"/>
+
+                <Button x:Name="btnClearAndImport" Content="🔄 مسح وإعادة استيراد"
+                        Style="{StaticResource ImportButton}"
+                        Width="200" Background="#F59E0B"
+                        IsEnabled="False" Margin="5,0"
+                        Click="btnClearAndImport_Click"/>
+
+
+                <Button x:Name="btnUpdateImport" Content="🔃 تحديث الموجود + إضافة الجديد"
+                        Style="{StaticResource ImportButton}"
+                        Width="250" Background="#7C3AED"
+                        IsEnabled="False" Margin="5,0"
+                        Click="btnUpdateImport_Click"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- ═══ Row 5: سجل العمليات (تبويبات) ═══ -->
+        <TabControl Grid.Row="5" x:Name="tabResults"
+                    Margin="0,0,0,10" BorderBrush="#E2E8F0">
+
+            <!-- ── تبويب 1: سجل العمليات ── -->
+            <TabItem Header="📋 سجل العمليات" Style="{StaticResource LogTab}">
+                <Border Background="White" Padding="8">
+                    <TextBox x:Name="txtLog" IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             FontSize="13" FontFamily="Consolas"
+                             Background="#FAFBFC" BorderThickness="0"
+                             Padding="10"/>
+                </Border>
+            </TabItem>
+
+            <!-- ── تبويب 2: الأصناف المتخطاة / الأخطاء ── -->
+            <TabItem x:Name="tabErrors" Header="⚠️ أصناف متخطاة (0)"
+                     Style="{StaticResource LogTab}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- شريط أدوات الأخطاء -->
+                    <Border Grid.Row="0" Background="#FEF3C7"
+                            Padding="10,8" BorderBrush="#FCD34D"
+                            BorderThickness="0,0,0,1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                      Text="⚠️ هذه الأصناف لم يتم استيرادها - راجعها وأعد الاستيراد"
+                                      FontSize="12" Foreground="#92400E"
+                                      VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="📋 نسخ الكل"
+                                       Style="{StaticResource SmallButton}"
+                                       Background="#D97706"
+                                       Click="btnCopyErrors_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- فلتر حسب الجدول -->
+                    <Border Grid.Row="1" Background="#FFFBEB" Padding="8,5">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔍 فلتر:" FontSize="12" FontWeight="SemiBold"
+                                      VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <ComboBox x:Name="cmbErrorFilter" Width="200"
+                                     Height="28" FontSize="12"
+                                     SelectionChanged="cmbErrorFilter_SelectionChanged">
+                                <ComboBoxItem Content="الكل" IsSelected="True"/>
+                                <ComboBoxItem Content="tblStatus"/>
+                                <ComboBoxItem Content="tblAssetTypes"/>
+                                <ComboBoxItem Content="tblSubTypeAssets"/>
+                                <ComboBoxItem Content="tblMainLocations"/>
+                                <ComboBoxItem Content="tblSubLocations"/>
+                                <ComboBoxItem Content="tblAssetModels"/>
+                                <ComboBoxItem Content="tblEmployees"/>
+                                <ComboBoxItem Content="tblAssets"/>
+                            </ComboBox>
+                            <TextBlock x:Name="txtFilterCount" Text=""
+                                      FontSize="12" Foreground="#6B7280"
+                                      VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- جدول الأخطاء -->
+                    <DataGrid Grid.Row="2" x:Name="dgErrors"
+                             AutoGenerateColumns="False"
+                             IsReadOnly="True"
+                             HeadersVisibility="Column"
+                             GridLinesVisibility="Horizontal"
+                             BorderThickness="0"
+                             Background="White"
+                             RowBackground="White"
+                             AlternatingRowBackground="#F8FAFC"
+                             FontSize="13"
+                             CanUserSortColumns="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding RowNumber}" Width="45"/>
+                            <DataGridTextColumn Header="الجدول" Binding="{Binding TableName}" Width="120"/>
+                            <DataGridTextColumn Header="الاسم/القيمة" Binding="{Binding ItemName}" Width="200"/>
+                            <DataGridTextColumn Header="المعرف" Binding="{Binding ItemID}" Width="70"/>
+                            <DataGridTextColumn Header="نوع المشكلة" Binding="{Binding ErrorType}" Width="120">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="تفاصيل" Binding="{Binding ErrorDetail}" Width="*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ── تبويب 3: الملخص ── -->
+            <TabItem x:Name="tabSummary" Header="📊 الملخص"
+                     Style="{StaticResource LogTab}">
+                <Border Background="White" Padding="15">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="pnlSummary">
+                            <TextBlock Text="سيظهر الملخص بعد اكتمال الاستيراد"
+                                      FontSize="14" Foreground="#94A3B8"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Margin="0,30,0,0"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
+
+            <!-- ── تبويب 4: التصدير ✨ جديد ── -->
+            <TabItem x:Name="tabExport" Header="📤 التصدير"
+                     Style="{StaticResource LogTab}">
+                <Border Background="White" Padding="20">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="📤 تصدير نتائج الاستيراد"
+                                      FontSize="18" FontWeight="Bold"
+                                      Foreground="#1E40AF" Margin="0,0,0,20"/>
+
+                            <!-- ── تصدير إلى Excel ── -->
+                            <Border Background="#F0FDF4" CornerRadius="10"
+                                    Padding="15" Margin="0,0,0,15"
+                                    BorderBrush="#BBF7D0" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="📊 تصدير إلى Excel"
+                                              FontSize="16" FontWeight="Bold"
+                                              Foreground="#166534" Margin="0,0,0,12"/>
+                                    <WrapPanel>
+                                        <Button x:Name="btnExportErrorsExcel"
+                                                Content="📊 تصدير الأخطاء المتخطاة"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#16A34A"
+                                                IsEnabled="False" Margin="5"
+                                                Click="btnExportErrorsExcel_Click"/>
+                                        <Button x:Name="btnExportSummaryExcel"
+                                                Content="📊 تصدير ملخص الاستيراد"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#059669"
+                                                IsEnabled="False" Margin="5"
+                                                Click="btnExportSummaryExcel_Click"/>
+                                        <Button x:Name="btnExportFullExcel"
+                                                Content="📊 تصدير التقرير الكامل"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#0D9488"
+                                                IsEnabled="False" Margin="5"
+                                                Click="btnExportFullExcel_Click"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ── تصدير إلى PDF ── -->
+                            <Border Background="#FFF7ED" CornerRadius="10"
+                                    Padding="15" Margin="0,0,0,15"
+                                    BorderBrush="#FED7AA" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="📄 تصدير إلى PDF"
+                                              FontSize="16" FontWeight="Bold"
+                                              Foreground="#9A3412" Margin="0,0,0,12"/>
+                                    <WrapPanel>
+                                        <Button x:Name="btnExportErrorsPDF"
+                                                Content="📄 تصدير الأخطاء كـ PDF"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#EA580C"
+                                                IsEnabled="False" Margin="5"
+                                                Click="btnExportErrorsPDF_Click"/>
+                                        <Button x:Name="btnExportFullPDF"
+                                                Content="📄 تصدير التقرير الكامل كـ PDF"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#C2410C"
+                                                IsEnabled="False" Margin="5"
+                                                Click="btnExportFullPDF_Click"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="💡 سيتم فتح التقرير في المتصفح - استخدم Ctrl+P للطباعة أو الحفظ كـ PDF"
+                                              FontSize="11" Foreground="#9A3412"
+                                              Margin="5,8,0,0" FontStyle="Italic"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ── تصدير نصي سريع ── -->
+                            <Border Background="#F5F3FF" CornerRadius="10"
+                                    Padding="15"
+                                    BorderBrush="#DDD6FE" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="📋 تصدير سريع"
+                                              FontSize="16" FontWeight="Bold"
+                                              Foreground="#5B21B6" Margin="0,0,0,12"/>
+                                    <WrapPanel>
+                                        <Button x:Name="btnExportTxt"
+                                                Content="📝 تصدير كملف نصي TXT"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#7C3AED"
+                                                IsEnabled="False" Margin="5"
+                                                Click="btnExportErrors_Click"/>
+                                        <Button Content="📋 نسخ الكل للحافظة"
+                                                Style="{StaticResource ImportButton}"
+                                                Height="38" Background="#8B5CF6"
+                                                Margin="5"
+                                                Click="btnCopyAllToClipboard_Click"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- ═══ Row 6: شريط التقدم ═══ -->
+        <Grid Grid.Row="6" Margin="0,0,0,8">
+            <ProgressBar x:Name="progressBar" Height="22"
+                         Minimum="0" Maximum="100" Value="0"
+                         Foreground="#16A34A" Background="#E2E8F0"/>
+            <TextBlock x:Name="txtProgressPercent" Text="0%"
+                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                      FontSize="11" FontWeight="Bold" Foreground="#334155"/>
+        </Grid>
+
+        <!-- ═══ Row 7: شريط الحالة ═══ -->
+        <Border Grid.Row="7" Background="#1E293B" CornerRadius="8" Padding="12,7">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" x:Name="txtStatus"
+                          Text="جاهز - اختر ملف الأكسس للبدء"
+                          Foreground="#94A3B8" FontSize="12"/>
+                <TextBlock Grid.Column="1" x:Name="txtImportCount"
+                          Text="" Foreground="#60A5FA" FontSize="12"
+                          FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

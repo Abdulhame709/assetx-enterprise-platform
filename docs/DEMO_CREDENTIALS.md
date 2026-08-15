@@ -1,59 +1,30 @@
-# Demo Credentials — AssetX RC1
+# بيانات حسابات المعاينة — AssetX
 
-> **Single source of truth** for demo/preview access (RC1 stabilization — D4).
-> **Tenant:** `demo` ("AssetX Demo") · **Mode:** real backend (not mock).
+> هذا الملف يوثق أسماء الحسابات وبيئات المعاينة فقط. لا تُحفظ كلمات المرور أو روابط قواعد البيانات أو JWT secrets داخل GitHub.
 
----
+## الحساب الحالي لرابط المعاينة المحلي
 
-## Primary demo account (real mode — the running preview)
-
-| Field | Value |
+| البيان | القيمة |
 |---|---|
-| **Username** | `admin` |
-| **Password** | `AdminPass123` |
-| Email | `admin@assetx.io` |
-| Role | `Administrator` (full permissions — 44 permission keys) |
-| Tenant | `demo` — "AssetX Demo" (`tenant_code: demo`) |
+| Username | `demo_admin` |
+| Tenant | `local_assetx` — AssetX Local Verification |
+| Role | Administrator |
+| Mode | real backend |
+| Backend | PostgreSQL المحلي عبر Backend على المنفذ `3001` |
+| Web | رابط معاينة مؤقت، وليس رابط إنتاج |
 
-> Created automatically at every backend boot by `backend/src/bootstrap/db-init.ts`
-> (bcrypt cost 12). Login: `POST /auth/login` → JWT pair; permissions and
-> `permission_version` ride in the access token.
+تم إنشاء هذا الحساب لغرض مراجعة واجهة Web من الهاتف. كلمة المرور المؤقتة تُسلّم خارج ملفات المشروع، ولا تُعاد كتابتها في GitHub. عند فقدانها أو انتهاء المراجعة، أنشئ كلمة مرور جديدة أو عطّل الحساب بدلاً من إضافة كلمة مرور ثابتة إلى هذا الملف.
 
-## Demo dataset (QA/product preview)
+## بيئة Supabase staging
 
-The demo tenant is seeded with a **reproducible demo dataset** when the backend
-boots with:
+تستخدم Supabase staging حساب تشغيل قاعدة بيانات محدود الصلاحيات باسم `assetx_app`، وهو ليس حساب دخول للمستخدمين. حساب الإدارة والترحيلات منفصل عن حساب التشغيل، وجميع كلمات المرور محفوظة خارج المستودع.
 
-```bash
-ASSETX_SEED_DEMO=1 npm start        # backend (port 3001)
-```
+## وضع mock للتطوير فقط
 
-Dataset contents (idempotent — never duplicates on re-boot):
+إذا فُعّل `NEXT_PUBLIC_AUTH_MODE=mock`، يمكن للواجهة استخدام جلسة mock الموجودة في `web/src/lib/auth/mock-session.ts`. هذه الجلسات لا تمثل حسابات حقيقية في Backend ولا ينبغي استخدامها للتحقق من المصادقة أو RLS.
 
-- **Locations:** HQ (Floor 1 → Room 101/102, Floor 2 → Room 201) + Warehouse (Rack A/B) — 9 hierarchical nodes
-- **Master data:** 4 categories (IT, Furniture, Vehicles, Machinery) · 6 asset models · 3 statuses (Good/Maintenance/Retired) · 6 employees
-- **Assets:** 16 assets with codes `2026-0001@…`, barcodes `BC-DEMO-*`, serials `SN-DEMO-*`, prices, custodians
-- **Movements:** 1 pending transfer (approval workflow demo) + 1 approved assignment
-- **Inventory:** cycle **2026** `in_progress` with snapshot records — 14 counted (1 with variance), 2 missing
-- **Notifications:** 2 unread + 1 read (demo inbox)
-- **Audit events:** 7 sample events (asset/movement/inventory/auth)
+## قواعد الأمان
 
-## Mock-mode accounts (NOT valid in real mode)
+لا تضع في هذا الملف أو أي ملف داخل المستودع كلمة مرور، أو `DATABASE_URL`، أو مفتاح Supabase، أو JWT secret. عند الحاجة إلى دخول جديد، يتم إنشاء كلمة مرور مؤقتة خارج المستودع ثم تدويرها بعد المراجعة. لا تستخدم حسابات المعاينة في الإنتاج.
 
-When `NEXT_PUBLIC_AUTH_MODE=mock` (development fallback only), the web app uses
-`web/src/lib/auth/mock-session.ts`:
-
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `AdminPass123` | Administrator |
-| `manager` | `Manager123` | Asset Manager |
-| `inventory` | `Inventory123` | Inventory Team |
-| `auditor` | `Auditor123` | Auditor |
-| `executive` | `Executive123` | Executive |
-
-> ⚠️ These accounts **do not exist** in the real backend. The running RC1
-> preview uses real mode — only `admin / AdminPass123` works there.
-
----
-
-*Last updated: 2026-08-07 (RC1 stabilization).*
+*آخر تحديث: 16 أغسطس 2026.*

@@ -1,0 +1,226 @@
+﻿<Window x:Class="AssetManagement.Views.AssetTransferView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="نقل أصل"
+        Height="750" Width="950"
+        MinHeight="650" MinWidth="850"
+        FlowDirection="RightToLeft"
+        WindowStartupLocation="CenterScreen"
+        Background="#F0F2F5"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <Style x:Key="BtnStyle" TargetType="Button">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="16,6"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="5"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="LblStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#34495E"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="InputStyle" TargetType="ComboBox">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: العنوان -->
+        <Border Grid.Row="0" Background="#2C3E50" CornerRadius="6" Padding="15,10" Margin="0,0,0,10">
+            <TextBlock Text="نقل أصل بين المواقع / الموظفين" FontSize="20"
+                       FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- Row 1: البحث عن الأصل -->
+        <Border Grid.Row="1" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="250"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="بحث عن أصل:" Style="{StaticResource LblStyle}"/>
+                <TextBox Grid.Column="1" x:Name="txtSearchAsset" Height="30" FontSize="13"
+                         Padding="6,4" KeyDown="txtSearchAsset_KeyDown"/>
+                <Button Grid.Column="2" Content="بحث" Background="#3498DB"
+                        Style="{StaticResource BtnStyle}" Click="btnSearchAsset_Click" Margin="8,0,0,0"/>
+                <TextBlock Grid.Column="3" x:Name="txtAssetInfo" FontSize="13"
+                           Foreground="#2C3E50" FontWeight="Bold" VerticalAlignment="Center"
+                           Margin="15,0,0,0" TextWrapping="Wrap"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 2: نتائج البحث -->
+        <Border Grid.Row="2" Background="White" CornerRadius="6" Padding="5"
+                Margin="0,0,0,8" x:Name="pnlSearchResults"
+                MaxHeight="180" Visibility="Collapsed">
+            <DataGrid x:Name="dgSearchResults" AutoGenerateColumns="False" IsReadOnly="True"
+                      SelectionMode="Single" SelectionUnit="FullRow" CanUserAddRows="False"
+                      RowHeight="28" ColumnHeaderHeight="30" FontSize="11" BorderThickness="0"
+                      GridLinesVisibility="Horizontal" AlternatingRowBackground="#F8F9FA"
+                      SelectionChanged="dgSearchResults_SelectionChanged">
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#34495E"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontWeight" Value="Bold"/>
+                        <Setter Property="Padding" Value="5,3"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="الكود" Binding="{Binding BaseAssetCode}" Width="80"/>
+                    <DataGridTextColumn Header="اسم الأصل" Binding="{Binding AssetName}" Width="*"/>
+                    <DataGridTextColumn Header="النوع" Binding="{Binding SubTypeName}" Width="90"/>
+                    <DataGridTextColumn Header="الموقع" Binding="{Binding MainLocationName}" Width="90"/>
+                    <DataGridTextColumn Header="الموظف" Binding="{Binding EmployeeName}" Width="90"/>
+                    <DataGridTextColumn Header="الحالة" Binding="{Binding StatusName}" Width="70"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- Row 3: نوع الحركة -->
+        <Border Grid.Row="3" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="30"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="نوع الحركة:" Style="{StaticResource LblStyle}"/>
+                <ComboBox Grid.Column="1" x:Name="cmbMovementType" Style="{StaticResource InputStyle}"
+                          SelectionChanged="cmbMovementType_SelectionChanged"/>
+                <TextBlock Grid.Column="3" Text="رقم مرجعي:" Style="{StaticResource LblStyle}"/>
+                <TextBox Grid.Column="4" x:Name="txtReferenceNo" Height="30" FontSize="13" Padding="6,4"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 4: من / إلى -->
+        <Grid Grid.Row="4" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="15"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- من (الحالي) -->
+            <Border Grid.Column="0" Background="White" CornerRadius="6" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="من (الموقع الحالي)" FontSize="14" FontWeight="Bold"
+                               Foreground="#E74C3C" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="الموقع الرئيسي:" Style="{StaticResource LblStyle}"/>
+                    <TextBox x:Name="txtFromMainLoc" Height="30" FontSize="13" IsReadOnly="True"
+                             Background="#ECF0F1" Padding="6,4" Margin="0,0,0,8"/>
+
+                    <TextBlock Text="الموقع الفرعي:" Style="{StaticResource LblStyle}"/>
+                    <TextBox x:Name="txtFromSubLoc" Height="30" FontSize="13" IsReadOnly="True"
+                             Background="#ECF0F1" Padding="6,4" Margin="0,0,0,8"/>
+
+                    <TextBlock Text="الموظف المسؤول:" Style="{StaticResource LblStyle}"/>
+                    <TextBox x:Name="txtFromEmployee" Height="30" FontSize="13" IsReadOnly="True"
+                             Background="#ECF0F1" Padding="6,4" Margin="0,0,0,8"/>
+
+                    <TextBlock Text="الحالة الحالية:" Style="{StaticResource LblStyle}"/>
+                    <TextBox x:Name="txtFromStatus" Height="30" FontSize="13" IsReadOnly="True"
+                             Background="#ECF0F1" Padding="6,4"/>
+                </StackPanel>
+            </Border>
+
+            <!-- إلى (الجديد) -->
+            <Border Grid.Column="2" Background="White" CornerRadius="6" Padding="12">
+                <StackPanel>
+                    <TextBlock Text="إلى (الموقع الجديد)" FontSize="14" FontWeight="Bold"
+                               Foreground="#27AE60" Margin="0,0,0,10"/>
+
+                    <TextBlock Text="الموقع الرئيسي:" Style="{StaticResource LblStyle}"/>
+                    <ComboBox x:Name="cmbToMainLoc" Style="{StaticResource InputStyle}"
+                              SelectionChanged="cmbToMainLoc_SelectionChanged"/>
+
+                    <TextBlock Text="الموقع الفرعي:" Style="{StaticResource LblStyle}"/>
+                    <ComboBox x:Name="cmbToSubLoc" Style="{StaticResource InputStyle}"/>
+
+                    <TextBlock Text="الموظف المسؤول:" Style="{StaticResource LblStyle}"/>
+                    <ComboBox x:Name="cmbToEmployee" Style="{StaticResource InputStyle}"/>
+
+                    <TextBlock Text="الحالة الجديدة:" Style="{StaticResource LblStyle}"/>
+                    <ComboBox x:Name="cmbToStatus" Style="{StaticResource InputStyle}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Row 5: التفاصيل -->
+        <Border Grid.Row="5" Background="White" CornerRadius="6" Padding="12" Margin="0,0,0,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="السبب:" Style="{StaticResource LblStyle}"/>
+                <TextBox Grid.Row="0" Grid.Column="1" x:Name="txtReason" Height="30" FontSize="13" Padding="6,4"/>
+
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="المعتمد:" Style="{StaticResource LblStyle}"/>
+                <TextBox Grid.Row="0" Grid.Column="4" x:Name="txtApprovedBy" Height="30" FontSize="13" Padding="6,4"/>
+
+                <TextBlock Grid.Row="0" Grid.Column="6" Text="ملاحظات:" Style="{StaticResource LblStyle}"/>
+                <TextBox Grid.Row="0" Grid.Column="7" x:Name="txtNotes" Height="30" FontSize="13" Padding="6,4"/>
+            </Grid>
+        </Border>
+
+        <!-- Row 7: أزرار -->
+        <Border Grid.Row="7" Background="White" CornerRadius="6" Padding="10">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button Content="تنفيذ النقل" Background="#27AE60" Style="{StaticResource BtnStyle}"
+                        Click="btnExecuteTransfer_Click" FontSize="14" Padding="30,8"/>
+                <Button Content="تنظيف" Background="#7F8C8D" Style="{StaticResource BtnStyle}"
+                        Click="btnClear_Click" FontSize="14" Padding="30,8"/>
+                <Button Content="إغلاق" Background="#E74C3C" Style="{StaticResource BtnStyle}"
+                        Click="btnClose_Click" FontSize="14" Padding="30,8"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
