@@ -1,10 +1,10 @@
 'use client';
 
 /** Asset statuses — governed master data with StatusColor support (README §13.9). */
-import { FormEvent, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { CircleDot, FileSpreadsheet, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { FormEvent, useMemo, useRef, useState } from 'react';
+import { CircleDot, FileSpreadsheet, Pencil, Plus, RefreshCw, Search, Trash2, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -27,6 +27,7 @@ export default function StatusesPage() {
   const { confirm } = useConfirm();
   const state = useAsync(() => getStatuses(), [], { isEmpty: (items) => items.length === 0 });
   const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const statuses = useMemo(() => {
@@ -59,13 +60,22 @@ export default function StatusesPage() {
       <PageHeader
         title={t('statuses.title')}
         subtitle={t('statuses.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale))}
-        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.STATUS_CREATE}><Link href="/import-data?resource=statuses" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.STATUS_CREATE}><Button size="sm" onClick={() => setModal({ mode: 'create' })}><Plus className="h-4 w-4" /> {t('statuses.new')}</Button></PermissionGate></div>}
+      />
+      <CommandToolbar
+        label={t('statuses.commandToolbar')}
+        actions={[
+          { id: 'search', label: t('statuses.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=statuses', permission: PERMISSIONS.STATUS_CREATE, separated: true },
+          { id: 'add', label: t('statuses.new'), icon: Plus, onClick: () => setModal({ mode: 'create' }), permission: PERMISSIONS.STATUS_CREATE, variant: 'primary' },
+          { id: 'reset', label: t('statuses.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },
+        ]}
       />
       <Card className="p-0">
         <div className="border-b border-line p-3">
           <div className="relative max-w-sm">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('statuses.search')} className="ax-input ps-9" />
+            <input ref={searchInputRef} value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t('statuses.search')} className="ax-input ps-9" />
           </div>
         </div>
         <CardBody className="p-0">

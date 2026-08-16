@@ -82,10 +82,6 @@ export default function SearchPage() {
                 aria-label={t('module.searchPlaceholder')}
               />
             </label>
-            <Button variant="secondary" size="sm" onClick={() => setShowFilters((visible) => !visible)} aria-expanded={showFilters}>
-              <ListFilter className="h-4 w-4" aria-hidden="true" />
-              {showFilters ? t('module.searchHideFilters') : t('module.searchShowFilters')}
-            </Button>
           </div>
 
           {showFilters && (

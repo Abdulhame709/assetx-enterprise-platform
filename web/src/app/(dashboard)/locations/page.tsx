@@ -6,14 +6,11 @@
  * → delete (DELETE, guarded by backend when children exist). All via real API.
  */
 import { useRef, useState } from 'react';
-import Link from 'next/link';
 import { FileSpreadsheet, Plus, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/states';
-import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
@@ -63,7 +60,6 @@ export default function LocationsPage() {
       <PageHeader
         title={t('locationPage.title')}
         subtitle={t('locationPage.summary').replace('{total}', total.toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
-        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Link href="/import-data?resource=locations" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create-root' })}><Plus className="h-4 w-4" /> {t('locationPage.newRoot')}</Button></PermissionGate></div>}
       />
 
       <CommandToolbar

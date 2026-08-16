@@ -187,17 +187,6 @@ export default function AssetsPage() {
       <PageHeader
         title={t('nav.assets')}
         subtitle={formatMessage('assets.subtitle', { count: data?.total ?? 0 })}
-        actions={<div className="flex flex-wrap items-center gap-2">
-          <PermissionGate permission={PERMISSIONS.EXPORT_ASSETS}>
-            <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}><Download className="h-4 w-4" /> {t('common.export')}</Button>
-          </PermissionGate>
-          <PermissionGate permission={PERMISSIONS.ASSET_CREATE}>
-            <Link href="/import-data" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link>
-          </PermissionGate>
-          <PermissionGate permission={PERMISSIONS.ASSET_CREATE}>
-            <Button variant="primary" size="sm" onClick={() => { setFormAsset(null); setFormMode('create'); setFormOpen(true); }}><Plus className="h-4 w-4" /> {t('common.newAsset')}</Button>
-          </PermissionGate>
-        </div>}
       />
 
       <CommandToolbar
@@ -208,6 +197,8 @@ export default function AssetsPage() {
           { id: 'next', label: t('assets.nextRecord'), icon: ChevronLeft, onClick: () => moveTo(activeIndex + 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
           { id: 'last', label: t('assets.lastRecord'), icon: ChevronsLeft, onClick: () => moveTo((data?.items.length ?? 1) - 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
           { id: 'search', label: t('assets.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), separated: true },
+          { id: 'export', label: t('common.export'), icon: Download, onClick: () => void onExport(), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
+          { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data', permission: PERMISSIONS.ASSET_CREATE },
           { id: 'preview', label: t('assets.previewCommand'), icon: Eye, onClick: () => setShowMobileDetail(true), disabled: !activeAsset },
           { id: 'add', label: t('assets.addCommand'), icon: Plus, onClick: () => { setFormAsset(null); setFormMode('create'); setFormOpen(true); }, permission: PERMISSIONS.ASSET_CREATE, variant: 'primary' },
           { id: 'copy', label: t('assets.copyCommand'), icon: Copy, onClick: () => activeAsset && void openForm(activeAsset.id, 'copy'), permission: PERMISSIONS.ASSET_CREATE, disabled: !activeAsset },

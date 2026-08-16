@@ -4,7 +4,6 @@ import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, Layers3, M
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
-import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -152,7 +151,7 @@ export default function ReportsPage() {
               </div>
 
               <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface">
-                <CardBody className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardBody className="flex flex-col gap-4">
                   <div className="flex items-start gap-3">
                     <span className="rounded-xl bg-brand/10 p-2.5 text-brand"><BarChart3 className="h-5 w-5" aria-hidden="true" /></span>
                     <div>
@@ -161,10 +160,6 @@ export default function ReportsPage() {
                       <p className="mt-2 text-xs font-medium text-brand">{summary}</p>
                     </div>
                   </div>
-                  <Button variant="primary" onClick={() => void download()} loading={exporting} className="shrink-0">
-                    <Download className="h-4 w-4" aria-hidden="true" />
-                    {t('module.reportsExport')}
-                  </Button>
                 </CardBody>
               </Card>
 
