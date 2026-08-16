@@ -69,26 +69,34 @@ export class AssetRepository implements AssetPort {
   }
 
   async update(id: string, input: UpdateAssetInput): Promise<AssetSummary | null> {
+    const values: unknown[] = [id];
+    const assignments: string[] = [];
+    const has = (key: keyof UpdateAssetInput) => Object.prototype.hasOwnProperty.call(input, key);
+    const add = (key: keyof UpdateAssetInput, column: string, value: unknown) => {
+      if (!has(key)) return;
+      assignments.push(`${column} = $${values.length + 1}`);
+      values.push(value);
+    };
+
+    add('name', 'name', input.name ?? null);
+    add('description', 'description', input.description ?? null);
+    add('category_id', 'category_id', input.category_id ?? null);
+    add('model_id', 'model_id', input.model_id ?? null);
+    add('location_id', 'location_id', input.location_id ?? null);
+    add('quantity', 'quantity', input.quantity ?? null);
+    add('employee_id', 'employee_id', input.employee_id ?? null);
+    add('purchase_price', 'purchase_price', input.purchase_price ?? null);
+    add('notes', 'notes', input.notes ?? null);
+
+    if (assignments.length === 0) {
+      const { rows } = await this.db.query<Asset>(`SELECT * FROM assets WHERE id = $1 LIMIT 1`, [id]);
+      return rows[0] ? this.toSummary(rows[0]) : null;
+    }
+
+    assignments.push('updated_at = now()');
     const { rows } = await this.db.query<Asset>(
-      `UPDATE assets SET
-         name = COALESCE($2, name),
-         description = COALESCE($3, description),
-         category_id = COALESCE($4, category_id),
-         model_id = COALESCE($5, model_id),
-         location_id = COALESCE($6, location_id),
-         quantity = COALESCE($7, quantity),
-         employee_id = COALESCE($8, employee_id),
-         purchase_price = COALESCE($9, purchase_price),
-         notes = COALESCE($10, notes),
-         updated_at = now()
-       WHERE id = $1
-       RETURNING *`,
-      [
-        id, input.name ?? null, input.description ?? null,
-        input.category_id ?? null, input.model_id ?? null, input.location_id ?? null,
-        input.quantity ?? null, input.employee_id ?? null, input.purchase_price ?? null,
-        input.notes ?? null,
-      ],
+      `UPDATE assets SET ${assignments.join(', ')} WHERE id = $1 RETURNING *`,
+      values,
     );
     return rows[0] ? this.toSummary(rows[0]) : null;
   }

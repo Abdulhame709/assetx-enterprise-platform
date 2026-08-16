@@ -28,6 +28,7 @@ export default function AssetsPage() {
   const [category, setCategory] = useState<string | null>(null);
   const [location, setLocation] = useState<string | null>(null);
   const [statusId, setStatusId] = useState<string | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export default function AssetsPage() {
     category_id: category ?? undefined,
     location_id: location ?? undefined,
     status_id: statusId ?? undefined,
+    employee_id: employeeId ?? undefined,
     page: 1,
     limit: 60,
   });
@@ -60,7 +62,7 @@ export default function AssetsPage() {
     Object.entries(values).reduce((message, [name, value]) => message.replace(`{${name}}`, String(value)), t(key));
   const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(locale);
   const activeAsset = useMemo(() => data?.items.find((asset) => asset.id === activeId) ?? data?.items[0] ?? null, [activeId, data?.items]);
-  const hasActiveFilters = Boolean(q.trim() || category || location || statusId);
+  const hasActiveFilters = Boolean(q.trim() || category || location || statusId || employeeId);
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => undefined);
@@ -213,7 +215,8 @@ export default function AssetsPage() {
                   <SearchableSelect options={categories} value={category} onChange={setCategory} placeholder={t('common.type')} />
                   <SearchableSelect options={locations} value={location} onChange={setLocation} placeholder={t('common.location')} />
                   <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={setStatusId} placeholder={t('common.status')} />
-                  {hasActiveFilters && <Button variant="ghost" size="sm" onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); }}><FilterX className="h-3.5 w-3.5" /> {t('assets.clearFilters')}</Button>}
+                  <SearchableSelect options={employees.map((item) => ({ value: item.id, label: item.department ? `${item.name} · ${item.department}` : item.name }))} value={employeeId} onChange={setEmployeeId} placeholder={t('common.custodian')} />
+                  {hasActiveFilters && <Button variant="ghost" size="sm" onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); setEmployeeId(null); }}><FilterX className="h-3.5 w-3.5" /> {t('assets.clearFilters')}</Button>}
                 </div>
               )}
             </div>
