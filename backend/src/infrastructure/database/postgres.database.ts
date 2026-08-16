@@ -50,6 +50,29 @@ export class PostgresDatabase implements DatabasePort {
     }
   }
 
+  async queryAsTenant<T = Record<string, unknown>>(
+    tenantId: string,
+    sql: string,
+    params?: unknown[],
+  ): Promise<QueryResult<T>> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId)) {
+      throw new Error('INVALID_UUID');
+    }
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
+      const result = await client.query(sql, params ?? []);
+      await client.query('COMMIT');
+      return { rows: (result.rows ?? []) as T[], rowCount: result.rowCount ?? 0 };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
   /** Execute migrations/bootstrap SQL outside request transactions. */
   async exec(sql: string): Promise<void> {
     await this.pool.query(sql);

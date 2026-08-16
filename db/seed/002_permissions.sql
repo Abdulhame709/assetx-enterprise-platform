@@ -26,6 +26,7 @@ BEGIN
         "export.assets", "export.movements", "export.inventory", "export.audit", "export.dashboard",
         "report.export", "audit.export",
         "audit.view", "compliance.view",
+        "admin.user", "admin.role",
         "notification.view", "notification.manage",
         "maintenance.view", "maintenance.create", "maintenance.manage",
         "search.global", "search.save",

@@ -10,7 +10,7 @@ import { DatabasePort } from '../core/ports/database.port';
 const KEY = 'permission_version';
 
 export async function getPermissionVersion(db: DatabasePort, tenantId: string): Promise<number> {
-  const { rows } = await db.query<{ setting_value: string }>(
+  const { rows } = await db.queryAsTenant<{ setting_value: string }>(tenantId,
     `SELECT setting_value FROM settings WHERE tenant_id = $1 AND setting_key = $2 LIMIT 1`,
     [tenantId, KEY],
   );
@@ -21,7 +21,7 @@ export async function getPermissionVersion(db: DatabasePort, tenantId: string): 
 /** Bump the permission version — call whenever a user's permissions change. */
 export async function bumpPermissionVersion(db: DatabasePort, tenantId: string): Promise<void> {
   const current = await getPermissionVersion(db, tenantId);
-  await db.query(
+  await db.queryAsTenant(tenantId,
     `INSERT INTO settings (tenant_id, setting_key, setting_value)
      VALUES ($1, $2, $3)
      ON CONFLICT (tenant_id, setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value`,
