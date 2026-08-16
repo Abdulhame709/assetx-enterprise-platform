@@ -24,7 +24,7 @@ BEGIN
         "inventory.view", "inventory.create", "inventory.execute", "inventory.verify", "inventory.close",
         "dashboard.view",
         "export.assets", "export.movements", "export.inventory", "export.audit", "export.dashboard",
-        "report.export", "audit.export",
+        "report.view", "report.export", "audit.export",
         "audit.view", "compliance.view",
         "admin.user", "admin.role",
         "notification.view", "notification.manage",
@@ -52,7 +52,7 @@ BEGIN
       "Auditor": [
         "asset.view", "movement.view", "inventory.view", "inventory.verify", "dashboard.view",
         "export.assets", "export.movements", "export.inventory", "export.audit", "export.dashboard",
-        "report.export", "audit.export", "audit.view", "compliance.view",
+        "report.view", "report.export", "audit.export", "audit.view", "compliance.view",
         "notification.view", "search.global", "search.save",
         "location.view", "category.view", "model.view", "employee.view", "status.view"
       ],
