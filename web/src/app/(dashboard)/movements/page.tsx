@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowRightLeft, UserCheck, RotateCcw, Wrench, Trash2, Archive,
-  Eye, Check, X, Download, FileDown, ClipboardCheck, FilterX, Printer, RefreshCw, Undo2,
+  Eye, Check, X, Download, FileDown, ClipboardCheck, Printer, RefreshCw, Undo2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
@@ -296,7 +296,7 @@ export default function MovementsPage() {
       </section>
 
       <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-labelledby="movement-filters-title">
-        <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 id="movement-filters-title" className="text-sm font-semibold text-ink">{t('movements.filterTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('movements.filterSummary', { count: data?.page.total ?? 0 })}</p></div>{filtered && <Button variant="ghost" size="sm" onClick={clearFilters}><FilterX className="h-3.5 w-3.5" /> {t('movements.clearFilters')}</Button>}</div>
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 id="movement-filters-title" className="text-sm font-semibold text-ink">{t('movements.filterTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('movements.filterSummary', { count: data?.page.total ?? 0 })}</p></div></div>
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[minmax(160px,1fr)_minmax(220px,1.4fr)_minmax(140px,0.8fr)_minmax(140px,0.8fr)]">
           <SearchableSelect options={typeOptions} value={type} onChange={onType} placeholder={t('movements.filterType')} />
           <SearchableSelect options={assetOptions} value={assetId} onChange={(value) => { setAssetId(value); resetPage(); }} placeholder={t('movements.allAssets')} clearable />

@@ -172,6 +172,7 @@ export default function AssetTypesPage() {
                       <button
                         type="button"
                         title={t('assetTypes.addChild')}
+                        aria-label={t('assetTypes.addChild')}
                         className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                         onClick={() => setModal({ mode: 'create', parent: node })}
                       >
@@ -182,6 +183,7 @@ export default function AssetTypesPage() {
                       <button
                         type="button"
                         title={t('assetTypes.rename')}
+                        aria-label={t('assetTypes.rename')}
                         className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                         onClick={() => setModal({ mode: 'edit', node })}
                       >
@@ -192,6 +194,7 @@ export default function AssetTypesPage() {
                       <button
                         type="button"
                         title={t('assetTypes.deactivate')}
+                        aria-label={t('assetTypes.deactivate')}
                         disabled={deactivatingId === node.id}
                         className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={() => deactivate(node)}

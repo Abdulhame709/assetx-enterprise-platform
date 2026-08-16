@@ -128,6 +128,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
             <button
               type="button"
               aria-label={isCollapsed ? t('locationTree.expand') : t('locationTree.collapse')}
+              title={isCollapsed ? t('locationTree.expand') : t('locationTree.collapse')}
               onClick={() => hasChildren && toggle(node.id)}
               className={cn(
                 'flex h-6 w-6 items-center justify-center rounded-md text-ink-faint transition-transform',
@@ -155,6 +156,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
                 <button
                   type="button"
                   title={t('locationTree.addChild')}
+                  aria-label={t('locationTree.addChild')}
                   className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                   onClick={() => onAddChild(node)}
                 >
@@ -164,6 +166,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
               <button
                 type="button"
                 title={t('locationTree.edit')}
+                aria-label={t('locationTree.edit')}
                 className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
                 onClick={() => onEdit(node)}
               >
@@ -172,6 +175,7 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
               <button
                 type="button"
                 title={t('locationTree.delete')}
+                aria-label={t('locationTree.delete')}
                 className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger"
                 onClick={() => onDelete(node)}
               >
