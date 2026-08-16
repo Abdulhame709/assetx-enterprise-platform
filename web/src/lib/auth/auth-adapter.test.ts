@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { decodeJwtPayload, isTokenExpired } from './auth-adapter';
+import { buildSessionFromPayload, decodeJwtPayload, isTokenExpired } from './auth-adapter';
 
 /** Helper: build a JWT-shaped string from a payload object. */
 function encode(header: Record<string, unknown>, payload: Record<string, unknown>): string {
@@ -21,6 +21,39 @@ describe('decodeJwtPayload', () => {
   it('returns {} for a malformed token', () => {
     expect(decodeJwtPayload('not-a-jwt')).toEqual({});
     expect(decodeJwtPayload('')).toEqual({});
+  });
+});
+
+describe('buildSessionFromPayload', () => {
+  it('maps a valid JWT payload to a complete frontend Session', () => {
+    const token = encode(
+      { alg: 'HS256' },
+      {
+        sub: 'user-1',
+        username: 'demo_admin',
+        tenant_id: 'tenant-1',
+        roles: ['Administrator'],
+        permissions: ['assets.read'],
+      },
+    );
+
+    const session = buildSessionFromPayload(
+      token,
+      'refresh-token',
+      decodeJwtPayload(token),
+      { id: 'tenant-1', name: 'AssetX Trial', code: 'trial' },
+    );
+
+    expect(session.user).toMatchObject({
+      id: 'user-1',
+      username: 'demo_admin',
+      displayName: 'demo_admin',
+      roles: ['Administrator'],
+    });
+    expect(session.tenant).toEqual({ id: 'tenant-1', name: 'AssetX Trial', code: 'trial' });
+    expect(session.permissions).toEqual(['assets.read']);
+    expect(session.accessToken).toBe(token);
+    expect(session.refreshToken).toBe('refresh-token');
   });
 });
 
