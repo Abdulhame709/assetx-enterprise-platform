@@ -5,10 +5,11 @@
  * Real workflow: list (GET /locations) → create root/child (POST) → edit (PATCH)
  * → delete (DELETE, guarded by backend when children exist). All via real API.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
-import { FileSpreadsheet, Plus, Search } from 'lucide-react';
+import { FileSpreadsheet, Plus, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/states';
@@ -31,6 +32,7 @@ type ModalState =
 export default function LocationsPage() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const state = useLocations();
   const toast = useToast();
   const { confirm } = useConfirm();
@@ -64,11 +66,23 @@ export default function LocationsPage() {
         actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Link href="/import-data?resource=locations" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create-root' })}><Plus className="h-4 w-4" /> {t('locationPage.newRoot')}</Button></PermissionGate></div>}
       />
 
+      <CommandToolbar
+        label={t('locationPage.commandToolbar')}
+        actions={[
+          { id: 'search', label: t('locationPage.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=locations', permission: PERMISSIONS.LOCATION_CREATE, separated: true },
+          { id: 'add', label: t('locationPage.newRoot'), icon: Plus, onClick: () => setModal({ mode: 'create-root' }), permission: PERMISSIONS.LOCATION_CREATE, variant: 'primary' },
+          { id: 'reset', label: t('locationPage.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },
+        ]}
+      />
+
       <Card className="p-0">
         <div className="border-b border-line p-3">
           <div className="relative max-w-sm">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
             <input
+              ref={searchInputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('locationPage.search')}

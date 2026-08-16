@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
-import { Archive, Boxes, CheckCircle2, ChevronLeft, Copy, Download, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Search, SlidersHorizontal, Trash2, UserRound, Wrench } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Archive, Boxes, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Copy, Download, Eye, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Search, SlidersHorizontal, Trash2, Undo2, UserRound, Wrench } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
@@ -43,6 +44,7 @@ export default function AssetsPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [disposing, setDisposing] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [deleting, setDeleting] = useState(false);
   const { data, status, error, reload } = useAssetList({
     q,
@@ -63,6 +65,22 @@ export default function AssetsPage() {
   const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(locale);
   const activeAsset = useMemo(() => data?.items.find((asset) => asset.id === activeId) ?? data?.items[0] ?? null, [activeId, data?.items]);
   const hasActiveFilters = Boolean(q.trim() || category || location || statusId || employeeId);
+  const activeIndex = data?.items.findIndex((asset) => asset.id === activeAsset?.id) ?? -1;
+  const moveTo = (index: number) => {
+    const item = data?.items[index];
+    if (!item) return;
+    setActiveId(item.id);
+    setShowMobileDetail(true);
+  };
+  const resetWorkspace = () => {
+    setQ('');
+    setCategory(null);
+    setLocation(null);
+    setStatusId(null);
+    setEmployeeId(null);
+    setSelected([]);
+    setShowMobileDetail(false);
+  };
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => undefined);
@@ -182,6 +200,23 @@ export default function AssetsPage() {
         </div>}
       />
 
+      <CommandToolbar
+        label={t('assets.commandToolbar')}
+        actions={[
+          { id: 'first', label: t('assets.firstRecord'), icon: ChevronsRight, onClick: () => moveTo(0), disabled: activeIndex <= 0 },
+          { id: 'previous', label: t('assets.previousRecord'), icon: ChevronRight, onClick: () => moveTo(activeIndex - 1), disabled: activeIndex <= 0 },
+          { id: 'next', label: t('assets.nextRecord'), icon: ChevronLeft, onClick: () => moveTo(activeIndex + 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
+          { id: 'last', label: t('assets.lastRecord'), icon: ChevronsLeft, onClick: () => moveTo((data?.items.length ?? 1) - 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
+          { id: 'search', label: t('assets.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), separated: true },
+          { id: 'preview', label: t('assets.previewCommand'), icon: Eye, onClick: () => setShowMobileDetail(true), disabled: !activeAsset },
+          { id: 'add', label: t('assets.addCommand'), icon: Plus, onClick: () => { setFormAsset(null); setFormMode('create'); setFormOpen(true); }, permission: PERMISSIONS.ASSET_CREATE, variant: 'primary' },
+          { id: 'copy', label: t('assets.copyCommand'), icon: Copy, onClick: () => activeAsset && void openForm(activeAsset.id, 'copy'), permission: PERMISSIONS.ASSET_CREATE, disabled: !activeAsset },
+          { id: 'edit', label: t('assets.editCommand'), icon: Pencil, onClick: () => activeAsset && void openForm(activeAsset.id, 'edit'), permission: PERMISSIONS.ASSET_UPDATE, disabled: !activeAsset },
+          { id: 'delete', label: t('assets.deleteCommand'), icon: Trash2, onClick: () => activeAsset && void onDeleteAsset(activeAsset.id), permission: PERMISSIONS.ASSET_DELETE, disabled: !activeAsset, variant: 'danger', separated: true },
+          { id: 'undo', label: t('assets.undoCommand'), icon: Undo2, onClick: resetWorkspace, disabled: !hasActiveFilters && selected.length === 0 && !showMobileDetail },
+        ]}
+      />
+
       <section aria-label={t('assets.liveMetrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <MetricCard icon={Boxes} label={t('assets.total')} value={metricValue(analytics?.total_assets ?? data?.total)} tone="brand" />
         <MetricCard icon={CheckCircle2} label={t('assets.active')} value={metricValue(analytics?.active_assets)} tone="success" />
@@ -208,7 +243,7 @@ export default function AssetsPage() {
               <label className="relative block">
                 <span className="sr-only">{t('workspace.smartSearch')}</span>
                 <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-                <input autoFocus value={q} onChange={(event) => setQ(event.target.value)} placeholder={t('assets.search')} className="ax-input w-full py-2.5 ps-9" />
+                <input ref={searchInputRef} autoFocus value={q} onChange={(event) => setQ(event.target.value)} placeholder={t('assets.search')} className="ax-input w-full py-2.5 ps-9" />
               </label>
               {showFilters && (
                 <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">

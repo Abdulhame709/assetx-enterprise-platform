@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, Archive, BarChart3, CircleCheckBig, Download, Layers3, MapPin, PackageCheck, Users, Wrench } from 'lucide-react';
+import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, Layers3, MapPin, PackageCheck, RefreshCw, Users, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
 import { downloadAssetExport } from '@/features/assets/api';
@@ -125,6 +126,14 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title={t('nav.reports')} subtitle={t('module.reportsSubtitle')} />
+      <CommandToolbar
+        label={t('module.reportsToolbar')}
+        actions={[
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, variant: 'primary' },
+          { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
+        ]}
+      />
       <AsyncBoundary state={state}>
         {(data) => {
           const activeRate = data.total_assets > 0 ? Math.round((data.active_assets / data.total_assets) * 100) : 0;

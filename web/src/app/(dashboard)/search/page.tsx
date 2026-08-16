@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { Filter, FilterX, ListFilter, Search } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Filter, FilterX, ListFilter, Search, Undo2 } from 'lucide-react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { getCategories } from '@/features/assets/api';
 import { getLocationsTree } from '@/features/assets/components/reference-selects';
@@ -26,6 +27,7 @@ export default function SearchPage() {
   const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
   const [statuses, setStatuses] = useState<ReferenceStatus[]>([]);
   const [employees, setEmployees] = useState<ReferenceEmployee[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -57,6 +59,14 @@ export default function SearchPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('nav.search')} subtitle={t('module.searchSubtitle')} />
+      <CommandToolbar
+        label={t('module.searchToolbar')}
+        actions={[
+          { id: 'focus-search', label: t('module.searchFocus'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+          { id: 'toggle-filters', label: showFilters ? t('module.searchHideFilters') : t('module.searchShowFilters'), icon: ListFilter, onClick: () => setShowFilters((visible) => !visible) },
+          { id: 'reset-search', label: t('module.searchReset'), icon: Undo2, onClick: clearFilters, disabled: !hasActiveFilters },
+        ]}
+      />
       <Card>
         <CardBody className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -64,6 +74,7 @@ export default function SearchPage() {
               <span className="sr-only">{t('module.searchPlaceholder')}</span>
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" aria-hidden="true" />
               <input
+                ref={searchInputRef}
                 className="ax-input w-full ps-9"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}

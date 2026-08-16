@@ -1,13 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Building2, FileSpreadsheet, FilterX, Mail, Pencil, Phone, Plus, Search, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
+import { Building2, FileSpreadsheet, FilterX, Mail, Pencil, Phone, Plus, RefreshCw, Search, Undo2, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
 import { deleteEmployee, getEmployees, ReferenceEmployee } from '@/features/reference/api';
 import { EmployeeFormModal } from '@/features/reference/components/EmployeeFormModal';
 import { useAsync } from '@/lib/use-async';
 import { useI18n } from '@/lib/i18n';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/states';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +27,7 @@ export default function EmployeesPage() {
   const [editing, setEditing] = useState<ReferenceEmployee | null | undefined>(undefined);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const employees = data ?? [];
   const filteredEmployees = useMemo(() => {
@@ -73,6 +75,17 @@ export default function EmployeesPage() {
   return <div className="space-y-4">
     <PageHeader title={t('nav.employees')} subtitle={t('employees.subtitle')} actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.EMPLOYEE_CREATE}><Link href="/import-data?resource=employees" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.EMPLOYEE_CREATE}><Button variant="primary" size="sm" onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> {t('employees.new')}</Button></PermissionGate></div>} />
 
+    <CommandToolbar
+      label={t('employees.commandToolbar')}
+      actions={[
+        { id: 'search', label: t('employees.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+        { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: reload, loading: status === 'loading' },
+        { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=employees', permission: PERMISSIONS.EMPLOYEE_CREATE, separated: true },
+        { id: 'add', label: t('employees.new'), icon: Plus, onClick: () => setEditing(null), permission: PERMISSIONS.EMPLOYEE_CREATE, variant: 'primary' },
+        { id: 'reset', label: t('employees.clearSearch'), icon: Undo2, onClick: () => setQuery(''), disabled: !query },
+      ]}
+    />
+
     <section aria-label={t('employees.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <MetricCard icon={UsersRound} label={t('employees.total')} value={employees.length.toLocaleString(locale)} tone="brand" />
       <MetricCard icon={Building2} label={t('employees.departments')} value={departmentCount.toLocaleString(locale)} tone="warning" />
@@ -85,7 +98,7 @@ export default function EmployeesPage() {
         <div><h2 id="employee-controls-title" className="text-sm font-semibold text-ink">{t('employees.controlsTitle')}</h2><p className="text-xs text-ink-muted">{t('employees.resultsSummary').replace('{shown}', String(filteredEmployees.length)).replace('{total}', String(employees.length))}</p></div>
         {query && <Button variant="ghost" size="sm" onClick={() => setQuery('')}><FilterX className="h-3.5 w-3.5" /> {t('employees.clearSearch')}</Button>}
       </div>
-      <label className="relative block max-w-xl"><span className="sr-only">{t('employees.search')}</span><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('employees.search')} className="ax-input w-full py-2 ps-9" /></label>
+      <label className="relative block max-w-xl"><span className="sr-only">{t('employees.search')}</span><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input ref={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('employees.search')} className="ax-input w-full py-2 ps-9" /></label>
     </section>
 
     <Card className="overflow-hidden p-0 shadow-card"><CardBody className="p-0">
