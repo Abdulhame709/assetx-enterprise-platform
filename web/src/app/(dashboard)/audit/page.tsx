@@ -6,8 +6,9 @@
  * Honest by construction: empty cells render '—', no synthesized values.
  */
 import { useState } from 'react';
-import { Download, Eye } from 'lucide-react';
+import { Download, Eye, Printer, RefreshCw, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -66,6 +67,8 @@ export default function AuditPage() {
   });
 
   const setFilter = (fn: () => void) => { fn(); setPage(1); };
+  const clearFilters = () => { setAction(null); setEntity(null); setDateFrom(''); setDateTo(''); setPage(1); };
+  const hasFilters = Boolean(action || entity || dateFrom || dateTo);
 
   const columns: EColumn<AuditEventRow>[] = [
     {
@@ -99,7 +102,7 @@ export default function AuditPage() {
     {
       key: 'view', header: '', align: 'right', width: '48px',
       render: (r) => (
-        <Button variant="ghost" size="sm" aria-label={t('audit.viewEvent')} onClick={() => setSelected(r)}>
+        <Button variant="ghost" size="sm" aria-label={t('audit.viewEvent')} title={t('audit.viewEvent')} onClick={() => setSelected(r)}>
           <Eye className="h-4 w-4" />
         </Button>
       ),
@@ -126,13 +129,15 @@ export default function AuditPage() {
       <PageHeader
         title={t('audit.title')}
         subtitle={t('audit.eventsRecorded').replace('{count}', state.data?.total?.toLocaleString(locale) ?? '—')}
-        actions={
-          <PermissionGate permission={PERMISSIONS.EXPORT_AUDIT}>
-            <Button variant="secondary" size="sm" onClick={() => void onExport()} loading={exporting}>
-              <Download className="h-4 w-4" /> {t('audit.exportCsv')}
-            </Button>
-          </PermissionGate>
-        }
+      />
+      <CommandToolbar
+        label={t('audit.commandToolbar')}
+        actions={[
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'export', label: t('audit.exportCsv'), icon: Download, onClick: () => void onExport(), permission: PERMISSIONS.EXPORT_AUDIT, loading: exporting, variant: 'primary' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'reset', label: t('audit.clearFilters'), icon: Undo2, onClick: clearFilters, disabled: !hasFilters },
+        ]}
       />
 
       <div className="mb-4">

@@ -33,12 +33,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-surface-raised">
       <SkipLink />
       {/* Desktop sidebar */}
-      <div className="hidden lg:block">
+      <div className="print-hide hidden lg:block">
         <Sidebar />
       </div>
       {/* Mobile sidebar */}
       {mobileNav && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div className="print-hide fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileNav(false)} />
           <div className="absolute inset-y-0 start-0">
             <Sidebar onNavigate={() => setMobileNav(false)} />

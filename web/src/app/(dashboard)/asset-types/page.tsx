@@ -6,7 +6,7 @@
  * so no delete action is offered (contract parity, no fake buttons).
  */
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, FileSpreadsheet, Pencil, Plus, RefreshCw, Search, Tag, Trash2, Undo2 } from 'lucide-react';
+import { ChevronRight, FileSpreadsheet, Pencil, Plus, Printer, RefreshCw, Search, Tag, Trash2, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -116,6 +116,7 @@ export default function AssetTypesPage() {
         actions={[
           { id: 'search', label: t('assetTypes.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=categories', permission: PERMISSIONS.CATEGORY_CREATE, separated: true },
           { id: 'add', label: t('assetTypes.new'), icon: Plus, onClick: () => setModal({ mode: 'create', parent: null }), permission: PERMISSIONS.CATEGORY_CREATE, variant: 'primary' },
           { id: 'reset', label: t('assetTypes.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },

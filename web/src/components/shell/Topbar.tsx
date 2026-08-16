@@ -53,7 +53,7 @@ export function Topbar({ onMenu }: TopbarProps) {
   const isCrumbable = crumbs.length > 1;
 
   return (
-    <header className="flex h-[72px] items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-sm md:px-6">
+    <header className="print-hide flex h-[72px] items-center gap-3 border-b border-line bg-surface/95 px-4 backdrop-blur-sm md:px-6">
       {onMenu && (
           <button className="min-h-10 min-w-10 rounded-lg p-2 text-ink-muted hover:bg-surface-muted lg:hidden" onClick={onMenu} aria-label={t('common.toggleNavigation')}>
           <Menu className="h-5 w-5" />

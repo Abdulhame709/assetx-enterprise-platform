@@ -55,7 +55,8 @@ export function CommandToolbar({ actions, label = 'أوامر الصفحة', cla
       {visibleActions.map((action) => {
         const Icon = action.icon;
         const commonClassName = cn(
-          'group inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold transition-colors',
+          'group inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg text-xs font-semibold transition-colors',
+          action.showLabel ? 'gap-1.5 px-2.5' : 'h-9 w-9 p-0',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:pointer-events-none disabled:opacity-40',
           variants[action.variant ?? 'default'],
           action.separated && 'ms-1 border-s border-line ps-2.5',
@@ -63,7 +64,7 @@ export function CommandToolbar({ actions, label = 'أوامر الصفحة', cla
         const content = (
           <>
             <Icon className="h-4 w-4" aria-hidden="true" />
-            <span className={cn(!action.showLabel && 'sr-only sm:not-sr-only')}>{action.label}</span>
+            {action.showLabel ? <span>{action.label}</span> : <span className="sr-only">{action.label}</span>}
           </>
         );
 

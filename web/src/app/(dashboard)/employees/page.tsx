@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
-import { Building2, FileSpreadsheet, FilterX, Mail, Pencil, Phone, Plus, RefreshCw, Search, Undo2, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
+import { Building2, FileSpreadsheet, FilterX, Mail, Pencil, Phone, Plus, Printer, RefreshCw, Search, Undo2, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
 import { deleteEmployee, getEmployees, ReferenceEmployee } from '@/features/reference/api';
 import { EmployeeFormModal } from '@/features/reference/components/EmployeeFormModal';
 import { useAsync } from '@/lib/use-async';
@@ -79,6 +79,7 @@ export default function EmployeesPage() {
       actions={[
         { id: 'search', label: t('employees.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
         { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: reload, loading: status === 'loading' },
+        { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
         { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=employees', permission: PERMISSIONS.EMPLOYEE_CREATE, separated: true },
         { id: 'add', label: t('employees.new'), icon: Plus, onClick: () => setEditing(null), permission: PERMISSIONS.EMPLOYEE_CREATE, variant: 'primary' },
         { id: 'reset', label: t('employees.clearSearch'), icon: Undo2, onClick: () => setQuery(''), disabled: !query },

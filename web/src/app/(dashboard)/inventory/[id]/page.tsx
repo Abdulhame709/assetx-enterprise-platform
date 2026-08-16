@@ -6,13 +6,13 @@
  * Writes: start / close / count / recount / verify — all real endpoints.
  * Backend guards are mirrored as UX gates only (it remains the security boundary).
  */
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft, Play, Lock, CheckCheck, Undo2, ClipboardCheck,
-  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX,
+  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw,
 } from 'lucide-react';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -113,10 +113,6 @@ export default function InventoryCyclePage() {
 
   return (
     <div>
-      <Link href="/inventory" className="mb-3 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink">
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('inventory.backToCycles')}
-      </Link>
-
       <AsyncBoundary state={state}>
         {(data: CycleDetailData) => {
           const { cycle, summary, records, locationSuggestions } = data;
@@ -125,6 +121,18 @@ export default function InventoryCyclePage() {
 
           return (
             <>
+              <CommandToolbar
+                label={t('inventory.commandToolbar')}
+                actions={[
+                  { id: 'back', label: t('inventory.backToCycles'), icon: ArrowLeft, href: '/inventory', separated: true },
+                  { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+                  { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print() },
+                  { id: 'start', label: t('inventory.start'), icon: Play, onClick: () => void onStart(), permission: PERMISSIONS.INVENTORY_EXECUTE, disabled: cycle.status !== 'new', loading: transitioning, variant: 'primary' },
+                  { id: 'close', label: t('inventory.close'), icon: Lock, onClick: () => void onClose(summary), permission: PERMISSIONS.INVENTORY_CLOSE, disabled: cycle.status !== 'in_progress', loading: transitioning },
+                  { id: 'reset', label: t('inventory.resetFilter'), icon: Undo2, onClick: () => setResultFilter(null), disabled: !resultFilter },
+                ]}
+              />
+
               {/* Header */}
               <Card className="mb-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -138,18 +146,6 @@ export default function InventoryCyclePage() {
                       {cycle.end_date ? ` · ${t('inventory.closed')} ${new Date(cycle.end_date).toLocaleDateString(locale)}` : ''}
                       {summary ? ` · ${t('inventory.netVariance')} ${summary.variance}` : ''}
                     </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {cycle.status === 'new' && can(PERMISSIONS.INVENTORY_EXECUTE) && (
-                      <Button variant="primary" size="sm" loading={transitioning} onClick={() => void onStart()}>
-                        <Play className="h-4 w-4" /> {t('inventory.start')}
-                      </Button>
-                    )}
-                    {cycle.status === 'in_progress' && can(PERMISSIONS.INVENTORY_CLOSE) && (
-                      <Button variant="secondary" size="sm" loading={transitioning} onClick={() => void onClose(summary)}>
-                        <Lock className="h-4 w-4" /> {t('inventory.close')}
-                      </Button>
-                    )}
                   </div>
                 </div>
               </Card>
@@ -187,7 +183,7 @@ export default function InventoryCyclePage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge tone={suggestion.riskLevel === 'high' ? 'danger' : 'warning'}>{suggestion.riskLevel === 'high' ? t('inventory.aiRiskHigh') : t('inventory.aiRiskMedium')} {suggestion.riskScore}%</Badge>
-                              {record && writableNow && <Button variant="secondary" size="sm" onClick={() => setCountRecord(record)}>{t('inventory.aiReview')}</Button>}
+                              {record && writableNow && <Button variant="secondary" size="sm" aria-label={t('inventory.aiReview')} title={t('inventory.aiReview')} onClick={() => setCountRecord(record)}><ScanSearch className="h-4 w-4" /></Button>}
                             </div>
                           </div>
                         );
@@ -295,20 +291,20 @@ function RecordsTable({
     {
       key: 'actions', header: '', width: '210px', align: 'right',
       render: (r) => (
-        <div className="flex justify-end gap-1">
+            <div className="flex justify-end gap-1">
           {writable && (
-            <Button variant="secondary" size="sm" onClick={() => onCount(r)}>
-              <ClipboardCheck className="h-3.5 w-3.5" /> {r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')}
+            <Button variant="secondary" size="sm" aria-label={r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')} title={r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')} onClick={() => onCount(r)}>
+              <ClipboardCheck className="h-3.5 w-3.5" />
             </Button>
           )}
           {canVerifyNow && !closed && r.result !== 'not_inventoried' && !r.is_verified && (
-            <Button variant="ghost" size="sm" loading={verifyingId === r.id} onClick={() => onVerify(r, true)}>
-              <CheckCheck className="h-3.5 w-3.5 text-success" /> {t('inventory.verify')}
+            <Button variant="ghost" size="sm" aria-label={t('inventory.verify')} title={t('inventory.verify')} loading={verifyingId === r.id} onClick={() => onVerify(r, true)}>
+              <CheckCheck className="h-3.5 w-3.5 text-success" />
             </Button>
           )}
           {canVerifyNow && !closed && r.is_verified && (
-            <Button variant="ghost" size="sm" loading={verifyingId === r.id} onClick={() => onVerify(r, false)}>
-              <Undo2 className="h-3.5 w-3.5 text-ink-faint" /> {t('inventory.unverify')}
+            <Button variant="ghost" size="sm" aria-label={t('inventory.unverify')} title={t('inventory.unverify')} loading={verifyingId === r.id} onClick={() => onVerify(r, false)}>
+              <Undo2 className="h-3.5 w-3.5 text-ink-faint" />
             </Button>
           )}
         </div>

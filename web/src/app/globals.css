@@ -91,3 +91,30 @@
     @apply block text-xs font-medium text-ink-muted mb-1;
   }
 }
+
+@media print {
+  .print-hide,
+  [role='toolbar'] {
+    display: none !important;
+  }
+
+  #main-content {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  body,
+  .ax-workspace {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+
+  .shadow-card {
+    box-shadow: none !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}

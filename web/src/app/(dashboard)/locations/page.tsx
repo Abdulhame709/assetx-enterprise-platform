@@ -6,7 +6,7 @@
  * → delete (DELETE, guarded by backend when children exist). All via real API.
  */
 import { useRef, useState } from 'react';
-import { FileSpreadsheet, Plus, RefreshCw, Search, Undo2 } from 'lucide-react';
+import { FileSpreadsheet, Plus, Printer, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -67,6 +67,7 @@ export default function LocationsPage() {
         actions={[
           { id: 'search', label: t('locationPage.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=locations', permission: PERMISSIONS.LOCATION_CREATE, separated: true },
           { id: 'add', label: t('locationPage.newRoot'), icon: Plus, onClick: () => setModal({ mode: 'create-root' }), permission: PERMISSIONS.LOCATION_CREATE, variant: 'primary' },
           { id: 'reset', label: t('locationPage.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },

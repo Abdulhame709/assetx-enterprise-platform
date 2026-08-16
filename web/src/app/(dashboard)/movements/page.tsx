@@ -10,9 +10,10 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight, ArrowRightLeft, UserCheck, RotateCcw, Wrench, Trash2, Archive,
-  Eye, Check, X, Download, ClipboardCheck, FilterX,
+  Eye, Check, X, Download, FileDown, ClipboardCheck, FilterX, Printer, RefreshCw, Undo2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
@@ -21,7 +22,6 @@ import { EmptyState } from '@/components/ui/states';
 import { EnterpriseTable, EColumn } from '@/components/ui/EnterpriseTable';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Input } from '@/components/ui/form';
-import { PermissionGate } from '@/components/auth/PermissionGate';
 import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useToast } from '@/components/ui/Toast';
@@ -151,10 +151,10 @@ export default function MovementsPage() {
     }
   };
 
-  const onExport = async () => {
+  const onExport = async (format: 'csv' | 'pdf' = 'csv') => {
     setExporting(true);
     try {
-      await downloadMovementsExport('csv');
+      await downloadMovementsExport(format);
       toast.success(t('movements.exportReady'), t('movements.exportDownloaded'));
     } catch (err) {
       toast.error(t('movements.exportFailed'), humanError(err, t('common.genericError'), locale));
@@ -246,20 +246,20 @@ export default function MovementsPage() {
       render: (m) => (
         <div className="flex flex-wrap items-center justify-end gap-1">
           {m.status === 'pending' && canApprove && (
-            <Button variant="secondary" size="sm" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`}
+            <Button variant="secondary" size="sm" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`} title={t('movements.approve')}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'approve')}>
-              <Check className="h-3.5 w-3.5 text-success" /> <span className="hidden lg:inline">{t('movements.approve')}</span>
+              <Check className="h-3.5 w-3.5 text-success" />
             </Button>
           )}
           {m.status === 'pending' && canReject && (
-            <Button variant="ghost" size="sm" aria-label={`${t('movements.reject')} ${label(m.movement_type)}`}
+            <Button variant="ghost" size="sm" aria-label={`${t('movements.reject')} ${label(m.movement_type)}`} title={t('movements.reject')}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'reject')}>
-              <X className="h-3.5 w-3.5 text-danger" /> <span className="hidden lg:inline">{t('movements.reject')}</span>
+              <X className="h-3.5 w-3.5 text-danger" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" aria-label={t('movements.view')} onClick={() => setSelected(m)}>
+          <Button variant="ghost" size="sm" aria-label={t('movements.view')} title={t('movements.view')} onClick={() => setSelected(m)}>
             <Eye className="h-4 w-4" />
           </Button>
         </div>
@@ -276,13 +276,16 @@ export default function MovementsPage() {
             ? t('movements.summary').replace('{pending}', data.pendingTotal.toLocaleString(locale)).replace('{total}', data.page.total.toLocaleString(locale))
             : t('movements.subtitle')
         }
-        actions={
-          <PermissionGate permission={PERMISSIONS.EXPORT_MOVEMENTS}>
-            <Button variant="secondary" size="sm" onClick={onExport} loading={exporting}>
-              <Download className="h-4 w-4" /> {t('movements.exportCsv')}
-            </Button>
-          </PermissionGate>
-        }
+      />
+      <CommandToolbar
+        label={t('movements.commandToolbar')}
+        actions={[
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'export', label: t('movements.exportCsv'), icon: Download, onClick: () => void onExport('csv'), permission: PERMISSIONS.EXPORT_MOVEMENTS, loading: exporting, variant: 'primary' },
+          { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void onExport('pdf'), permission: PERMISSIONS.EXPORT_MOVEMENTS, loading: exporting },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'reset', label: t('movements.clearFilters'), icon: Undo2, onClick: clearFilters, disabled: !filtered },
+        ]}
       />
 
       <section aria-label={t('movements.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">

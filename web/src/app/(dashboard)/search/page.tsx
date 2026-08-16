@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Filter, FilterX, ListFilter, Search, Undo2 } from 'lucide-react';
+import { Filter, FilterX, ListFilter, Printer, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -64,6 +64,8 @@ export default function SearchPage() {
         actions={[
           { id: 'focus-search', label: t('module.searchFocus'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
           { id: 'toggle-filters', label: showFilters ? t('module.searchHideFilters') : t('module.searchShowFilters'), icon: ListFilter, onClick: () => setShowFilters((visible) => !visible) },
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'reset-search', label: t('module.searchReset'), icon: Undo2, onClick: clearFilters, disabled: !hasActiveFilters },
         ]}
       />

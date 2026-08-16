@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "NODE_ENV=production next build && ./scripts/prepare-standalone.sh",
-    "start": "node .next/standalone/server.js",
+    "start": "cd .next/standalone && node server.js",
     "lint": "eslint .",
     "test": "vitest run"
   },

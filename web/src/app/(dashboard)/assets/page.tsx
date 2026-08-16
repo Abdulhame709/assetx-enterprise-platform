@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, Boxes, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Copy, Download, Eye, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Search, SlidersHorizontal, Trash2, Undo2, UserRound, Wrench } from 'lucide-react';
+import { Archive, Boxes, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Copy, Download, Eye, FileDown, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Printer, Search, SlidersHorizontal, Trash2, Undo2, UserRound, Wrench } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card } from '@/components/ui/Card';
@@ -117,10 +117,10 @@ export default function AssetsPage() {
     reload();
   };
 
-  const onExport = async () => {
+  const onExport = async (format: 'csv' | 'pdf' = 'csv') => {
     setExporting(true);
     try {
-      await downloadAssetExport('csv');
+      await downloadAssetExport(format);
       toast.success(t('common.exportDownloaded'), t('common.exportLiveData'));
     } catch (err) {
       toast.error(t('common.exportFailed'), humanError(err));
@@ -197,7 +197,9 @@ export default function AssetsPage() {
           { id: 'next', label: t('assets.nextRecord'), icon: ChevronLeft, onClick: () => moveTo(activeIndex + 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
           { id: 'last', label: t('assets.lastRecord'), icon: ChevronsLeft, onClick: () => moveTo((data?.items.length ?? 1) - 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
           { id: 'search', label: t('assets.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), separated: true },
-          { id: 'export', label: t('common.export'), icon: Download, onClick: () => void onExport(), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
+          { id: 'export', label: t('common.export'), icon: Download, onClick: () => void onExport('csv'), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
+          { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void onExport('pdf'), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data', permission: PERMISSIONS.ASSET_CREATE },
           { id: 'preview', label: t('assets.previewCommand'), icon: Eye, onClick: () => setShowMobileDetail(true), disabled: !activeAsset },
           { id: 'add', label: t('assets.addCommand'), icon: Plus, onClick: () => { setFormAsset(null); setFormMode('create'); setFormOpen(true); }, permission: PERMISSIONS.ASSET_CREATE, variant: 'primary' },

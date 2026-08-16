@@ -48,7 +48,7 @@ curl -sS http://127.0.0.1:3001/health
 
 ## تشغيل web production
 
-بعد نجاح build الخاص بالـ web، يمكن تشغيل نسخة production باستخدام السكربت المشترك:
+بعد نجاح build الخاص بالـ web، يجب تشغيل نسخة production من خلال السكربت المشترك. تم ضبط `npm start` ليغيّر داخلياً إلى مجلد `.next/standalone` قبل تشغيل الخادم، حتى تُقدّم ملفات `/_next/static` (CSS وJavaScript) بصورة صحيحة في المعاينة العامة والهاتف:
 
 ```bash
 cd /home/ubuntu/assetx-enterprise-platform
@@ -96,7 +96,7 @@ ss -ltnp | grep -E ':(3001|3010)\\b' || true
 pgrep -af 'node dist/main|next-server|npm start'
 ```
 
-إذا فتح web لكن أعاد `/api/health` خطأ، يجب التحقق من `API_PROXY_TARGET` ومن صحة backend على `3001`. أما إذا فتح login وظهر spinner بعد الدخول، فيجب فحص console وطلبات الشبكة، ثم إعادة تسجيل الدخول لأن access token قد يكون قديماً أو يحمل `permission_version` سابقاً.
+إذا فتح web لكن أعاد `/api/health` خطأ، يجب التحقق من `API_PROXY_TARGET` ومن صحة backend على `3001`. أما إذا ظهرت صفحة بيضاء أو spinner بحجم الشاشة بعد الدخول، فتحقق أولاً من أن ملفات CSS وJavaScript تعيد HTTP 200، وأن التشغيل يتم من مجلد `.next/standalone` عبر الأمر المضمن في `npm start`. تشغيل `node .next/standalone/server.js` من مجلد `web` مباشرة قد يعيد HTML دون تقديم `/_next/static`، فتظهر SVG والأزرار بحجم غير صحيح. بعد تصحيح المسار، أعد تحميل الصفحة ثم افحص الجلسة إذا استمر spinner.
 
 إذا ظهر `401` بعد تغيير صلاحيات المستخدمين أو الأدوار، فهذا سلوك مقصود عند اختلاف `permission_version`. الحل هو تسجيل الخروج والدخول مرة أخرى أو تنفيذ refresh عبر المسار المعتمد، وليس نسخ token يدوياً بين النطاقات.
 

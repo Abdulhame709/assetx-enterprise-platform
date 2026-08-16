@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, Layers3, MapPin, PackageCheck, RefreshCw, Users, Wrench } from 'lucide-react';
+import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, FileDown, Layers3, MapPin, PackageCheck, Printer, RefreshCw, Users, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
@@ -110,10 +110,10 @@ export default function ReportsPage() {
   const { t, locale } = useI18n();
   const [exporting, setExporting] = useState(false);
 
-  const download = async () => {
+  const download = async (format: 'csv' | 'pdf' = 'csv') => {
     setExporting(true);
     try {
-      await downloadAssetExport('csv');
+      await downloadAssetExport(format);
       toast.success(t('module.reportsExportReady'), t('module.reportsExportMessage'));
     } catch (error) {
       toast.error(t('module.reportsExportFailed'), humanError(error));
@@ -129,7 +129,9 @@ export default function ReportsPage() {
         label={t('module.reportsToolbar')}
         actions={[
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
-          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, variant: 'primary' },
+          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download('csv'), loading: exporting, variant: 'primary' },
+          { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void download('pdf'), loading: exporting },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
         ]}
       />

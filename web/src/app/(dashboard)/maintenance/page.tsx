@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertTriangle, CheckCircle2, ClipboardList, FilterX, PlayCircle, Search, Wrench } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, ClipboardList, PlayCircle, Printer, RefreshCw, Search, Undo2, Wrench } from 'lucide-react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { Button } from '@/components/ui/Button';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { EmptyState } from '@/components/ui/states';
 import { MaintenanceOrderPanel } from '@/features/maintenance/components/MaintenanceOrderPanel';
 import { useMaintenanceOrders } from '@/features/maintenance/use-maintenance';
@@ -15,11 +15,21 @@ export default function MaintenancePage() {
   const state = useMaintenanceOrders();
   const { t, locale } = useI18n();
   const [query, setQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [workflow, setWorkflow] = useState<'all' | 'open' | 'in_progress' | 'completed' | 'cancelled'>('all');
   const formatMessage = (key: string, values: Record<string, number>) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(locale)), t(key));
 
   return <div className="space-y-4">
     <PageHeader title={t('nav.maintenance')} subtitle={t('module.maintenanceSubtitle')} />
+    <CommandToolbar
+      label={t('maintenance.commandToolbar')}
+      actions={[
+        { id: 'search', label: t('maintenance.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+        { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+        { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+        { id: 'reset', label: t('maintenance.clearFilters'), icon: Undo2, onClick: () => { setQuery(''); setWorkflow('all'); }, disabled: !query && workflow === 'all' },
+      ]}
+    />
     <AsyncBoundary state={state}>{(orders) => {
       const openOrders = orders.filter((order) => order.workflow_status === 'open').length;
       const inProgressOrders = orders.filter((order) => order.workflow_status === 'in_progress').length;
@@ -48,8 +58,8 @@ export default function MaintenancePage() {
         </section>
 
         <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-label={t('maintenance.controlsTitle')}>
-          <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-ink">{t('maintenance.controlsTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('maintenance.resultsSummary', { shown: visibleOrders.length, total: orders.length })}</p></div>{filtered && <Button variant="ghost" size="sm" onClick={() => { setQuery(''); setWorkflow('all'); }}><FilterX className="h-3.5 w-3.5" /> {t('maintenance.clearFilters')}</Button>}</div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]"><label className="relative block"><span className="sr-only">{t('maintenance.search')}</span><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('maintenance.search')} className="ax-input w-full py-2 ps-9" /></label><select value={workflow} onChange={(event) => setWorkflow(event.target.value as typeof workflow)} className="ax-input w-full py-2"><option value="all">{t('maintenance.allStatuses')}</option>{(['open', 'in_progress', 'completed', 'cancelled'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.status.${value}`)}</option>)}</select></div>
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-ink">{t('maintenance.controlsTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('maintenance.resultsSummary', { shown: visibleOrders.length, total: orders.length })}</p></div></div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]"><label className="relative block"><span className="sr-only">{t('maintenance.search')}</span><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input ref={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('maintenance.search')} className="ax-input w-full py-2 ps-9" /></label><select value={workflow} onChange={(event) => setWorkflow(event.target.value as typeof workflow)} className="ax-input w-full py-2"><option value="all">{t('maintenance.allStatuses')}</option>{(['open', 'in_progress', 'completed', 'cancelled'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.status.${value}`)}</option>)}</select></div>
         </section>
 
         <Card className="overflow-hidden p-0 shadow-card"><CardHeader title={t('maintenance.ordersTitle')} subtitle={t('maintenance.ordersSubtitle')} /><CardBody className="pt-0">{visibleOrders.length || !filtered ? <MaintenanceOrderPanel orders={visibleOrders} onChanged={state.reload} /> : <EmptyState title={t('maintenance.noMatch')} description={t('maintenance.noMatchDesc')} />}</CardBody></Card>

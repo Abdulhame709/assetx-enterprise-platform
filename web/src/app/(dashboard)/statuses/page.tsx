@@ -2,7 +2,7 @@
 
 /** Asset statuses — governed master data with StatusColor support (README §13.9). */
 import { FormEvent, useMemo, useRef, useState } from 'react';
-import { CircleDot, FileSpreadsheet, Pencil, Plus, RefreshCw, Search, Trash2, Undo2 } from 'lucide-react';
+import { CircleDot, FileSpreadsheet, Pencil, Plus, Printer, RefreshCw, Search, Trash2, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -66,6 +66,7 @@ export default function StatusesPage() {
         actions={[
           { id: 'search', label: t('statuses.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=statuses', permission: PERMISSIONS.STATUS_CREATE, separated: true },
           { id: 'add', label: t('statuses.new'), icon: Plus, onClick: () => setModal({ mode: 'create' }), permission: PERMISSIONS.STATUS_CREATE, variant: 'primary' },
           { id: 'reset', label: t('statuses.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },
