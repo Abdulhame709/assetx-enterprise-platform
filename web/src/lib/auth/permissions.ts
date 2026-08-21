@@ -32,6 +32,8 @@ export const PERMISSIONS = {
   COMPLIANCE_VIEW: 'compliance.view',
   AUDIT_VIEW: 'audit.view',
   SEARCH_VIEW: 'search.view',
+  SEARCH_SAVE: 'search.save',
+  SEARCH_GLOBAL: 'search.global',
   ADMIN_USER: 'admin.user',
   ADMIN_ROLE: 'admin.role',
   // Master data (seeded in backend permission catalog)
