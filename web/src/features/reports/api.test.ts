@@ -37,6 +37,27 @@ describe('report export API', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test');
   });
 
+  it('serializes a profile and ordered columns for ERP-style exports', async () => {
+    const response = new Response('name,code\nPrinter,AST-001', {
+      status: 200,
+      headers: { 'Content-Disposition': 'attachment; filename="assets-export.csv"' },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response);
+    await downloadReportExport({
+      resource: 'assets',
+      format: 'csv',
+      profile: 'auditor',
+      columns: [
+        { key: 'full_asset_code', label: 'Asset code', order: 1 },
+        { key: 'name', label: 'Asset name', order: 2 },
+      ],
+    });
+
+    const [url] = vi.mocked(fetch).mock.calls[0] ?? [];
+    expect(String(url)).toContain('/api/exports/assets?format=csv&limit=10000&profile=auditor&columns=');
+    expect(decodeURIComponent(String(url))).toContain('"key":"full_asset_code"');
+  });
+
   it('surfaces a failed export response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('', { status: 403 }));
 

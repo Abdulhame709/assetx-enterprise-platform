@@ -20,9 +20,10 @@ interface SearchableSelectProps {
   onChange: (value: string | null) => void;
   placeholder?: string;
   clearable?: boolean;
+  disabled?: boolean;
 }
 
-export function SearchableSelect({ options, value, onChange, placeholder, clearable = true }: SearchableSelectProps) {
+export function SearchableSelect({ options, value, onChange, placeholder, clearable = true, disabled = false }: SearchableSelectProps) {
   const { t } = useI18n();
   const resolvedPlaceholder = placeholder ?? t('select.search');
   const [open, setOpen] = useState(false);
@@ -47,14 +48,15 @@ export function SearchableSelect({ options, value, onChange, placeholder, cleara
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className="ax-input flex items-center justify-between text-start"
+        onClick={() => { if (!disabled) setOpen((v) => !v); }}
+        disabled={disabled}
+        className={cn('ax-input flex items-center justify-between text-start', disabled && 'cursor-not-allowed opacity-60') }
       >
         <span className={selected ? 'text-ink' : 'text-ink-faint'}>{selected ? selected.label : resolvedPlaceholder}</span>
         <ChevronDown className="h-4 w-4 text-ink-faint" />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-line bg-surface-overlay shadow-pop">
           <div className="flex items-center gap-2 border-b border-line px-2 py-1.5">
             <Search className="h-4 w-4 text-ink-faint" />

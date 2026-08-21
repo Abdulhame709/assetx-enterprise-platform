@@ -12,8 +12,8 @@ import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Field, Input, Select } from '@/components/ui/form';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { getCategories } from '@/features/assets/api';
-import { getLocationsTree } from '@/features/assets/components/reference-selects';
 import { getEmployees, getStatuses, type ReferenceEmployee, type ReferenceStatus } from '@/features/reference/api';
+import { getLocations, type LocationNode } from '@/features/locations/api';
 import {
   createSavedSearch,
   deleteSavedSearch,
@@ -123,7 +123,8 @@ export default function SearchPage() {
   const [resource, setResource] = useState<SearchResource>('assets');
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
-  const [location, setLocation] = useState<string | null>(null);
+  const [mainLocationId, setMainLocationId] = useState<string | null>(null);
+  const [subLocationId, setSubLocationId] = useState<string | null>(null);
   const [statusId, setStatusId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [barcode, setBarcode] = useState('');
@@ -147,7 +148,7 @@ export default function SearchPage() {
   const [limit, setLimit] = useState('20');
   const [showFilters, setShowFilters] = useState(true);
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([]);
-  const [locations, setLocations] = useState<{ value: string; label: string }[]>([]);
+  const [locations, setLocations] = useState<LocationNode[]>([]);
   const [statuses, setStatuses] = useState<ReferenceStatus[]>([]);
   const [employees, setEmployees] = useState<ReferenceEmployee[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearchRecord[]>([]);
@@ -162,7 +163,7 @@ export default function SearchPage() {
 
   useEffect(() => {
     getCategories().then(setCategories).catch(() => undefined);
-    getLocationsTree().then(setLocations).catch(() => undefined);
+    getLocations().then(setLocations).catch(() => undefined);
     getStatuses().then(setStatuses).catch(() => undefined);
     getEmployees().then(setEmployees).catch(() => undefined);
   }, []);
@@ -178,11 +179,24 @@ export default function SearchPage() {
     getSavedSearches().then(setSavedSearches).catch(() => undefined);
   }, [can]);
 
+  const mainLocationOptions = useMemo(
+    () => locations.filter((item) => item.is_active && item.parent_id === null).map((item) => ({ value: item.id, label: item.name })),
+    [locations],
+  );
+  const selectedMainLocation = locations.find((item) => item.id === mainLocationId) ?? null;
+  const subLocationOptions = useMemo(
+    () => locations
+      .filter((item) => item.is_active && item.parent_id !== null && (!selectedMainLocation || item.path === selectedMainLocation.path || item.path.startsWith(`${selectedMainLocation.path}.`)))
+      .map((item) => ({ value: item.id, label: item.full_path || item.name }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [locations, selectedMainLocation],
+  );
+
   const filters = useMemo(() => {
     if (resource === 'assets') {
       return {
         category_id: category ?? undefined,
-        location_id: location ?? undefined,
+        location_id: subLocationId ?? mainLocationId ?? undefined,
         status_id: statusId ?? undefined,
         employee_id: employeeId ?? undefined,
         barcode: barcode.trim() || undefined,
@@ -211,7 +225,7 @@ export default function SearchPage() {
       created_at_from: createdAtFrom || undefined,
       created_at_to: createdAtTo || undefined,
     };
-  }, [auditAction, auditEntity, auditRecordId, auditUserId, barcode, category, createdAtFrom, createdAtTo, employeeId, isActive, location, movementType, priceFrom, priceTo, purchaseDateFrom, purchaseDateTo, referenceNumber, resource, serialNumber, statusId]);
+  }, [auditAction, auditEntity, auditRecordId, auditUserId, barcode, category, createdAtFrom, createdAtTo, employeeId, isActive, mainLocationId, movementType, priceFrom, priceTo, purchaseDateFrom, purchaseDateTo, referenceNumber, resource, serialNumber, statusId, subLocationId]);
 
   const safeLimit = Math.min(Math.max(Number(limit) || 20, 1), 100);
   const searchQuery = useStableSearchQuery({ q: query, filters, sort, dir, page, limit: safeLimit });
@@ -224,7 +238,8 @@ export default function SearchPage() {
     setResource(nextResource);
     setQuery('');
     setCategory(null);
-    setLocation(null);
+    setMainLocationId(null);
+    setSubLocationId(null);
     setStatusId(null);
     setEmployeeId(null);
     setBarcode('');
@@ -250,7 +265,8 @@ export default function SearchPage() {
   const clearFilters = () => {
     setQuery('');
     setCategory(null);
-    setLocation(null);
+    setMainLocationId(null);
+    setSubLocationId(null);
     setStatusId(null);
     setEmployeeId(null);
     setBarcode('');
@@ -271,14 +287,15 @@ export default function SearchPage() {
     setPage(1);
   };
 
-  const savedFilters = useMemo(() => ({ ...filters, q: query, sort, dir, limit: safeLimit }), [filters, query, sort, dir, safeLimit]);
+  const savedFilters = useMemo(() => ({ ...filters, main_location_id: mainLocationId, sub_location_id: subLocationId, q: query, sort, dir, limit: safeLimit }), [filters, mainLocationId, subLocationId, query, sort, dir, safeLimit]);
 
   const applyCriteria = (criteria: { resource: SearchResource; filters: Record<string, unknown> }) => {
     const next = criteria.filters;
     setResource(criteria.resource);
     setQuery(asString(next.q));
     setCategory(asString(next.category_id) || null);
-    setLocation(asString(next.location_id) || null);
+    setMainLocationId(asString(next.main_location_id) || (asString(next.location_id) || null));
+    setSubLocationId(asString(next.sub_location_id) || null);
     setStatusId(asString(next.status_id ?? next.status) || null);
     setEmployeeId(asString(next.employee_id) || null);
     setBarcode(asString(next.barcode));
@@ -405,7 +422,8 @@ export default function SearchPage() {
                 <>
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <SearchableSelect options={categories} value={category} onChange={(value) => { setCategory(value); setPage(1); }} placeholder={t('common.type')} />
-                    <SearchableSelect options={locations} value={location} onChange={(value) => { setLocation(value); setPage(1); }} placeholder={t('common.location')} />
+                    <SearchableSelect options={mainLocationOptions} value={mainLocationId} onChange={(value) => { setMainLocationId(value); setSubLocationId(null); setPage(1); }} placeholder={t('module.searchMainLocation')} />
+                    <SearchableSelect options={subLocationOptions} value={subLocationId} disabled={!mainLocationId} onChange={(value) => { setSubLocationId(value); setPage(1); }} placeholder={t('module.searchSubLocation')} />
                     <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={(value) => { setStatusId(value); setPage(1); }} placeholder={t('common.status')} />
                     <SearchableSelect options={employees.map((item) => ({ value: item.id, label: item.department ? `${item.name} · ${item.department}` : item.name }))} value={employeeId} onChange={(value) => { setEmployeeId(value); setPage(1); }} placeholder={t('module.searchEmployee')} />
                     <Field label={t('module.searchBarcode')}><Input value={barcode} onChange={(event) => { setBarcode(event.target.value); setPage(1); }} /></Field>

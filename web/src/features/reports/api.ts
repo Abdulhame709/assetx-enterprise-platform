@@ -2,18 +2,29 @@ import { API_BASE_URL } from '@/lib/api/client';
 
 export type ReportResource = 'assets' | 'movements' | 'inventory' | 'audit' | 'dashboard';
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
+export type ReportProfileId = 'executive' | 'finance' | 'auditor' | 'inventory' | 'compliance';
+
+export interface ReportColumn {
+  key: string;
+  label: string;
+  order: number;
+}
 
 export interface ReportExportInput {
   resource: ReportResource;
   format: ReportFormat;
   limit?: number;
+  profile?: ReportProfileId;
+  columns?: ReportColumn[];
 }
 
 /** Download a tenant-scoped report from the backend export stream. */
-export async function downloadReportExport({ resource, format, limit = 10000 }: ReportExportInput): Promise<void> {
+export async function downloadReportExport({ resource, format, limit = 10000, profile, columns }: ReportExportInput): Promise<void> {
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
   const params = new URLSearchParams({ format, limit: String(limit) });
+  if (profile) params.set('profile', profile);
+  if (columns && columns.length > 0) params.set('columns', JSON.stringify(columns));
   const response = await fetch(`${API_BASE_URL}/exports/${resource}?${params.toString()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
