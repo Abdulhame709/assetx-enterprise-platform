@@ -68,22 +68,39 @@ export class RecordRepository implements RecordPort {
   }
 
   async updateRecord(recordId: string, tenantId: string, input: RecordInput, userId: string): Promise<InventoryRecord | null> {
+    // Only fields explicitly present in the request are changed. This keeps
+    // partial updates safe while allowing an explicit null to clear a value.
+    const fields: Array<[keyof RecordInput, string]> = [
+      ['actual_location_id', 'actual_location_id'],
+      ['actual_quantity', 'actual_quantity'],
+      ['actual_status_id', 'actual_status_id'],
+      ['actual_employee_id', 'actual_employee_id'],
+      ['notes', 'notes'],
+    ];
+    const setClauses = fields
+      .filter(([key]) => Object.prototype.hasOwnProperty.call(input, key))
+      .map(([, column], index) => `${column} = $${index + 2}`);
+    const params: unknown[] = [recordId];
+    for (const [key] of fields) {
+      if (Object.prototype.hasOwnProperty.call(input, key)) {
+        params.push(input[key]);
+      }
+    }
+    const userParam = params.length + 1;
+    const tenantParam = params.length + 2;
+    setClauses.push(
+      'inventory_date = now()::date',
+      `inventory_by = $${userParam}::uuid`,
+      'is_verified = false',
+      'updated_at = now()',
+    );
+    params.push(userId, tenantId);
+
     const { rows } = await this.db.query<InventoryRecord>(
-      `UPDATE inventory_records SET
-         actual_location_id = COALESCE($2, expected_location_id),
-         actual_quantity    = COALESCE($3, actual_quantity),
-         actual_status_id   = COALESCE($4, actual_status_id),
-         actual_employee_id = COALESCE($5, actual_employee_id),
-         notes              = COALESCE($6, notes),
-         inventory_date     = now()::date,
-         inventory_by       = $7::uuid,
-         is_verified        = false,
-         updated_at         = now()
-       WHERE id = $1 AND tenant_id = $8
+      `UPDATE inventory_records SET ${setClauses.join(', ')}
+       WHERE id = $1 AND tenant_id = $${tenantParam}
        RETURNING *`,
-      [recordId, input.actual_location_id ?? null, input.actual_quantity ?? null,
-       input.actual_status_id ?? null, input.actual_employee_id ?? null,
-       input.notes ?? null, userId, tenantId],
+      params,
     );
     return rows[0] ?? null;
   }

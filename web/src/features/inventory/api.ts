@@ -40,6 +40,30 @@ export interface CycleSummary {
   completion: number;   // % inventoried
 }
 
+export interface MobileInventorySnapshotRecord {
+  record_id: string;
+  asset_id: string;
+  asset_code: string;
+  asset_name: string;
+  expected_location_id: string | null;
+  expected_location: string | null;
+  expected_location_path: string | null;
+  actual_location_id: string | null;
+  actual_location: string | null;
+  expected_quantity: number | null;
+  actual_quantity: number | null;
+  result: InventoryResult;
+  inventory_date: string | null;
+  notes: string | null;
+  is_verified: boolean;
+  updated_at: string | null;
+}
+
+export interface MobileInventorySnapshot {
+  cycle: InventoryCycle;
+  records: MobileInventorySnapshotRecord[];
+}
+
 export interface LocationInventorySuggestion {
   record_id: string;
   asset_id: string;
@@ -201,6 +225,41 @@ export async function closeCycle(id: string): Promise<InventoryCycle> {
 export async function getSummary(cycleId: string): Promise<CycleSummary | null> {
   const raw = await http.get<unknown>(`/inventory/cycles/${cycleId}/summary`);
   return mapSummary(raw);
+}
+
+function mapMobileSnapshotRecord(raw: unknown): MobileInventorySnapshotRecord | null {
+  const r = raw as Record<string, unknown>;
+  if (!r?.record_id) return null;
+  return {
+    record_id: String(r.record_id),
+    asset_id: String(r.asset_id ?? ''),
+    asset_code: String(r.asset_code ?? ''),
+    asset_name: String(r.asset_name ?? ''),
+    expected_location_id: r.expected_location_id != null ? String(r.expected_location_id) : null,
+    expected_location: r.expected_location != null ? String(r.expected_location) : null,
+    expected_location_path: r.expected_location_path != null ? String(r.expected_location_path) : null,
+    actual_location_id: r.actual_location_id != null ? String(r.actual_location_id) : null,
+    actual_location: r.actual_location != null ? String(r.actual_location) : null,
+    expected_quantity: r.expected_quantity != null ? toNumber(r.expected_quantity) : null,
+    actual_quantity: r.actual_quantity != null ? toNumber(r.actual_quantity) : null,
+    result: String(r.result ?? 'not_inventoried') as InventoryResult,
+    inventory_date: r.inventory_date != null ? String(r.inventory_date) : null,
+    notes: r.notes != null ? String(r.notes) : null,
+    is_verified: r.is_verified === true,
+    updated_at: r.updated_at != null ? String(r.updated_at) : null,
+  };
+}
+
+/** Download the tenant-scoped cycle payload used by a field/mobile client. */
+export async function getMobileSnapshot(cycleId: string): Promise<MobileInventorySnapshot> {
+  const raw = await http.get<unknown>(`/inventory/cycles/${cycleId}/mobile-snapshot`);
+  const payload = raw as { cycle?: unknown; records?: unknown[] } | null;
+  const cycle = mapCycle(payload?.cycle);
+  if (!cycle) throw new Error('Unexpected server response');
+  const records = (payload?.records ?? [])
+    .map(mapMobileSnapshotRecord)
+    .filter((record): record is MobileInventorySnapshotRecord => record !== null);
+  return { cycle, records };
 }
 
 export async function getLocationSuggestions(cycleId: string): Promise<LocationInventorySuggestion[]> {

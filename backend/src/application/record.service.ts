@@ -31,7 +31,12 @@ export class RecordService {
     const list = await this.records.listByCycle(cycleId, tenantId);
     const rec = list.find((r) => r.asset_id === assetId);
     if (!rec) throw new Error('ASSET_NOT_IN_CYCLE');
-    const updated = await this.records.updateRecord(rec.id, tenantId, input, userId);
+    // A first count that omits actual_location keeps the expected location,
+    // while an explicit null remains a deliberate clear operation for recounts.
+    const normalizedInput = Object.prototype.hasOwnProperty.call(input, 'actual_location_id')
+      ? input
+      : { ...input, actual_location_id: rec.expected_location_id };
+    const updated = await this.records.updateRecord(rec.id, tenantId, normalizedInput, userId);
     if (!updated) throw new Error('RECORD_NOT_FOUND');
     return updated;
   }
