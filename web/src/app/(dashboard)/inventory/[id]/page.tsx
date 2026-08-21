@@ -145,7 +145,7 @@ export default function InventoryCyclePage() {
         toast.success(t('inventory.syncComplete'), description);
       }
       setOfflineRevision((revision) => revision + 1);
-      state.reload();
+      if (summary.synced > 0 || summary.conflicts > 0) state.reload();
     } catch (err) {
       toast.error(t('inventory.verificationFailed'), humanError(err));
     } finally {
