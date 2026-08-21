@@ -265,7 +265,7 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'inventory.closedToastMessage': 'Records are locked. Summary is final.', 'inventory.countSaved': 'Count saved',
     'inventory.countSavedMessage': 'The record result was recomputed.', 'inventory.downloadSnapshot': 'Download field snapshot',
     'inventory.snapshotDownloaded': 'Field snapshot saved on this device', 'inventory.offlineCountSaved': 'Count saved locally',
-    'inventory.offlineCountSavedMessage': 'This result will sync when the connection returns.', 'inventory.pendingSync': 'Pending sync', 'inventory.syncPending': 'Sync pending field results', 'inventory.syncComplete': 'Field results synchronized', 'inventory.syncConflicts': 'Some field results need conflict review', 'inventory.syncSummary': '{synced} synchronized · {conflicts} conflicts · {failed} temporary failures', 'inventory.verificationFailed': 'Verification failed',
+    'inventory.offlineCountSavedMessage': 'This result will sync when the connection returns.', 'inventory.pendingSync': 'Pending sync', 'inventory.syncPending': 'Sync pending field results', 'inventory.syncComplete': 'Field results synchronized', 'inventory.syncConflicts': 'Some field results need conflict review', 'inventory.syncSummary': '{synced} synchronized · {conflicts} conflicts · {failed} temporary failures', 'inventory.createMovementRequest': 'Create movement request', 'inventory.createMovementRequestMessage': 'This will create a pending {type} request for review. No asset change is applied automatically.', 'inventory.movementRequestCreated': 'Movement request created', 'inventory.movementRequestCreatedMessage': 'The request is pending review in Movements.', 'inventory.movementRequestFailed': 'Movement request failed', 'inventory.movementReasonTransferred': 'Inventory count identified a location change.', 'inventory.movementReasonMissing': 'Inventory count marked the asset missing.', 'inventory.verificationFailed': 'Verification failed',
     'inventory.recordVerified': 'Record verified', 'inventory.verificationRemoved': 'Verification removed',
     'inventory.recordsUncounted': 'record(s) are still uncounted.', 'inventory.cycles': 'cycles', 'inventory.newCycle': 'New Cycle',
     'inventory.subtitle': '{count} inventory cycles in the operational register', 'inventory.commandToolbar': 'Inventory commands', 'inventory.metrics': 'Inventory metrics', 'inventory.totalCycles': 'Total cycles', 'inventory.activeCycles': 'In progress', 'inventory.snapshotAssets': 'Snapshot assets', 'inventory.pendingCount': 'Pending count',
@@ -529,7 +529,7 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'inventory.closedToastMessage': 'تم قفل السجلات وأصبح الملخص نهائياً.', 'inventory.countSaved': 'تم حفظ الجرد',
     'inventory.countSavedMessage': 'تمت إعادة حساب نتيجة السجل.', 'inventory.downloadSnapshot': 'تنزيل لقطة الجرد الميداني',
     'inventory.snapshotDownloaded': 'تم حفظ لقطة الجرد على هذا الجهاز', 'inventory.offlineCountSaved': 'تم حفظ الجرد محلياً',
-    'inventory.offlineCountSavedMessage': 'ستتم المزامنة عند عودة الاتصال.', 'inventory.pendingSync': 'بانتظار المزامنة', 'inventory.syncPending': 'مزامنة نتائج الجرد المعلقة', 'inventory.syncComplete': 'تمت مزامنة نتائج الجرد الميداني', 'inventory.syncConflicts': 'تحتاج بعض نتائج الجرد إلى مراجعة تعارض', 'inventory.syncSummary': 'تمت مزامنة {synced} · تعارضات {conflicts} · إخفاقات مؤقتة {failed}', 'inventory.verificationFailed': 'فشل اعتماد السجل',
+    'inventory.offlineCountSavedMessage': 'ستتم المزامنة عند عودة الاتصال.', 'inventory.pendingSync': 'بانتظار المزامنة', 'inventory.syncPending': 'مزامنة نتائج الجرد المعلقة', 'inventory.syncComplete': 'تمت مزامنة نتائج الجرد الميداني', 'inventory.syncConflicts': 'تحتاج بعض نتائج الجرد إلى مراجعة تعارض', 'inventory.syncSummary': 'تمت مزامنة {synced} · تعارضات {conflicts} · إخفاقات مؤقتة {failed}', 'inventory.createMovementRequest': 'إنشاء طلب حركة', 'inventory.createMovementRequestMessage': 'سيتم إنشاء طلب {type} معلق للمراجعة، ولن يُطبّق أي تغيير على الأصل تلقائياً.', 'inventory.movementRequestCreated': 'تم إنشاء طلب الحركة', 'inventory.movementRequestCreatedMessage': 'الطلب بانتظار المراجعة في شاشة الحركات.', 'inventory.movementRequestFailed': 'فشل إنشاء طلب الحركة', 'inventory.movementReasonTransferred': 'أظهر الجرد اختلافاً في موقع الأصل.', 'inventory.movementReasonMissing': 'حدّد الجرد الأصل كمفقود.', 'inventory.verificationFailed': 'فشل اعتماد السجل',
     'inventory.recordVerified': 'تم اعتماد السجل', 'inventory.verificationRemoved': 'تم إلغاء اعتماد السجل',
     'inventory.recordsUncounted': 'سجل ما زال دون جرد.', 'inventory.cycles': 'دورات', 'inventory.newCycle': 'دورة جديدة',
     'inventory.subtitle': '{count} دورة جرد في السجل التشغيلي', 'inventory.commandToolbar': 'أوامر الجرد', 'inventory.metrics': 'مؤشرات الجرد', 'inventory.totalCycles': 'إجمالي الدورات', 'inventory.activeCycles': 'قيد التنفيذ', 'inventory.snapshotAssets': 'أصول اللقطات', 'inventory.pendingCount': 'بانتظار الجرد',
@@ -584,6 +584,7 @@ const LABELS: Record<string, string> = {
   maintenance_return: 'Maintenance Return',
   disposal: 'Disposal',
   retirement: 'Retirement',
+  missing: 'Missing report',
   // movement status
   pending: 'Pending',
   approved: 'Approved',
@@ -596,7 +597,6 @@ const LABELS: Record<string, string> = {
   matched: 'Matched',
   deficit: 'Deficit',
   surplus: 'Surplus',
-  missing: 'Missing',
   not_inventoried: 'Not Counted',
   // audit actions (full backend catalog — audit-events.ts)
   AUTH_LOGIN_SUCCESS: 'Sign-in succeeded',

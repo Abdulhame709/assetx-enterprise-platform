@@ -172,6 +172,8 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(migration007);
   const migration008 = fs.readFileSync(path.join(migrationsDir, '008_maintenance_orders_workflow.sql'), 'utf8');
   await db.exec(migration008);
+  const migration009 = fs.readFileSync(path.join(migrationsDir, '009_inventory_missing_movement.sql'), 'utf8');
+  await db.exec(migration009);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,

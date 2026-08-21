@@ -4,7 +4,7 @@
  */
 
 export type MovementTypeDto =
-  | 'transfer' | 'assignment' | 'return' | 'maintenance_return' | 'disposal' | 'retirement';
+  | 'transfer' | 'assignment' | 'return' | 'maintenance_return' | 'disposal' | 'retirement' | 'missing';
 
 export interface CreateMovementDto {
   asset_id: string;

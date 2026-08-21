@@ -176,6 +176,11 @@ export class MovementService {
       case 'retirement':
         await this.db.query(`UPDATE assets SET is_active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2`, [mv.asset_id, tenantId]);
         break;
+      case 'missing':
+        // A missing-inventory request is a review/audit action. Approval does not
+        // silently dispose or deactivate the asset; a separate lifecycle decision
+        // remains available to an authorized operator.
+        break;
     }
   }
 }

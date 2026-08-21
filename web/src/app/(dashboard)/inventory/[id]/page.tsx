@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft, Play, Lock, CheckCheck, Undo2, ClipboardCheck,
-  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw, Download, CloudUpload,
+  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw, Download, CloudUpload, FileWarning,
 } from 'lucide-react';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -29,6 +29,7 @@ import { PERMISSIONS } from '@/lib/auth/permissions';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
 import { useCycleDetail, CycleDetailData, mergeStoredRecords } from '@/features/inventory/use-inventory';
+import { createMovement } from '@/features/movements/api';
 import { enrichRecords, startCycle, closeCycle, verifyRecord, getMobileSnapshot, InventoryRecordRow, CycleStatus, RecordCountInput } from '@/features/inventory/api';
 import {
   createPendingMutationFromRecord,
@@ -59,6 +60,8 @@ export default function InventoryCyclePage() {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [movementRequestingId, setMovementRequestingId] = useState<string | null>(null);
+  const [movementRequestedIds, setMovementRequestedIds] = useState<Set<string>>(() => new Set());
   const [offlineRevision, setOfflineRevision] = useState(0);
   const pendingMutations = useMemo(() => listPendingInventoryMutations(id), [id, offlineRevision]);
 
@@ -150,6 +153,40 @@ export default function InventoryCyclePage() {
       toast.error(t('inventory.verificationFailed'), humanError(err));
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const onCreateMovementRequest = async (record: InventoryRecordRow) => {
+    if (record.result !== 'transferred' && record.result !== 'missing') return;
+    if (record.result === 'transferred' && !record.actual_location_id) return;
+    const movementType = record.result === 'transferred' ? 'transfer' : 'missing' as const;
+    const ok = await confirm({
+      title: t('inventory.createMovementRequest'),
+      message: t('inventory.createMovementRequestMessage').replace('{type}', label(movementType)),
+      tone: 'warning',
+      confirmLabel: t('inventory.createMovementRequest'),
+    });
+    if (!ok) return;
+    setMovementRequestingId(record.id);
+    try {
+      const movement = await createMovement(record.asset_id, {
+        movement_type: movementType,
+        from_location_id: movementType === 'transfer' ? record.expected_location_id ?? undefined : undefined,
+        to_location_id: movementType === 'transfer' ? record.actual_location_id ?? undefined : undefined,
+        from_employee_id: movementType === 'transfer' ? record.expected_employee_id ?? undefined : undefined,
+        to_employee_id: movementType === 'transfer' ? record.actual_employee_id ?? undefined : undefined,
+        reason: t(record.result === 'transferred' ? 'inventory.movementReasonTransferred' : 'inventory.movementReasonMissing'),
+        reference_number: `INV-${id.slice(0, 8)}`,
+        quantity: record.actual_quantity ?? undefined,
+        notes: record.notes ?? undefined,
+      });
+      if (movement.status !== 'pending') throw new Error('MOVEMENT_NOT_PENDING');
+      setMovementRequestedIds((previous) => new Set(previous).add(record.id));
+      toast.success(t('inventory.movementRequestCreated'), t('inventory.movementRequestCreatedMessage'));
+    } catch (err) {
+      toast.error(t('inventory.movementRequestFailed'), humanError(err));
+    } finally {
+      setMovementRequestingId(null);
     }
   };
 
@@ -261,9 +298,13 @@ export default function InventoryCyclePage() {
                     writable={writableNow}
                     verifyingId={verifyingId}
                     canVerifyNow={canVerify()}
+                    canCreateMovement={can(PERMISSIONS.MOVEMENT_CREATE)}
+                    movementRequestingId={movementRequestingId}
+                    movementRequestedIds={movementRequestedIds}
                     closed={cycle.status === 'closed'}
                     onCount={(r) => setCountRecord(r)}
                     onVerify={(r, v) => void onVerify(r, v)}
+                    onCreateMovement={(r) => void onCreateMovementRequest(r)}
                     label={label}
                     t={t}
                   />
@@ -300,8 +341,8 @@ export default function InventoryCyclePage() {
 }
 
 function RecordsTable({
-  records, resultFilter, onResultFilter, writable, verifyingId, canVerifyNow, closed,
-  onCount, onVerify, label, t,
+  records, resultFilter, onResultFilter, writable, verifyingId, canVerifyNow, canCreateMovement, movementRequestingId, movementRequestedIds, closed,
+  onCount, onVerify, onCreateMovement, label, t,
 }: {
   records: InventoryRecordRow[];
   resultFilter: string | null;
@@ -309,9 +350,13 @@ function RecordsTable({
   writable: boolean;
   verifyingId: string | null;
   canVerifyNow: boolean;
+  canCreateMovement: boolean;
+  movementRequestingId: string | null;
+  movementRequestedIds: Set<string>;
   closed: boolean;
   onCount: (r: InventoryRecordRow) => void;
   onVerify: (r: InventoryRecordRow, v: boolean) => void;
+  onCreateMovement: (r: InventoryRecordRow) => void;
   label: (code?: string | null) => string;
   t: (key: string, fallback?: string) => string;
 }) {
@@ -375,6 +420,21 @@ function RecordsTable({
           {canVerifyNow && !closed && r.is_verified && (
             <Button variant="ghost" size="sm" aria-label={t('inventory.unverify')} title={t('inventory.unverify')} loading={verifyingId === r.id} onClick={() => onVerify(r, false)}>
               <Undo2 className="h-3.5 w-3.5 text-ink-faint" />
+            </Button>
+          )}
+          {canCreateMovement && !movementRequestedIds.has(r.id)
+            && (r.result === 'missing' || (r.result === 'transferred' && Boolean(r.actual_location_id))) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t('inventory.createMovementRequest')}
+              title={t('inventory.createMovementRequest')}
+              loading={movementRequestingId === r.id}
+              onClick={() => onCreateMovement(r)}
+            >
+              {r.result === 'transferred'
+                ? <ArrowLeftRight className="h-3.5 w-3.5 text-info" />
+                : <FileWarning className="h-3.5 w-3.5 text-danger" />}
             </Button>
           )}
         </div>

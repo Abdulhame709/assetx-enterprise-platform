@@ -9,7 +9,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowRight, ArrowRightLeft, UserCheck, RotateCcw, Wrench, Trash2, Archive,
+  ArrowRight, ArrowRightLeft, UserCheck, RotateCcw, Wrench, Trash2, Archive, FileWarning,
   Eye, Check, X, Download, FileDown, ClipboardCheck, Printer, RefreshCw, Undo2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -45,6 +45,7 @@ const TYPE_ICON: Record<MovementType, typeof ArrowRightLeft> = {
   maintenance_return: Wrench,
   disposal: Trash2,
   retirement: Archive,
+  missing: FileWarning,
 };
 
 const TYPE_TONE: Record<MovementType, BadgeTone> = {
@@ -54,6 +55,7 @@ const TYPE_TONE: Record<MovementType, BadgeTone> = {
   maintenance_return: 'warning',
   disposal: 'danger',
   retirement: 'danger',
+  missing: 'warning',
 };
 
 function RouteCell({ m }: { m: MovementRow }) {

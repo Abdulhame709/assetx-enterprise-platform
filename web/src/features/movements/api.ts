@@ -26,12 +26,13 @@ export type MovementType =
   | 'return'
   | 'maintenance_return'
   | 'disposal'
-  | 'retirement';
+  | 'retirement'
+  | 'missing';
 
 export type MovementStatus = 'pending' | 'approved' | 'rejected';
 
 export const MOVEMENT_TYPES: MovementType[] = [
-  'transfer', 'assignment', 'return', 'maintenance_return', 'disposal', 'retirement',
+  'transfer', 'assignment', 'return', 'maintenance_return', 'disposal', 'retirement', 'missing',
 ];
 
 export interface MovementRow {
@@ -220,6 +221,29 @@ export function enrichMovements(rows: MovementRow[], lookups: MovementLookups): 
     _fromStatus: st(m.from_status_id),
     _toStatus: st(m.to_status_id),
   }));
+}
+
+export interface CreateMovementInput {
+  movement_type: MovementType;
+  to_location_id?: string;
+  to_employee_id?: string;
+  from_location_id?: string;
+  from_employee_id?: string;
+  reason?: string;
+  reference_number?: string;
+  quantity?: number;
+  notes?: string;
+}
+
+/** Create a pending movement request. The backend remains authoritative and applies no asset change until approval. */
+export async function createMovement(assetId: string, input: CreateMovementInput): Promise<MovementRow> {
+  const raw = await http.post<unknown>(`/assets/${assetId}/movements`, {
+    asset_id: assetId,
+    ...input,
+  });
+  const movement = mapMovement(raw);
+  if (!movement) throw new Error('Unexpected server response');
+  return movement;
 }
 
 // ---------------------------------------------------------------------------

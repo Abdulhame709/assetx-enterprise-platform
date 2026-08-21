@@ -34,6 +34,32 @@ describe('Movement — integration (real PostgreSQL + RLS)', () => {
     expect(asset!.location_id).toBe(h.refA.location);
   });
 
+  it('missing inventory discrepancy creates a pending review movement without deactivating the asset', async () => {
+    const assetId = await freshAsset('Missing');
+    const mv = await h.movements.create(h.tenantA, {
+      tenant_id: h.tenantA,
+      asset_id: assetId,
+      movement_type: 'missing',
+      reason: 'Inventory count marked the asset missing',
+      quantity: 0,
+      performed_by: userA,
+    });
+    expect(mv.status).toBe('pending');
+    expect(mv.movement_type).toBe('missing');
+    await expect(h.movements.create(h.tenantA, {
+      tenant_id: h.tenantA,
+      asset_id: assetId,
+      movement_type: 'missing',
+      performed_by: userA,
+    })).rejects.toThrow('DUPLICATE_PENDING');
+
+    const approved = await h.movements.approve(mv.id, h.tenantA, userA);
+    expect(approved.status).toBe('approved');
+    const asset = await h.assets.getById(assetId, h.tenantA);
+    expect(asset).not.toBeNull();
+    expect(asset!.is_active).toBe(true);
+  });
+
   it('approving a transfer updates the asset location (BR-MOV-002)', async () => {
     const assetId = await freshAsset();
     const mv = await h.movements.create(h.tenantA, { tenant_id: h.tenantA, asset_id: assetId, movement_type: 'transfer', to_location_id: loc2, performed_by: userA });
