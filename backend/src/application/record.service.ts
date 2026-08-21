@@ -41,6 +41,32 @@ export class RecordService {
     return updated;
   }
 
+  /** Apply one offline mutation only when the server version is unchanged. */
+  async sync(
+    cycleId: string,
+    recordId: string,
+    tenantId: string,
+    assetId: string,
+    baseUpdatedAt: string | null,
+    input: RecordInput,
+    userId: string,
+  ): Promise<InventoryRecord> {
+    await this.db.setTenant(tenantId);
+    const rec = await this.records.findById(recordId, tenantId);
+    if (!rec) throw new Error('RECORD_NOT_FOUND');
+    if (rec.cycle_id !== cycleId) throw new Error('CYCLE_RECORD_MISMATCH');
+    if (rec.asset_id !== assetId) throw new Error('ASSET_RECORD_MISMATCH');
+    if (baseUpdatedAt && new Date(rec.updated_at).getTime() !== new Date(baseUpdatedAt).getTime()) {
+      throw new Error('SYNC_CONFLICT');
+    }
+    const cycle = await this.cycles.findById(rec.cycle_id, tenantId);
+    if (!cycle) throw new Error('CYCLE_NOT_FOUND');
+    await this.assertWritable(cycle);
+    const updated = await this.records.updateRecord(recordId, tenantId, input, userId);
+    if (!updated) throw new Error('RECORD_NOT_FOUND');
+    return updated;
+  }
+
   /** Get all records of a cycle with computed results. */
   async listByCycle(cycleId: string, tenantId: string): Promise<InventoryRecordResult[]> {
     await this.db.setTenant(tenantId);

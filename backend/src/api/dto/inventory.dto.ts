@@ -16,21 +16,36 @@ export interface CreateCycleDto {
 
 export interface RecordResultDto {
   asset_id: string;
-  actual_location_id?: string;
-  actual_quantity?: number;
-  actual_status_id?: string;
-  actual_employee_id?: string;
-  notes?: string;
+  actual_location_id?: string | null;
+  actual_quantity?: number | null;
+  actual_status_id?: string | null;
+  actual_employee_id?: string | null;
+  notes?: string | null;
 }
 
 export interface UpdateRecordDto {
-  actual_location_id?: string;
-  actual_quantity?: number;
-  actual_status_id?: string;
-  actual_employee_id?: string;
-  notes?: string;
+  actual_location_id?: string | null;
+  actual_quantity?: number | null;
+  actual_status_id?: string | null;
+  actual_employee_id?: string | null;
+  notes?: string | null;
 }
 
 export interface VerifyRecordDto {
   verified: boolean;
+}
+
+export type InventorySyncMode = 'record' | 'update';
+
+export interface InventorySyncMutationDto {
+  mutation_id: string;
+  record_id: string;
+  asset_id: string;
+  mode: InventorySyncMode;
+  base_updated_at: string | null;
+  payload: Omit<RecordResultDto, 'asset_id'>;
+}
+
+export interface InventorySyncDto {
+  mutations: InventorySyncMutationDto[];
 }

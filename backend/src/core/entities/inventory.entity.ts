@@ -46,6 +46,7 @@ export interface InventoryRecord {
   verified_by: string | null;
   verified_date: Date | null;
   notes: string | null;
+  updated_at: Date;
 }
 
 /** Computed result for a record (from v_inventory_result). */

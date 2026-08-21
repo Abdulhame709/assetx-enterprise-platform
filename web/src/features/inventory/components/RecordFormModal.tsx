@@ -14,7 +14,7 @@ import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
-import { recordCount, updateRecord, InventoryRecordRow, InventoryLookups, InventoryResult } from '../api';
+import { recordCount, updateRecord, InventoryRecordRow, InventoryLookups, InventoryResult, RecordCountInput } from '../api';
 
 export const RESULT_TONE: Record<InventoryResult, BadgeTone> = {
   matched: 'success',
@@ -31,10 +31,11 @@ interface Props {
   record: InventoryRecordRow;
   lookups: InventoryLookups;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (mode?: 'online' | 'offline') => void;
+  onOfflineSaved?: (payload: RecordCountInput) => void;
 }
 
-export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSaved }: Props) {
+export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSaved, onOfflineSaved }: Props) {
   const { label, t } = useI18n();
   const isRecount = record.result !== 'not_inventoried';
   const [qty, setQty] = useState('');
@@ -75,16 +76,23 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
     if (qty === '' || Number.isNaN(q) || q < 0) { setError(t('inventoryRecord.quantityInvalid')); return; }
     setSaving(true);
     try {
-      const payload = {
+      const payload: RecordCountInput = {
         actual_quantity: q,
         actual_location_id: locationId,
         actual_status_id: statusId,
         actual_employee_id: employeeId,
         notes: notes.trim() || undefined,
       };
+      const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      if (offline && onOfflineSaved) {
+        onOfflineSaved(payload);
+        onSaved('offline');
+        onClose();
+        return;
+      }
       if (isRecount) await updateRecord(record.id, payload);
       else await recordCount(cycleId, record.asset_id, payload);
-      onSaved();
+      onSaved('online');
       onClose();
     } catch (err) {
       setError(humanError(err));

@@ -23,6 +23,10 @@ export interface MobileInventorySnapshotRecord {
   actual_location: string | null;
   expected_quantity: number | null;
   actual_quantity: number | null;
+  expected_status_id: string | null;
+  actual_status_id: string | null;
+  expected_employee_id: string | null;
+  actual_employee_id: string | null;
   result: InventoryRecordResult['result'];
   inventory_date: string | null;
   notes: string | null;
@@ -101,6 +105,10 @@ export class InventoryResultService {
          actual_location.name AS actual_location,
          ir.expected_quantity,
          ir.actual_quantity,
+         ir.expected_status_id,
+         ir.actual_status_id,
+         ir.expected_employee_id,
+         ir.actual_employee_id,
          result.result,
          ir.inventory_date,
          ir.notes,

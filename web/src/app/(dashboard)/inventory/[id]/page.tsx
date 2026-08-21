@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft, Play, Lock, CheckCheck, Undo2, ClipboardCheck,
-  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw,
+  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw, Download, CloudUpload,
 } from 'lucide-react';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -28,8 +28,15 @@ import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
-import { useCycleDetail, CycleDetailData } from '@/features/inventory/use-inventory';
-import { startCycle, closeCycle, verifyRecord, InventoryRecordRow, CycleStatus } from '@/features/inventory/api';
+import { useCycleDetail, CycleDetailData, mergeStoredRecords } from '@/features/inventory/use-inventory';
+import { enrichRecords, startCycle, closeCycle, verifyRecord, getMobileSnapshot, InventoryRecordRow, CycleStatus, RecordCountInput } from '@/features/inventory/api';
+import {
+  createPendingMutationFromRecord,
+  getStoredSnapshot,
+  saveStoredSnapshot,
+  listPendingInventoryMutations,
+} from '@/features/inventory/offline-store';
+import { syncPendingInventoryMutations } from '@/features/inventory/sync-inventory';
 import { CountRecordModal, RESULT_TONE } from '@/features/inventory/components/RecordFormModal';
 
 const CYCLE_TONE: Record<CycleStatus, BadgeTone> = {
@@ -51,6 +58,9 @@ export default function InventoryCyclePage() {
   const [resultFilter, setResultFilter] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [offlineRevision, setOfflineRevision] = useState(0);
+  const pendingMutations = useMemo(() => listPendingInventoryMutations(id), [id, offlineRevision]);
 
   const writable = (data: CycleDetailData) =>
     data.cycle.status === 'in_progress' && can(PERMISSIONS.INVENTORY_EXECUTE);
@@ -98,6 +108,51 @@ export default function InventoryCyclePage() {
     }
   };
 
+  const onDownloadSnapshot = async () => {
+    try {
+      const snapshot = await getMobileSnapshot(id);
+      const stored = saveStoredSnapshot(snapshot);
+      toast.success(t('inventory.snapshotDownloaded'), `${stored.records.length} ${t('inventory.asset')}`);
+    } catch (err) {
+      toast.error(t('inventory.verificationFailed'), humanError(err));
+    }
+  };
+
+  const onOfflineSaved = (record: InventoryRecordRow, payload: RecordCountInput) => {
+    const snapshot = getStoredSnapshot(id);
+    const cached = snapshot?.records.find((item) => item.record_id === record.id);
+    if (!cached) {
+      throw new Error(t('inventory.downloadSnapshot'));
+    }
+    createPendingMutationFromRecord(id, cached, payload);
+    setOfflineRevision((revision) => revision + 1);
+  };
+
+  const onSyncPending = async () => {
+    if (pendingMutations.length === 0) return;
+    setSyncing(true);
+    try {
+      const summary = await syncPendingInventoryMutations(id);
+      const description = t('inventory.syncSummary')
+        .replace('{synced}', String(summary.synced))
+        .replace('{conflicts}', String(summary.conflicts))
+        .replace('{failed}', String(summary.failed));
+      if (summary.conflicts > 0) {
+        toast.warning(t('inventory.syncConflicts'), description);
+      } else if (summary.failed > 0) {
+        toast.warning(t('inventory.syncPending'), description);
+      } else {
+        toast.success(t('inventory.syncComplete'), description);
+      }
+      setOfflineRevision((revision) => revision + 1);
+      state.reload();
+    } catch (err) {
+      toast.error(t('inventory.verificationFailed'), humanError(err));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const onVerify = async (record: InventoryRecordRow, verified: boolean) => {
     setVerifyingId(record.id);
     try {
@@ -117,7 +172,8 @@ export default function InventoryCyclePage() {
         {(data: CycleDetailData) => {
           const { cycle, summary, records, locationSuggestions } = data;
           const writableNow = writable(data);
-          const filtered = records.filter((r) => !resultFilter || r.result === resultFilter);
+          const displayRecords = enrichRecords(mergeStoredRecords(id, records), data.lookups);
+          const filtered = displayRecords.filter((r) => !resultFilter || r.result === resultFilter);
 
           return (
             <>
@@ -127,6 +183,8 @@ export default function InventoryCyclePage() {
                   { id: 'back', label: t('inventory.backToCycles'), icon: ArrowLeft, href: '/inventory', separated: true },
                   { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
                   { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print() },
+                  { id: 'snapshot', label: t('inventory.downloadSnapshot'), icon: Download, onClick: () => void onDownloadSnapshot(), separated: true },
+                  ...(pendingMutations.length > 0 ? [{ id: 'sync', label: t('inventory.syncPending'), icon: CloudUpload, onClick: () => void onSyncPending(), loading: syncing, disabled: syncing, permission: PERMISSIONS.INVENTORY_EXECUTE }] : []),
                   { id: 'start', label: t('inventory.start'), icon: Play, onClick: () => void onStart(), permission: PERMISSIONS.INVENTORY_EXECUTE, disabled: cycle.status !== 'new', loading: transitioning, variant: 'primary' },
                   { id: 'close', label: t('inventory.close'), icon: Lock, onClick: () => void onClose(summary), permission: PERMISSIONS.INVENTORY_CLOSE, disabled: cycle.status !== 'in_progress', loading: transitioning },
                   { id: 'reset', label: t('inventory.resetFilter'), icon: Undo2, onClick: () => setResultFilter(null), disabled: !resultFilter },
@@ -219,10 +277,17 @@ export default function InventoryCyclePage() {
                   record={countRecord}
                   lookups={data.lookups}
                   onClose={() => setCountRecord(null)}
-                  onSaved={() => {
-                    toast.success(t('inventory.countSaved'), t('inventory.countSavedMessage'));
+                  onSaved={(mode) => {
+                    if (mode === 'offline') {
+                      toast.success(t('inventory.offlineCountSaved'), t('inventory.offlineCountSavedMessage'));
+                    } else {
+                      toast.success(t('inventory.countSaved'), t('inventory.countSavedMessage'));
+                      state.reload();
+                    }
                     setCountRecord(null);
-                    state.reload();
+                  }}
+                  onOfflineSaved={(payload) => {
+                    if (countRecord) onOfflineSaved(countRecord, payload);
                   }}
                 />
               )}
@@ -281,7 +346,12 @@ function RecordsTable({
     },
     {
       key: 'result', header: t('inventory.result'), accessor: (r) => r.result,
-      render: (r) => <Badge tone={RESULT_TONE[r.result]}>{label(r.result)}</Badge>,
+      render: (r) => (
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge tone={RESULT_TONE[r.result]}>{label(r.result)}</Badge>
+          {r.sync_state === 'conflict' && <Badge tone="warning">{t('inventory.syncConflicts')}</Badge>}
+        </div>
+      ),
     },
     { key: 'date', header: t('inventory.countedOn'), render: (r) => <span className="text-xs text-ink-faint">{r.inventory_date ? new Date(r.inventory_date).toLocaleDateString() : '—'}</span> },
     {

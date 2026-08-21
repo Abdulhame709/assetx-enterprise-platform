@@ -52,6 +52,10 @@ export interface MobileInventorySnapshotRecord {
   actual_location: string | null;
   expected_quantity: number | null;
   actual_quantity: number | null;
+  expected_status_id: string | null;
+  actual_status_id: string | null;
+  expected_employee_id: string | null;
+  actual_employee_id: string | null;
   result: InventoryResult;
   inventory_date: string | null;
   notes: string | null;
@@ -96,6 +100,8 @@ export interface InventoryRecordRow {
   is_verified: boolean;
   notes: string | null;
   result: InventoryResult;
+  updated_at?: string | null;
+  sync_state?: 'synced' | 'pending' | 'conflict';
   // resolved display fields (mapper enrichment)
   _assetName?: string;
   _assetCode?: string;
@@ -174,6 +180,7 @@ export function mapRecord(raw: unknown): InventoryRecordRow | null {
     is_verified: r.is_verified === true,
     notes: r.notes != null ? String(r.notes) : null,
     result: String(r.result ?? 'not_inventoried') as InventoryResult,
+    updated_at: r.updated_at != null ? String(r.updated_at) : undefined,
   };
 }
 
@@ -242,6 +249,10 @@ function mapMobileSnapshotRecord(raw: unknown): MobileInventorySnapshotRecord | 
     actual_location: r.actual_location != null ? String(r.actual_location) : null,
     expected_quantity: r.expected_quantity != null ? toNumber(r.expected_quantity) : null,
     actual_quantity: r.actual_quantity != null ? toNumber(r.actual_quantity) : null,
+    expected_status_id: r.expected_status_id != null ? String(r.expected_status_id) : null,
+    actual_status_id: r.actual_status_id != null ? String(r.actual_status_id) : null,
+    expected_employee_id: r.expected_employee_id != null ? String(r.expected_employee_id) : null,
+    actual_employee_id: r.actual_employee_id != null ? String(r.actual_employee_id) : null,
     result: String(r.result ?? 'not_inventoried') as InventoryResult,
     inventory_date: r.inventory_date != null ? String(r.inventory_date) : null,
     notes: r.notes != null ? String(r.notes) : null,
@@ -299,11 +310,11 @@ export async function getRecords(cycleId: string): Promise<InventoryRecordRow[]>
 }
 
 export interface RecordCountInput {
-  actual_quantity: number;
+  actual_quantity: number | null;
   actual_location_id?: string | null;
   actual_status_id?: string | null;
   actual_employee_id?: string | null;
-  notes?: string;
+  notes?: string | null;
 }
 
 /** Record the actual count for a snapshot record of this asset (BR-INV flow). */
@@ -319,6 +330,56 @@ export async function updateRecord(recordId: string, input: RecordCountInput): P
 /** Verify or unverify a record (BR-INV-003: uncounted records cannot be verified). */
 export async function verifyRecord(recordId: string, verified: boolean): Promise<void> {
   await http.patch<unknown>(`/inventory/records/${recordId}/verify`, { verified });
+}
+
+export interface InventorySyncMutation {
+  id: string;
+  cycle_id: string;
+  record_id: string;
+  asset_id: string;
+  mode: 'record' | 'update';
+  payload: RecordCountInput;
+  base_updated_at: string | null;
+  queued_at: string;
+  attempts: number;
+}
+
+export interface InventorySyncResult {
+  mutation_id: string;
+  record_id: string;
+  status: 'synced' | 'conflict' | 'error';
+  updated_at?: string;
+  code?: string;
+}
+
+export async function syncInventoryMutations(
+  cycleId: string,
+  mutations: InventorySyncMutation[],
+): Promise<InventorySyncResult[]> {
+  const raw = await http.post<unknown>(`/inventory/cycles/${cycleId}/sync`, {
+    mutations: mutations.map((mutation) => ({
+      mutation_id: mutation.id,
+      record_id: mutation.record_id,
+      asset_id: mutation.asset_id,
+      mode: mutation.mode,
+      base_updated_at: mutation.base_updated_at,
+      payload: mutation.payload,
+    })),
+  });
+  const results = (raw as { results?: unknown[] } | null)?.results ?? [];
+  return results.map((value) => {
+    const row = value as Record<string, unknown>;
+    const status: InventorySyncResult['status'] = row.status === 'conflict'
+      ? 'conflict'
+      : row.status === 'synced' ? 'synced' : 'error';
+    return {
+      mutation_id: String(row.mutation_id ?? ''),
+      record_id: String(row.record_id ?? ''),
+      status,
+      updated_at: row.updated_at != null ? String(row.updated_at) : undefined,
+      code: row.code != null ? String(row.code) : undefined,
+    };
+  }).filter((result) => result.mutation_id !== '');
 }
 
 // ---------------------------------------------------------------------------
