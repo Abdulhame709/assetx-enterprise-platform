@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, Layers3, MapPin, PackageCheck, Printer, RefreshCw, Users, Wrench } from 'lucide-react';
@@ -128,6 +129,10 @@ export default function ReportsPage() {
   const [exporting, setExporting] = useState(false);
   const availableResources = useMemo(() => REPORT_RESOURCES.filter((item) => can(item.permission)), [can]);
   const selectedResource = availableResources.find((item) => item.resource === resource) ?? availableResources[0] ?? null;
+  const printGeneratedAt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date());
 
   useEffect(() => {
     if (selectedResource && selectedResource.resource !== resource) setResource(selectedResource.resource);
@@ -152,7 +157,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="reports-page space-y-6">
       <PageHeader title={t('nav.reports')} subtitle={t('module.reportsSubtitle')} />
       <CommandToolbar
         label={t('module.reportsToolbar')}
@@ -163,6 +168,21 @@ export default function ReportsPage() {
           { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
         ]}
       />
+
+      <section className="report-print-only rounded-xl border border-brand/30 bg-surface p-5" aria-hidden="true">
+        <div className="border-b-2 border-brand pb-3 text-center">
+          <p className="text-sm font-semibold text-brand">AssetX Enterprise Platform</p>
+          <h1 className="mt-1 text-2xl font-bold text-ink">{t('module.reportsPrintTitle')}</h1>
+          <p className="mt-1 text-sm text-ink-muted">{t('module.reportsPrintSubtitle')}</p>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <div><span className="font-semibold text-ink">{t('module.reportsPrintSource')}:</span> {selectedResource ? t(selectedResource.labelKey) : t('module.reportsPrintNoSource')}</div>
+          <div><span className="font-semibold text-ink">{t('module.reportsPrintFormat')}:</span> {t(`module.reportsFormat.${format}`)}</div>
+          <div><span className="font-semibold text-ink">{t('module.reportsPrintLimit')}:</span> {Number(limit || 0).toLocaleString(locale)}</div>
+          <div><span className="font-semibold text-ink">{t('module.reportsPrintGeneratedAt')}:</span> {printGeneratedAt}</div>
+        </div>
+      </section>
+
       <AsyncBoundary state={state}>
         {(data) => {
           const activeRate = data.total_assets > 0 ? Math.round((data.active_assets / data.total_assets) * 100) : 0;
@@ -180,7 +200,7 @@ export default function ReportsPage() {
                 <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(locale)} icon={Archive} tone="neutral" />
               </div>
 
-              <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface">
+              <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface print-hide">
                 <CardBody className="space-y-4">
                   <div className="flex items-start gap-3">
                     <span className="rounded-xl bg-brand/10 p-2.5 text-brand"><BarChart3 className="h-5 w-5" aria-hidden="true" /></span>
@@ -242,6 +262,10 @@ export default function ReportsPage() {
           );
         }}
       </AsyncBoundary>
+
+      <footer className="report-print-footer text-xs text-ink-muted" aria-hidden="true">
+        {t('module.reportsPrintFooter')} · {printGeneratedAt}
+      </footer>
     </div>
   );
 }

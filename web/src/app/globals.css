@@ -92,10 +92,46 @@
   }
 }
 
+.report-print-only,
+.report-print-footer {
+  display: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
 @media print {
   .print-hide,
-  [role='toolbar'] {
+  .reports-page [role='toolbar'],
+  .reports-page header,
+  .reports-page nav,
+  .reports-page aside {
     display: none !important;
+  }
+
+  .report-print-only,
+  .report-print-footer {
+    display: block !important;
+  }
+
+  .reports-page {
+    max-width: none !important;
+    gap: 1rem !important;
+  }
+
+  .reports-page > * {
+    break-inside: avoid;
+  }
+
+  .reports-page .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .reports-page [role='progressbar'] {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 
   #main-content {
