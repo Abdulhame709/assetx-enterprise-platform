@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, Check, CircleCheckBig, Columns3, Download, Eye, FolderOpen, Layers3, MapPin, PackageCheck, Printer, RefreshCw, Save, Users, Wrench, X } from 'lucide-react';
+import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, Check, CircleCheckBig, Columns3, Download, Eye, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
@@ -12,10 +12,11 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
-import { downloadReportExport, ReportColumn, ReportFormat, ReportProfileId, ReportResource } from '@/features/reports/api';
+import { downloadReportExport, ReportAggregation, ReportColumn, ReportDefinition, ReportFormat, ReportGroup, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
+import { createReportTemplate, deleteReportTemplate, listReportTemplates, ReportTemplateRecord } from '@/features/reports/templates-api';
 import { Field, Input, Select } from '@/components/ui/form';
 import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
-import { useCan } from '@/lib/auth/session-context';
+import { useCan, useSession } from '@/lib/auth/session-context';
 import type { AnalyticsBucket, LifecycleDistributionBucket } from '@/features/assets/types';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
@@ -29,6 +30,7 @@ const REPORT_RESOURCES: Array<{ resource: ReportResource; permission: Permission
 ];
 
 const REPORT_FORMATS: ReportFormat[] = ['csv', 'xlsx', 'pdf'];
+const REPORT_AGGREGATIONS: ReportAggregation[] = ['count', 'sum', 'avg', 'min', 'max'];
 
 const REPORT_PROFILES: Array<{ value: ReportProfileId; labelKey: string; descriptionKey: string; preferredFormat: ReportFormat }> = [
   { value: 'executive', labelKey: 'module.reportsProfileExecutive', descriptionKey: 'module.reportsProfileExecutiveDesc', preferredFormat: 'pdf' },
@@ -193,17 +195,29 @@ export default function ReportsPage() {
   const toast = useToast();
   const { t, locale } = useI18n();
   const can = useCan();
+  const { session } = useSession();
   const [resource, setResource] = useState<ReportResource>('assets');
   const [format, setFormat] = useState<ReportFormat>('csv');
   const [limit, setLimit] = useState('10000');
   const [profile, setProfile] = useState<ReportProfileId | ''>('');
   const [selectedColumns, setSelectedColumns] = useState<ReportColumn[]>([]);
+  const [sorting, setSorting] = useState<ReportSort[]>([]);
+  const [grouping, setGrouping] = useState<ReportGroup[]>([]);
+  const [templates, setTemplates] = useState<ReportTemplateRecord[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [templateShared, setTemplateShared] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
+  const [templateDeleting, setTemplateDeleting] = useState<string | null>(null);
   const [showDesigner, setShowDesigner] = useState(true);
   const [exporting, setExporting] = useState(false);
   const availableResources = useMemo(() => REPORT_RESOURCES.filter((item) => can(item.permission)), [can]);
   const selectedResource = availableResources.find((item) => item.resource === resource) ?? availableResources[0] ?? null;
   const columnCatalog = REPORT_COLUMN_CATALOG[resource];
   const selectedProfile = REPORT_PROFILES.find((item) => item.value === profile) ?? null;
+  const canCreateTemplates = can(PERMISSIONS.REPORT_CREATE);
+  const canDeleteTemplates = can(PERMISSIONS.REPORT_DELETE);
   const printGeneratedAt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -212,6 +226,16 @@ export default function ReportsPage() {
   useEffect(() => {
     if (selectedResource && selectedResource.resource !== resource) setResource(selectedResource.resource);
   }, [resource, selectedResource]);
+
+  useEffect(() => {
+    let active = true;
+    setTemplatesLoading(true);
+    void listReportTemplates(resource)
+      .then((items) => { if (active) setTemplates(items); })
+      .catch(() => { if (active) setTemplates([]); })
+      .finally(() => { if (active) setTemplatesLoading(false); });
+    return () => { active = false; };
+  }, [resource]);
 
   useEffect(() => {
     const defaults = columnCatalog.slice(0, Math.min(columnCatalog.length, 8)).map((column) => ({ key: column.key, label: t(column.labelKey), order: column.order }));
@@ -247,7 +271,7 @@ export default function ReportsPage() {
 
   const saveLayout = () => {
     try {
-      localStorage.setItem(`${REPORT_LAYOUT_STORAGE_KEY}.${resource}`, JSON.stringify({ profile, columns: selectedColumns, format, limit }));
+      localStorage.setItem(`${REPORT_LAYOUT_STORAGE_KEY}.${resource}`, JSON.stringify({ profile, columns: selectedColumns, format, limit, sorting, grouping }));
       toast.success(t('module.reportsLayoutSaved'), t('module.reportsLayoutSavedMessage'));
     } catch (error) {
       toast.error(t('module.reportsLayoutFailed'), humanError(error));
@@ -261,7 +285,7 @@ export default function ReportsPage() {
         toast.error(t('module.reportsLayoutFailed'), t('module.reportsNoSavedLayout'));
         return;
       }
-      const parsed = JSON.parse(raw) as { profile?: ReportProfileId; columns?: ReportColumn[]; format?: ReportFormat; limit?: string };
+      const parsed = JSON.parse(raw) as { profile?: ReportProfileId; columns?: ReportColumn[]; format?: ReportFormat; limit?: string; sorting?: ReportSort[]; grouping?: ReportGroup[] };
       const allowed = new Set(columnCatalog.map((column) => column.key));
       const restored = Array.isArray(parsed.columns)
         ? parsed.columns.filter((column) => column && allowed.has(column.key)).map((column, index) => ({ key: column.key, label: t(columnCatalog.find((item) => item.key === column.key)?.labelKey ?? '', column.label), order: index + 1 }))
@@ -270,6 +294,8 @@ export default function ReportsPage() {
       setProfile(parsed.profile && REPORT_PROFILES.some((item) => item.value === parsed.profile) ? parsed.profile : '');
       if (parsed.format && REPORT_FORMATS.includes(parsed.format)) setFormat(parsed.format);
       if (parsed.limit) setLimit(parsed.limit);
+      if (Array.isArray(parsed.sorting)) setSorting(parsed.sorting.filter((item) => item && typeof item.field === 'string' && (item.dir === 'asc' || item.dir === 'desc')));
+      if (Array.isArray(parsed.grouping)) setGrouping(parsed.grouping.filter((item) => item && typeof item.field === 'string' && REPORT_AGGREGATIONS.includes(item.aggregate ?? 'count')));
       toast.success(t('module.reportsLayoutLoaded'), t('module.reportsLayoutLoadedMessage'));
     } catch (error) {
       toast.error(t('module.reportsLayoutFailed'), humanError(error));
@@ -286,6 +312,95 @@ export default function ReportsPage() {
     if (preference) setFormat(preference.preferredFormat);
   };
 
+  const addSorting = () => {
+    const field = selectedColumns[0]?.key ?? columnCatalog[0]?.key;
+    if (!field) return;
+    setSorting((current) => [...current, { field, dir: 'asc' }]);
+  };
+
+  const updateSorting = (index: number, patch: Partial<ReportSort>) => {
+    setSorting((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+  };
+
+  const addGrouping = () => {
+    const field = selectedColumns[0]?.key ?? columnCatalog[0]?.key;
+    if (!field) return;
+    setGrouping((current) => [...current, { field, aggregate: 'count' }]);
+  };
+
+  const updateGrouping = (index: number, patch: Partial<ReportGroup>) => {
+    setGrouping((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+  };
+
+  const currentDefinition = (name: string): ReportDefinition => ({
+    id: `designer-${resource}-${Date.now()}`,
+    name,
+    resource,
+    format,
+    columns: selectedColumns.map((column) => ({ field: column.key, label: column.label })),
+    sorting,
+    grouping,
+  });
+
+  const loadTemplate = (template: ReportTemplateRecord) => {
+    const definition = template.definition;
+    const catalog = REPORT_COLUMN_CATALOG[definition.resource];
+    const restoredColumns = definition.columns
+      .filter((column) => catalog.some((option) => option.key === column.field))
+      .map((column, index) => ({ key: column.field, label: t(catalog.find((option) => option.key === column.field)?.labelKey ?? '', column.label ?? column.field), order: index + 1 }));
+    setResource(definition.resource);
+    setFormat(definition.format);
+    setProfile('');
+    setSelectedColumns(restoredColumns.length > 0 ? restoredColumns : catalog.slice(0, 8).map((column, index) => ({ key: column.key, label: t(column.labelKey), order: index + 1 })));
+    setSorting(definition.sorting ?? []);
+    setGrouping(definition.grouping ?? []);
+    toast.success(t('module.reportsTemplateLoaded'), t('module.reportsTemplateLoadedMessage'));
+  };
+
+  const saveTemplate = async () => {
+    const name = templateName.trim();
+    if (!canCreateTemplates) return;
+    if (!name) {
+      toast.error(t('module.reportsTemplateSaveFailed'), t('module.reportsTemplateNameInvalid'));
+      return;
+    }
+    setTemplateSaving(true);
+    try {
+      const created = await createReportTemplate({
+        name,
+        description: templateDescription.trim() || undefined,
+        resource,
+        format,
+        definition: currentDefinition(name),
+        is_shared: templateShared,
+      });
+      setTemplates((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+      setTemplateName('');
+      setTemplateDescription('');
+      setTemplateShared(false);
+      toast.success(t('module.reportsTemplateSaved'), t('module.reportsTemplateSavedMessage'));
+    } catch (error) {
+      toast.error(t('module.reportsTemplateSaveFailed'), humanError(error));
+    } finally {
+      setTemplateSaving(false);
+    }
+  };
+
+  const removeTemplate = async (template: ReportTemplateRecord) => {
+    if (!canDeleteTemplates || template.created_by !== session?.user.id) return;
+    if (!window.confirm(`${t('module.reportsDeleteTemplate')}: ${template.name}?`)) return;
+    setTemplateDeleting(template.id);
+    try {
+      await deleteReportTemplate(template.id);
+      setTemplates((current) => current.filter((item) => item.id !== template.id));
+      toast.success(t('module.reportsTemplateDeleted'));
+    } catch (error) {
+      toast.error(t('module.reportsTemplateDeleteFailed'), humanError(error));
+    } finally {
+      setTemplateDeleting(null);
+    }
+  };
+
   const download = async () => {
     if (!selectedResource) return;
     const parsedLimit = Number(limit);
@@ -295,7 +410,7 @@ export default function ReportsPage() {
     }
     setExporting(true);
     try {
-      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit, profile: profile || undefined, columns: selectedColumns });
+      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit, profile: profile || undefined, columns: selectedColumns, sorting, grouping });
       toast.success(t('module.reportsExportReady'), t('module.reportsExportMessage'));
     } catch (error) {
       toast.error(t('module.reportsExportFailed'), humanError(error));
@@ -459,6 +574,94 @@ export default function ReportsPage() {
                             ))}
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                      <div className="rounded-xl border border-line bg-surface-muted/20 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-ink">{t('module.reportsSorting')}</p>
+                          <Button variant="ghost" size="sm" onClick={addSorting} title={t('module.reportsAddSorting')} aria-label={t('module.reportsAddSorting')}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                        {sorting.length === 0 ? <p className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-xs text-ink-muted">{t('module.reportsNoSorting')}</p> : (
+                          <div className="space-y-2">
+                            {sorting.map((rule, index) => (
+                              <div key={`${rule.field}-${index}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-2">
+                                <Select value={rule.field} onChange={(event) => updateSorting(index, { field: event.target.value })} aria-label={t('module.reportsSortField')}>
+                                  {columnCatalog.map((option) => <option key={option.key} value={option.key}>{t(option.labelKey)}</option>)}
+                                </Select>
+                                <Select value={rule.dir} onChange={(event) => updateSorting(index, { dir: event.target.value as ReportSort['dir'] })} aria-label={t('module.reportsDirection')}>
+                                  <option value="asc">{t('module.reportsAscending')}</option>
+                                  <option value="desc">{t('module.reportsDescending')}</option>
+                                </Select>
+                                <Button variant="ghost" size="sm" onClick={() => setSorting((current) => current.filter((_, itemIndex) => itemIndex !== index))} title={t('module.reportsRemoveColumn')} aria-label={t('module.reportsRemoveColumn')}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="rounded-xl border border-line bg-surface-muted/20 p-3">
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-ink">{t('module.reportsGrouping')}</p>
+                          <Button variant="ghost" size="sm" onClick={addGrouping} title={t('module.reportsAddGrouping')} aria-label={t('module.reportsAddGrouping')}><Plus className="h-4 w-4" /></Button>
+                        </div>
+                        {grouping.length === 0 ? <p className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-xs text-ink-muted">{t('module.reportsNoGrouping')}</p> : (
+                          <div className="space-y-2">
+                            {grouping.map((rule, index) => (
+                              <div key={`${rule.field}-${index}`} className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                                <Select value={rule.field} onChange={(event) => updateGrouping(index, { field: event.target.value })} aria-label={t('module.reportsGroupField')}>
+                                  {columnCatalog.map((option) => <option key={option.key} value={option.key}>{t(option.labelKey)}</option>)}
+                                </Select>
+                                <Select value={rule.aggregate ?? 'count'} onChange={(event) => { const aggregate = event.target.value as ReportAggregation; updateGrouping(index, { aggregate, valueField: aggregate === 'count' ? undefined : rule.valueField }); }} aria-label={t('module.reportsAggregate')}>
+                                  {REPORT_AGGREGATIONS.map((aggregate) => <option key={aggregate} value={aggregate}>{t(`module.reportsAggregation.${aggregate}`)}</option>)}
+                                </Select>
+                                <Select value={rule.valueField ?? ''} disabled={(rule.aggregate ?? 'count') === 'count'} onChange={(event) => updateGrouping(index, { valueField: event.target.value || undefined })} aria-label={t('module.reportsValueField')}>
+                                  <option value="">{t('module.reportsValueField')}</option>
+                                  {columnCatalog.map((option) => <option key={option.key} value={option.key}>{t(option.labelKey)}</option>)}
+                                </Select>
+                                <Button variant="ghost" size="sm" onClick={() => setGrouping((current) => current.filter((_, itemIndex) => itemIndex !== index))} title={t('module.reportsRemoveColumn')} aria-label={t('module.reportsRemoveColumn')}><Trash2 className="h-3.5 w-3.5 text-danger" /></Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-brand/20 bg-brand-soft/20 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{t('module.reportsTemplates')}</p>
+                          <p className="mt-1 text-xs text-ink-muted">{t('module.reportsTemplateSharedHint')}</p>
+                        </div>
+                        {templates.length > 0 && <span className="text-xs text-ink-muted">{templates.length}</span>}
+                      </div>
+                      {canCreateTemplates && (
+                        <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-4">
+                          <Field label={t('module.reportsTemplateName')}>
+                            <Input value={templateName} onChange={(event) => setTemplateName(event.target.value)} aria-label={t('module.reportsTemplateName')} />
+                          </Field>
+                          <Field label={t('module.reportsTemplateDescription')}>
+                            <Input value={templateDescription} onChange={(event) => setTemplateDescription(event.target.value)} aria-label={t('module.reportsTemplateDescription')} />
+                          </Field>
+                          <label className="flex items-center gap-2 self-end rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
+                            <input type="checkbox" checked={templateShared} onChange={(event) => setTemplateShared(event.target.checked)} />
+                            <span>{t('module.reportsTemplateShared')}</span>
+                          </label>
+                          <Button variant="primary" size="sm" className="self-end" loading={templateSaving} onClick={() => void saveTemplate()}><Save className="h-4 w-4" />{t('module.reportsSaveTemplate')}</Button>
+                        </div>
+                      )}
+                      <div className="mt-3 space-y-2">
+                        {templatesLoading ? <p className="text-xs text-ink-muted">{t('common.loading')}</p> : templates.length === 0 ? <p className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-xs text-ink-muted">{t('module.reportsNoTemplates')}</p> : templates.map((template) => (
+                          <div key={template.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-ink">{template.name}{template.is_shared ? <span className="ms-2 text-xs font-normal text-brand">· {t('module.reportsTemplateShared')}</span> : null}</p>
+                              {template.description && <p className="truncate text-xs text-ink-muted">{template.description}</p>}
+                            </div>
+                            <Button variant="secondary" size="sm" onClick={() => loadTemplate(template)} title={t('module.reportsLoadTemplate')} aria-label={t('module.reportsLoadTemplate')}><FolderOpen className="h-4 w-4" />{t('module.reportsLoadTemplate')}</Button>
+                            {canDeleteTemplates && template.created_by === session?.user.id && <Button variant="ghost" size="sm" loading={templateDeleting === template.id} onClick={() => void removeTemplate(template)} title={t('module.reportsDeleteTemplate')} aria-label={t('module.reportsDeleteTemplate')}><Trash2 className="h-4 w-4 text-danger" /></Button>}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </CardBody>

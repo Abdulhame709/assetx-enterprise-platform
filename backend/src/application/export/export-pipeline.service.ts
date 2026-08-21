@@ -23,6 +23,8 @@ import { ExportMetadata, ExportOptions } from '../../core/entities/export.entity
 import { ExportProfile } from '../../core/entities/export-profile.entity';
 import { ExportDataAdapter, ExportRow } from './adapters/export-data.adapter';
 import { ExportMetricsService } from './export-metrics.service';
+import { ReportBuilderService } from '../report-builder.service';
+import { ReportDefinition } from '../../core/entities/report.entity';
 
 /** Byte threshold between incremental EXPORT_PROGRESS emissions. */
 const PROGRESS_INTERVAL_BYTES = 64 * 1024; // 64 KB
@@ -56,6 +58,7 @@ export class ExportPipelineService {
     @Inject(EVENT_BUS) private readonly bus: EventBus,
     private readonly metrics: ExportMetricsService,
     private readonly adapter: ExportDataAdapter,
+    private readonly reportBuilder: ReportBuilderService,
   ) {}
 
   /** Run the full pipeline for a resolved provider + strategy. */
@@ -66,10 +69,12 @@ export class ExportPipelineService {
     const state: ExportStrategyState = await ctx.strategy.prepare(ctx.options);
 
     // 2 · TRANSFORM — fetch raw data and normalize into uniform rows.
-    const { rows, total } = await ctx.provider.getData(ctx.tenant, ctx.options);
+    const { rows } = await ctx.provider.getData(ctx.tenant, ctx.options);
     const adapted: ExportRow[] = this.adapter.toRows(rows);
-    const transformed: ExportRow[] = ctx.strategy.transform(adapted, ctx.options);
-    this.publishProgress(ctx, { phase: 'transform', rows: total, bytes: 0, percent: 0 });
+    const reportRows = this.applyReportDefinition(adapted, ctx);
+    const transformed: ExportRow[] = ctx.strategy.transform(reportRows, ctx.options);
+    const outputRows = transformed.length;
+    this.publishProgress(ctx, { phase: 'transform', rows: outputRows, bytes: 0, percent: 0 });
 
     // 3 · FORMAT — strategy builds the format-specific structure.
     await ctx.strategy.formatOutput(state, transformed, ctx.options);
@@ -82,19 +87,19 @@ export class ExportPipelineService {
     pass.on('data', (chunk: Buffer) => {
       if (bytes() - lastEmitted >= PROGRESS_INTERVAL_BYTES) {
         lastEmitted = bytes();
-        this.publishProgress(ctx, { phase: 'stream', rows: total, bytes: bytes(), percent: null });
+        this.publishProgress(ctx, { phase: 'stream', rows: outputRows, bytes: bytes(), percent: null });
       }
     });
 
     pass.on('end', () => {
-      const metric = this.metrics.complete(ctx.metricId, total, bytes());
-      this.publishProgress(ctx, { phase: 'complete', rows: total, bytes: bytes(), percent: 100 });
+      const metric = this.metrics.complete(ctx.metricId, outputRows, bytes());
+      this.publishProgress(ctx, { phase: 'complete', rows: outputRows, bytes: bytes(), percent: 100 });
       this.bus.publish({
         event: DOMAIN_EVENTS.EXPORT_COMPLETED,
         tenant_id: ctx.tenant,
         userId: ctx.user,
         entityId: ctx.resource,
-        payload: { resource: ctx.resource, format: ctx.strategy.format, rows: total, bytes: bytes(), duration: Date.now() - started, metric },
+        payload: { resource: ctx.resource, format: ctx.strategy.format, rows: outputRows, bytes: bytes(), duration: Date.now() - started, metric },
       });
     });
 
@@ -112,7 +117,7 @@ export class ExportPipelineService {
     const metadata: ExportMetadata = {
       resource: ctx.resource as ExportMetadata['resource'],
       format: ctx.strategy.format,
-      rows: total,
+      rows: outputRows,
       size: bytes(),
       duration: Date.now() - started,
       user: ctx.user,
@@ -121,7 +126,52 @@ export class ExportPipelineService {
       generated_at: new Date().toISOString(),
     };
 
-    return { stream: pass, rows: total, bytes, strategy: ctx.strategy, metadata };
+    return { stream: pass, rows: outputRows, bytes, strategy: ctx.strategy, metadata };
+  }
+
+  private applyReportDefinition(rows: ExportRow[], ctx: ExportPipelineContext): ExportRow[] {
+    const metadata = ctx.options.filters?.__report;
+    if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return rows;
+    const raw = metadata as Record<string, unknown>;
+    const columns = Array.isArray(raw.columns)
+      ? raw.columns
+        .map((column) => {
+          if (typeof column === 'string') return { field: column };
+          if (column && typeof column === 'object' && !Array.isArray(column)) {
+            const source = column as Record<string, unknown>;
+            return { field: String(source.field ?? ''), ...(source.label ? { label: String(source.label) } : {}) };
+          }
+          return { field: '' };
+        })
+        .filter((column) => column.field.length > 0)
+      : Object.keys(rows[0] ?? {}).map((field) => ({ field }));
+    const report: ReportDefinition = {
+      id: `export-${ctx.resource}`,
+      name: `Export ${ctx.resource}`,
+      resource: ctx.resource as ReportDefinition['resource'],
+      format: ctx.strategy.format,
+      columns,
+      sorting: Array.isArray(raw.sorting) ? raw.sorting as ReportDefinition['sorting'] : [],
+      grouping: Array.isArray(raw.grouping) ? raw.grouping as ReportDefinition['grouping'] : [],
+    };
+    this.reportBuilder.validate(report);
+    const transformed = this.reportBuilder.transformRows(rows, report) as ExportRow[];
+    if (report.grouping && report.grouping.length > 0 && transformed.length > 0) {
+      const requested = report.columns.map((column) => column.field);
+      const aliasesToSkip = new Set<string>(
+        report.grouping.filter((group) => group.valueField).map((group) => group.aggregate ?? 'count'),
+      );
+      const present = Object.keys(transformed[0]);
+      const outputKeys = [...requested.filter((key) => present.includes(key))];
+      for (const key of present) {
+        if (!outputKeys.includes(key) && !aliasesToSkip.has(key)) outputKeys.push(key);
+      }
+      ctx.options.columns = outputKeys.map((key, order) => {
+        const source = report.columns.find((column) => column.field === key);
+        return { key, order, ...(source?.label ? { label: source.label } : {}) };
+      });
+    }
+    return transformed;
   }
 
   /** Wrap a readable in a PassThrough that counts bytes as they flow. */

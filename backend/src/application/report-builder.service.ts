@@ -94,41 +94,34 @@ export class ReportBuilderService {
    */
   transformRows<T extends Record<string, unknown>>(rows: T[], report: ReportDefinition): unknown[] {
     const columns = new Set(report.columns.map((c) => c.field));
-    // keep any aggregation value fields so grouping aggregates have data
+    for (const s of report.sorting ?? []) columns.add(s.field);
     for (const g of report.grouping ?? []) {
+      columns.add(g.field);
       if (g.valueField) columns.add(g.valueField);
     }
     const projected = rows.map((r) => this.project(r, Array.from(columns)));
-
     let result: Record<string, unknown>[] = projected;
 
-    // sorting
+    if (report.grouping && report.grouping.length > 0) {
+      const groups = new Map<string, Record<string, unknown>>();
+      for (const row of projected) {
+        const key = JSON.stringify(report.grouping.map((g) => row[g.field] ?? null));
+        const group = groups.get(key) ?? this.emptyGroup(report.grouping, row);
+        if (!groups.has(key)) groups.set(key, group);
+        for (const g of report.grouping) this.aggregateInto(group, g, row);
+      }
+      result = Array.from(groups.values()).map((row) => this.cleanAggregationInternals(row));
+    }
+
     if (report.sorting && report.sorting.length > 0) {
       result = [...result].sort((a, b) => {
         for (const s of report.sorting!) {
-          const av = a[s.field];
-          const bv = b[s.field];
-          const cmp = this.compare(av, bv);
+          const cmp = this.compare(a[s.field], b[s.field]);
           if (cmp !== 0) return s.dir === 'asc' ? cmp : -cmp;
         }
         return 0;
       });
     }
-
-    // grouping + aggregation
-    if (report.grouping && report.grouping.length > 0) {
-      const groups = new Map<string, Record<string, unknown>>();
-      for (const r of projected) {
-        for (const g of report.grouping!) {
-          const key = String(r[g.field] ?? '');
-          const group = groups.get(key) ?? this.emptyGroup(g, r);
-          if (!groups.has(key)) groups.set(key, group);
-          this.aggregateInto(group, g, r);
-        }
-      }
-      result = Array.from(groups.values());
-    }
-
     return result;
   }
 
@@ -146,27 +139,68 @@ export class ReportBuilderService {
     return String(a).localeCompare(String(b));
   }
 
-  private emptyGroup(g: ReportGroup, first: Record<string, unknown>): Record<string, unknown> {
-    const out: Record<string, unknown> = { [g.field]: first[g.field] };
-    if (g.aggregate === 'count') out['count'] = 0;
+  private emptyGroup(grouping: ReportGroup[], first: Record<string, unknown>): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const g of grouping) {
+      out[g.field] = first[g.field];
+      const agg = g.aggregate ?? 'count';
+      const key = this.aggregateKey(g);
+      if (agg === 'count' || agg === 'sum') out[key] = 0;
+      if (agg === 'avg') {
+        out[key] = 0;
+        out[`__sum_${key}`] = 0;
+        out[`__count_${key}`] = 0;
+      }
+      if (agg === 'min') out[key] = Infinity;
+      if (agg === 'max') out[key] = -Infinity;
+      if (g.valueField && agg !== 'count') out[agg] = out[key];
+    }
     return out;
+  }
+
+  private aggregateKey(g: ReportGroup): string {
+    const agg = g.aggregate ?? 'count';
+    if (agg === 'count' && !g.valueField) return 'count';
+    return `${agg}_${g.valueField ?? g.field}`;
   }
 
   private aggregateInto(group: Record<string, unknown>, g: ReportGroup, row: Record<string, unknown>): void {
     const agg = g.aggregate ?? 'count';
     const target = g.valueField ?? g.field;
+    const key = this.aggregateKey(g);
     const val = row[target];
-    switch (agg) {
-      case 'count': group['count'] = (group['count'] as number ?? 0) + 1; break;
-      case 'sum': group['sum'] = (group['sum'] as number ?? 0) + (Number(val) || 0); break;
-      case 'avg': {
-        const total = (group['__sum'] as number ?? 0) + (Number(val) || 0);
-        const cnt = (group['__count'] as number ?? 0) + 1;
-        group['__sum'] = total; group['__count'] = cnt; group['avg'] = total / cnt; break;
-      }
-      case 'min': group['min'] = Math.min(group['min'] as number ?? Infinity, Number(val) || 0); break;
-      case 'max': group['max'] = Math.max(group['max'] as number ?? -Infinity, Number(val) || 0); break;
+    if (agg === 'count') {
+      group[key] = (group[key] as number ?? 0) + 1;
+      return;
     }
+    if (agg === 'sum') {
+      group[key] = (group[key] as number ?? 0) + (Number(val) || 0);
+      if (g.valueField) group[agg] = group[key];
+      return;
+    }
+    if (agg === 'avg') {
+      const totalKey = `__sum_${key}`;
+      const countKey = `__count_${key}`;
+      const total = (group[totalKey] as number ?? 0) + (Number(val) || 0);
+      const count = (group[countKey] as number ?? 0) + 1;
+      group[totalKey] = total;
+      group[countKey] = count;
+      group[key] = total / count;
+      if (g.valueField) group[agg] = group[key];
+      return;
+    }
+    const numeric = Number(val) || 0;
+    group[key] = agg === 'min'
+      ? Math.min(group[key] as number ?? Infinity, numeric)
+      : Math.max(group[key] as number ?? -Infinity, numeric);
+    if (g.valueField) group[agg] = group[key];
+  }
+
+  private cleanAggregationInternals(row: Record<string, unknown>): Record<string, unknown> {
+    for (const key of Object.keys(row)) {
+      if (key.startsWith('__')) delete row[key];
+    }
+    return row;
   }
 
   private flattenFilters(filters?: ReportFilter[]): Record<string, unknown> {

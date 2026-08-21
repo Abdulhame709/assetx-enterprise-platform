@@ -120,6 +120,9 @@ import { SearchController } from './api/search/search.controller';
 import { SavedSearchRepository } from './infrastructure/repositories/saved-search.repository';
 import { SavedSearchService } from './application/saved-search.service';
 import { SavedSearchController } from './api/search/saved-search.controller';
+import { SavedReportTemplateRepository } from './infrastructure/repositories/saved-report-template.repository';
+import { SavedReportTemplateService } from './application/saved-report-template.service';
+import { ReportTemplateController } from './api/report-templates/report-template.controller';
 import {
   DATABASE_PORT,
   PASSWORD_HASHER,
@@ -144,6 +147,7 @@ import {
   EXPORT_STRATEGIES,
   SEARCH_PROVIDERS,
   SAVED_SEARCH_PORT,
+  SAVED_REPORT_TEMPLATE_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -269,6 +273,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     SearchService,
     { provide: SAVED_SEARCH_PORT, useClass: SavedSearchRepository },
     SavedSearchService,
+    { provide: SAVED_REPORT_TEMPLATE_PORT, useClass: SavedReportTemplateRepository },
+    SavedReportTemplateService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -296,7 +302,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     LocationController, CategoryController, ModelController, EmployeeController,
     StatusController, MasterDataImportController,
     InventoryController, MovementController, MaintenanceController, DashboardController, AuditController, ComplianceController,
-    NotificationController, ExportController, SearchController, SavedSearchController,
+    NotificationController, ExportController, SearchController, SavedSearchController, ReportTemplateController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })

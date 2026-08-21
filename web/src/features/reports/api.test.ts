@@ -58,6 +58,22 @@ describe('report export API', () => {
     expect(decodeURIComponent(String(url))).toContain('"key":"full_asset_code"');
   });
 
+  it('serializes sorting and grouping metadata for real aggregation exports', async () => {
+    const response = new Response('location_id,count\\nloc-1,3', { status: 200 });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response);
+    await downloadReportExport({
+      resource: 'assets',
+      format: 'xlsx',
+      sorting: [{ field: 'count', dir: 'desc' }],
+      grouping: [{ field: 'location_id', aggregate: 'count' }, { field: 'location_id', aggregate: 'sum', valueField: 'purchase_price' }],
+    });
+    const [url] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const decoded = decodeURIComponent(String(url));
+    expect(decoded).toContain('sorting=[{"field":"count","dir":"desc"}]');
+    expect(decoded).toContain('"aggregate":"sum"');
+    expect(decoded).toContain('"valueField":"purchase_price"');
+  });
+
   it('surfaces a failed export response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('', { status: 403 }));
 

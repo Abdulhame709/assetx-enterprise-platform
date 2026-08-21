@@ -102,4 +102,21 @@ describe('Report Builder — integration (Task T5)', () => {
     expect(result.format).toBe('csv');
     expect(result.filename.endsWith('.csv')).toBe(true);
   });
+
+  it('executes grouping and count in the real CSV export pipeline', async () => {
+    const report: ReportDefinition = {
+      ...baseReport,
+      columns: [{ field: 'location_id' }],
+      grouping: [{ field: 'location_id', aggregate: 'count' }],
+    };
+    const request = h.reportBuilder.buildExportRequest(report, h.tenantA, userA);
+    const result = await h.exportService.generate(request);
+    const chunks: Buffer[] = [];
+    for await (const chunk of result.stream as AsyncIterable<Buffer | string>) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const csv = Buffer.concat(chunks).toString('utf8');
+    expect(csv).toContain('location_id,count');
+    expect(csv).toContain(',3\n');
+  });
 });

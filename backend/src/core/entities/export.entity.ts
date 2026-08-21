@@ -15,6 +15,17 @@ export type ExportResource =
   | 'audit'
   | 'dashboard';
 
+export interface ReportExecutionMetadata {
+  /** selected fields to project before formatting */
+  columns?: Array<{ field: string; label?: string }>;
+  sorting?: Array<{ field: string; dir: 'asc' | 'desc' }>;
+  grouping?: Array<{
+    field: string;
+    aggregate?: 'count' | 'sum' | 'avg' | 'min' | 'max';
+    valueField?: string;
+  }>;
+}
+
 export interface ExportOptions {
   /** filters / parameters passed to the data provider */
   filters?: Record<string, unknown>;

@@ -27,6 +27,8 @@ export const PERMISSIONS = {
   MAINTENANCE_CREATE: 'maintenance.create',
   MAINTENANCE_MANAGE: 'maintenance.manage',
   REPORT_VIEW: 'report.view',
+  REPORT_CREATE: 'report.create',
+  REPORT_DELETE: 'report.delete',
   REPORT_EXPORT: 'report.export',
   ANALYTICS_VIEW: 'analytics.view',
   COMPLIANCE_VIEW: 'compliance.view',

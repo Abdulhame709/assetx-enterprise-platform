@@ -174,13 +174,15 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(migration008);
   const migration009 = fs.readFileSync(path.join(migrationsDir, '009_inventory_missing_movement.sql'), 'utf8');
   await db.exec(migration009);
+  const migration010 = fs.readFileSync(path.join(migrationsDir, '010_report_templates.sql'), 'utf8');
+  await db.exec(migration010);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
       user_roles, user_permissions, password_reset_tokens, asset_categories, asset_models, statuses,
       locations, assets, asset_movements, maintenance_orders, inventory_cycles,
       inventory_team, inventory_records, audit_events, notification_templates,
-      notifications, settings TO authenticated;
+      notifications, settings, report_templates TO authenticated;
     GRANT EXECUTE ON FUNCTION authenticate_user(text) TO authenticated;
     GRANT SELECT, INSERT, UPDATE, DELETE ON auth_sessions TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;
@@ -268,7 +270,8 @@ export async function createHarness(): Promise<Harness> {
   const exportStrategyFactory = new ExportStrategyFactory([csvStrategy, excelStrategy, pdfStrategy]);
   const exportProfiles = new ExportProfileRegistry();
   const exportMetrics = new ExportMetricsService();
-  const exportPipeline = new ExportPipelineService(bus, exportMetrics, new ExportDataAdapter());
+  const reportBuilder = new ReportBuilderService();
+  const exportPipeline = new ExportPipelineService(bus, exportMetrics, new ExportDataAdapter(), reportBuilder);
   const exportService = new ExportService(
     exportStrategyFactory,
     exportPipeline,
@@ -307,7 +310,6 @@ export async function createHarness(): Promise<Harness> {
   const workflow = new WorkflowEngineService();
   const rules = new BusinessRulesEngineService();
   const scheduledReports = new ScheduledReportService(exportService, bus);
-  const reportBuilder = new ReportBuilderService();
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
