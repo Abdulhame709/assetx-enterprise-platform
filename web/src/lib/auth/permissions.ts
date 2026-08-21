@@ -31,7 +31,6 @@ export const PERMISSIONS = {
   ANALYTICS_VIEW: 'analytics.view',
   COMPLIANCE_VIEW: 'compliance.view',
   AUDIT_VIEW: 'audit.view',
-  EXPORT_AUDIT: 'export.audit',
   SEARCH_VIEW: 'search.view',
   ADMIN_USER: 'admin.user',
   ADMIN_ROLE: 'admin.role',
@@ -57,6 +56,9 @@ export const PERMISSIONS = {
   SETTINGS_VIEW: 'settings.view',
   EXPORT_ASSETS: 'export.assets',
   EXPORT_MOVEMENTS: 'export.movements',
+  EXPORT_INVENTORY: 'export.inventory',
+  EXPORT_AUDIT: 'export.audit',
+  EXPORT_DASHBOARD: 'export.dashboard',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

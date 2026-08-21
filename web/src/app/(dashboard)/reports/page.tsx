@@ -1,8 +1,8 @@
 'use client';
 
-import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, FileDown, Layers3, MapPin, PackageCheck, Printer, RefreshCw, Users, Wrench } from 'lucide-react';
+import { Activity, Archive, BarChart3, CircleCheckBig, Download, Eye, Layers3, MapPin, PackageCheck, Printer, RefreshCw, Users, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -10,10 +10,23 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
-import { downloadAssetExport } from '@/features/assets/api';
+import { downloadReportExport, ReportFormat, ReportResource } from '@/features/reports/api';
+import { Field, Input, Select } from '@/components/ui/form';
+import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
+import { useCan } from '@/lib/auth/session-context';
 import type { AnalyticsBucket, LifecycleDistributionBucket } from '@/features/assets/types';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
+
+const REPORT_RESOURCES: Array<{ resource: ReportResource; permission: PermissionKey; labelKey: string; descriptionKey: string }> = [
+  { resource: 'assets', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'module.reportsResourceAssets', descriptionKey: 'module.reportsResourceAssetsDesc' },
+  { resource: 'movements', permission: PERMISSIONS.EXPORT_MOVEMENTS, labelKey: 'module.reportsResourceMovements', descriptionKey: 'module.reportsResourceMovementsDesc' },
+  { resource: 'inventory', permission: PERMISSIONS.EXPORT_INVENTORY, labelKey: 'module.reportsResourceInventory', descriptionKey: 'module.reportsResourceInventoryDesc' },
+  { resource: 'audit', permission: PERMISSIONS.EXPORT_AUDIT, labelKey: 'module.reportsResourceAudit', descriptionKey: 'module.reportsResourceAuditDesc' },
+  { resource: 'dashboard', permission: PERMISSIONS.EXPORT_DASHBOARD, labelKey: 'module.reportsResourceDashboard', descriptionKey: 'module.reportsResourceDashboardDesc' },
+];
+
+const REPORT_FORMATS: ReportFormat[] = ['csv', 'xlsx', 'pdf'];
 
 function humanize(value: string): string {
   return value
@@ -108,12 +121,28 @@ export default function ReportsPage() {
   const state = useAnalytics();
   const toast = useToast();
   const { t, locale } = useI18n();
+  const can = useCan();
+  const [resource, setResource] = useState<ReportResource>('assets');
+  const [format, setFormat] = useState<ReportFormat>('csv');
+  const [limit, setLimit] = useState('10000');
   const [exporting, setExporting] = useState(false);
+  const availableResources = useMemo(() => REPORT_RESOURCES.filter((item) => can(item.permission)), [can]);
+  const selectedResource = availableResources.find((item) => item.resource === resource) ?? availableResources[0] ?? null;
 
-  const download = async (format: 'csv' | 'pdf' = 'csv') => {
+  useEffect(() => {
+    if (selectedResource && selectedResource.resource !== resource) setResource(selectedResource.resource);
+  }, [resource, selectedResource]);
+
+  const download = async () => {
+    if (!selectedResource) return;
+    const parsedLimit = Number(limit);
+    if (!Number.isInteger(parsedLimit) || parsedLimit < 1 || parsedLimit > 100000) {
+      toast.error(t('module.reportsExportFailed'), t('module.reportsLimitInvalid'));
+      return;
+    }
     setExporting(true);
     try {
-      await downloadAssetExport(format);
+      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit });
       toast.success(t('module.reportsExportReady'), t('module.reportsExportMessage'));
     } catch (error) {
       toast.error(t('module.reportsExportFailed'), humanError(error));
@@ -129,8 +158,7 @@ export default function ReportsPage() {
         label={t('module.reportsToolbar')}
         actions={[
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
-          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download('csv'), loading: exporting, variant: 'primary' },
-          { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void download('pdf'), loading: exporting },
+          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, disabled: !selectedResource, variant: 'primary' },
           { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
         ]}
@@ -153,7 +181,7 @@ export default function ReportsPage() {
               </div>
 
               <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface">
-                <CardBody className="flex flex-col gap-4">
+                <CardBody className="space-y-4">
                   <div className="flex items-start gap-3">
                     <span className="rounded-xl bg-brand/10 p-2.5 text-brand"><BarChart3 className="h-5 w-5" aria-hidden="true" /></span>
                     <div>
@@ -162,6 +190,28 @@ export default function ReportsPage() {
                       <p className="mt-2 text-xs font-medium text-brand">{summary}</p>
                     </div>
                   </div>
+                  {availableResources.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border bg-surface-muted/40 px-4 py-5 text-sm text-ink-muted">
+                      {t('module.reportsNoExportAccess')}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <Field label={t('module.reportsResource')}>
+                        <Select value={selectedResource?.resource ?? ''} onChange={(event) => setResource(event.target.value as ReportResource)} aria-label={t('module.reportsResource')}>
+                          {availableResources.map((item) => <option key={item.resource} value={item.resource}>{t(item.labelKey)}</option>)}
+                        </Select>
+                        {selectedResource && <p className="mt-1 text-xs text-ink-faint">{t(selectedResource.descriptionKey)}</p>}
+                      </Field>
+                      <Field label={t('module.reportsFormat')}>
+                        <Select value={format} onChange={(event) => setFormat(event.target.value as ReportFormat)} aria-label={t('module.reportsFormat')}>
+                          {REPORT_FORMATS.map((item) => <option key={item} value={item}>{t(`module.reportsFormat.${item}`)}</option>)}
+                        </Select>
+                      </Field>
+                      <Field label={t('module.reportsLimit')} hint={t('module.reportsLimitHint')}>
+                        <Input type="number" min={1} max={100000} step={1} value={limit} onChange={(event) => setLimit(event.target.value)} aria-label={t('module.reportsLimit')} />
+                      </Field>
+                    </div>
+                  )}
                 </CardBody>
               </Card>
 
