@@ -25,7 +25,7 @@ function useBreadcrumbs(): Crumb[] {
     analytics: 'nav.analytics', compliance: 'nav.compliance', audit: 'nav.audit',
     search: 'nav.search', administration: 'nav.administrationPage', notifications: 'nav.notifications',
     employees: 'nav.employees', settings: 'nav.settings', 'import-data': 'nav.importData',
-    locations: 'nav.locations', 'asset-types': 'nav.assetTypes', statuses: 'nav.statuses',
+    locations: 'nav.locations', 'asset-types': 'nav.assetTypes', statuses: 'nav.statuses', models: 'nav.models',
   };
   const crumbs: Crumb[] = [{ label: t('common.home'), href: '/dashboard' }];
   let acc = '';

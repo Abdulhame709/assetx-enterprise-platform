@@ -11,12 +11,13 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: 'sm' | 'md' | 'lg';
+  closeLabel?: string;
 }
 
 const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' };
 
 /** Modal/Dialog — accessible overlay dialog with focus + ESC handling. */
-export function Modal({ open, onClose, title, children, footer, size = 'md' }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'md', closeLabel = 'Close' }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -37,7 +38,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md' }: M
       >
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 className="text-base font-semibold text-ink">{title}</h2>
-          <button className="rounded-lg p-1 text-ink-faint hover:bg-surface-muted hover:text-ink" onClick={onClose} aria-label="Close">
+          <button className="rounded-lg p-1 text-ink-faint hover:bg-surface-muted hover:text-ink" onClick={onClose} aria-label={closeLabel} title={closeLabel}>
             <X className="h-5 w-5" />
           </button>
         </div>
