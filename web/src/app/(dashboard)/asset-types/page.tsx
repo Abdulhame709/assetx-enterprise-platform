@@ -173,7 +173,7 @@ export default function AssetTypesPage() {
                         type="button"
                         title={t('assetTypes.addChild')}
                         aria-label={t('assetTypes.addChild')}
-                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                         onClick={() => setModal({ mode: 'create', parent: node })}
                       >
                         <Plus className="h-4 w-4" />
@@ -184,7 +184,7 @@ export default function AssetTypesPage() {
                         type="button"
                         title={t('assetTypes.rename')}
                         aria-label={t('assetTypes.rename')}
-                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                         onClick={() => setModal({ mode: 'edit', node })}
                       >
                         <Pencil className="h-4 w-4" />
@@ -196,7 +196,7 @@ export default function AssetTypesPage() {
                         title={t('assetTypes.deactivate')}
                         aria-label={t('assetTypes.deactivate')}
                         disabled={deactivatingId === node.id}
-                        className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                         onClick={() => deactivate(node)}
                       >
                         <Trash2 className="h-4 w-4" />

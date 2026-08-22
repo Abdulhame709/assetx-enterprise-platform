@@ -30,12 +30,14 @@ interface LocationTreeProps {
   locations: LocationNode[];
   search: string;
   canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
   onAddChild: (parent: LocationNode | null) => void;
   onEdit: (node: LocationNode) => void;
   onDelete: (node: LocationNode) => void;
 }
 
-export function LocationTree({ locations, search, canCreate, onAddChild, onEdit, onDelete }: LocationTreeProps) {
+export function LocationTree({ locations, search, canCreate, canUpdate, canDelete, onAddChild, onEdit, onDelete }: LocationTreeProps) {
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
@@ -157,30 +159,30 @@ export function LocationTree({ locations, search, canCreate, onAddChild, onEdit,
                   type="button"
                   title={t('locationTree.addChild')}
                   aria-label={t('locationTree.addChild')}
-                  className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
+                  className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                   onClick={() => onAddChild(node)}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               )}
-              <button
+              {canUpdate && <button
                 type="button"
                 title={t('locationTree.edit')}
                 aria-label={t('locationTree.edit')}
-                className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
+                className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                 onClick={() => onEdit(node)}
               >
                 <Pencil className="h-4 w-4" />
-              </button>
-              <button
+              </button>}
+              {canDelete && <button
                 type="button"
                 title={t('locationTree.delete')}
                 aria-label={t('locationTree.delete')}
-                className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger"
+                className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                 onClick={() => onDelete(node)}
               >
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </button>}
             </div>
           </div>
         );

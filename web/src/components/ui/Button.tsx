@@ -13,7 +13,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const base =
-  'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg font-medium transition-[transform,background-color,color,opacity] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:pointer-events-none';
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-white hover:bg-brand/90',

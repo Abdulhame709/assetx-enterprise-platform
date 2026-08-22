@@ -104,7 +104,7 @@ export default function StatusesPage() {
                   </div>
                   {!status.is_active && <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-muted">{t('statuses.inactive')}</span>}
                   <PermissionGate permission={PERMISSIONS.STATUS_UPDATE}>
-                    <button type="button" className="rounded-md p-1.5 text-ink-faint opacity-100 transition-opacity hover:bg-brand/10 hover:text-brand sm:opacity-0 sm:group-hover:opacity-100" title={t('statuses.edit')} onClick={() => setModal({ mode: 'edit', status })}>
+                    <button type="button" className="rounded-md p-1.5 text-ink-faint opacity-100 transition-opacity hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:opacity-0 sm:group-hover:opacity-100" title={t('statuses.edit')} aria-label={t('statuses.edit')} onClick={() => setModal({ mode: 'edit', status })}>
                       <Pencil className="h-4 w-4" />
                     </button>
                   </PermissionGate>
@@ -113,6 +113,7 @@ export default function StatusesPage() {
                       type="button"
                       className="rounded-md p-1.5 text-ink-faint opacity-100 transition-opacity hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
                       title={t('statuses.deactivate')}
+                      aria-label={t('statuses.deactivate')}
                       disabled={deactivatingId === status.id}
                       onClick={() => deactivate(status)}
                     >

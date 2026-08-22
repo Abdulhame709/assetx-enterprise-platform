@@ -19,6 +19,7 @@ import { useLocations, deleteLocation, LocationNode } from '@/features/locations
 import { LocationTree } from '@/features/locations/components/LocationTree';
 import { LocationFormModal } from '@/features/locations/components/LocationFormModal';
 import { useI18n } from '@/lib/i18n';
+import { useCan } from '@/lib/auth/session-context';
 
 type ModalState =
   | { mode: 'closed' }
@@ -34,6 +35,7 @@ export default function LocationsPage() {
   const toast = useToast();
   const { confirm } = useConfirm();
   const { t, locale } = useI18n();
+  const can = useCan();
 
   const total = state.data?.length ?? 0;
   const roots = state.data?.filter((l) => !l.parent_id).length ?? 0;
@@ -96,7 +98,9 @@ export default function LocationsPage() {
             <LocationTree
               locations={state.data}
               search={search}
-              canCreate={true}
+              canCreate={can(PERMISSIONS.LOCATION_CREATE)}
+              canUpdate={can(PERMISSIONS.LOCATION_UPDATE)}
+              canDelete={can(PERMISSIONS.LOCATION_DELETE)}
               onAddChild={(parent) =>
                 setModal(parent ? { mode: 'create-child', parent } : { mode: 'create-root' })
               }

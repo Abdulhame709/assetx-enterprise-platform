@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Archive, Boxes, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Copy, Download, Eye, FileDown, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Printer, Search, SlidersHorizontal, Trash2, Undo2, UserRound, Wrench } from 'lucide-react';
+import { Archive, Boxes, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Copy, Download, Eye, FileDown, FileSpreadsheet, Filter, FilterX, ListFilter, Pencil, Plus, Printer, Search, SlidersHorizontal, Trash2, Undo2, UserRound, Wrench, X } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card } from '@/components/ui/Card';
@@ -229,8 +229,8 @@ export default function AssetsPage() {
                     <p className="text-xs text-ink-muted">{formatMessage('workspace.assetCount', { count: data?.total ?? 0 })}</p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setShowFilters((open) => !open)} aria-expanded={showFilters}>
-                  <ListFilter className="h-4 w-4" /> <span className="sr-only sm:not-sr-only">{showFilters ? t('workspace.hideFilters') : t('workspace.showFilters')}</span>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowFilters((open) => !open)} aria-expanded={showFilters} aria-label={showFilters ? t('workspace.hideFilters') : t('workspace.showFilters')} title={showFilters ? t('workspace.hideFilters') : t('workspace.showFilters')}>
+                  <ListFilter className="h-4 w-4" />
                 </Button>
               </div>
               <label className="relative block">
@@ -244,7 +244,7 @@ export default function AssetsPage() {
                   <SearchableSelect options={locations} value={location} onChange={setLocation} placeholder={t('common.location')} />
                   <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={setStatusId} placeholder={t('common.status')} />
                   <SearchableSelect options={employees.map((item) => ({ value: item.id, label: item.department ? `${item.name} · ${item.department}` : item.name }))} value={employeeId} onChange={setEmployeeId} placeholder={t('common.custodian')} />
-                  {hasActiveFilters && <Button variant="ghost" size="sm" onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); setEmployeeId(null); }}><FilterX className="h-3.5 w-3.5" /> {t('assets.clearFilters')}</Button>}
+                  {hasActiveFilters && <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('assets.clearFilters')} title={t('assets.clearFilters')} onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); setEmployeeId(null); }}><FilterX className="h-3.5 w-3.5" /></Button>}
                 </div>
               )}
             </div>
@@ -252,7 +252,7 @@ export default function AssetsPage() {
             {selected.length > 0 && (
               <div className="flex items-center justify-between gap-2 border-b border-brand/20 bg-brand-soft/45 px-3 py-2">
                 <p className="text-xs font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p>
-                <Button variant="ghost" size="sm" onClick={() => setSelected([])}>{t('assets.clearSelection')}</Button>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('assets.clearSelection')} title={t('assets.clearSelection')} onClick={() => setSelected([])}><X className="h-4 w-4" /></Button>
               </div>
             )}
 
@@ -279,7 +279,7 @@ export default function AssetsPage() {
         <section className={`${showMobileDetail ? '' : 'hidden lg:block'} lg:order-1`} aria-label={t('workspace.assetDetail')}>
           <Card className="min-h-[430px] shadow-card">
             <div className="mb-4 flex items-center justify-between gap-2 lg:hidden">
-              <Button variant="ghost" size="sm" onClick={() => setShowMobileDetail(false)}><ChevronLeft className="h-4 w-4 rtl:rotate-180" /> {t('workspace.backToList')}</Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('workspace.backToList')} title={t('workspace.backToList')} onClick={() => setShowMobileDetail(false)}><ChevronLeft className="h-4 w-4 rtl:rotate-180" /></Button>
             </div>
             {activeAsset ? (
               <AssetPreview
@@ -303,12 +303,12 @@ export default function AssetsPage() {
           <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white"><SlidersHorizontal className="h-4 w-4" /></span><p className="text-sm font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p></div>
           <div className="flex flex-wrap gap-2">
             <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}>
-              <Button variant="secondary" size="sm" disabled={selected.length !== 1} onClick={() => void openForm(selected[0], 'edit')}><Pencil className="h-3.5 w-3.5" /> {t('assetActions.edit')}</Button>
-              <Button variant="secondary" size="sm" disabled={selected.length !== 1} onClick={() => void openForm(selected[0], 'copy')}><Copy className="h-3.5 w-3.5" /> {t('assetActions.copy')}</Button>
-              <Button variant="secondary" size="sm" onClick={() => setBulkOpen(true)}><SlidersHorizontal className="h-3.5 w-3.5" /> {t('assetActions.bulkEdit')}</Button>
+              <Button variant="secondary" size="sm" className="h-8 w-8 p-0" disabled={selected.length !== 1} aria-label={t('assetActions.edit')} title={t('assetActions.edit')} onClick={() => void openForm(selected[0], 'edit')}><Pencil className="h-3.5 w-3.5" /></Button>
+              <Button variant="secondary" size="sm" className="h-8 w-8 p-0" disabled={selected.length !== 1} aria-label={t('assetActions.copy')} title={t('assetActions.copy')} onClick={() => void openForm(selected[0], 'copy')}><Copy className="h-3.5 w-3.5" /></Button>
+              <Button variant="secondary" size="sm" className="h-8 w-8 p-0" aria-label={t('assetActions.bulkEdit')} title={t('assetActions.bulkEdit')} onClick={() => setBulkOpen(true)}><SlidersHorizontal className="h-3.5 w-3.5" /></Button>
             </PermissionGate>
             <PermissionGate permission={PERMISSIONS.MOVEMENT_CREATE}>
-              <Button variant="danger" size="sm" loading={disposing} onClick={() => void onDisposeSelected()}><Archive className="h-3.5 w-3.5" /> {t('common.dispose')}</Button>
+              <Button variant="danger" size="sm" className="h-8 w-8 p-0" aria-label={t('common.dispose')} title={t('common.dispose')} loading={disposing} onClick={() => void onDisposeSelected()}><Archive className="h-3.5 w-3.5" /></Button>
             </PermissionGate>
           </div>
         </section>
@@ -350,8 +350,8 @@ function AssetPreview({ asset, statusName, statusTone, locale, t, onEdit, onCopy
           <p className="mt-2 font-mono text-sm text-brand">{asset.full_asset_code}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}><Button variant="secondary" size="sm" onClick={onEdit}><Pencil className="h-4 w-4" /> {t('assetActions.edit')}</Button><Button variant="secondary" size="sm" onClick={onCopy}><Copy className="h-4 w-4" /> {t('assetActions.copy')}</Button></PermissionGate>
-          <PermissionGate permission={PERMISSIONS.ASSET_DELETE}><Button variant="ghost" size="sm" loading={deleting} onClick={onDelete}><Trash2 className="h-4 w-4 text-danger" /> <span className="text-danger">{t('assetActions.delete')}</span></Button></PermissionGate>
+          <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}><Button variant="secondary" size="sm" className="h-8 w-8 p-0" aria-label={t('assetActions.edit')} title={t('assetActions.edit')} onClick={onEdit}><Pencil className="h-4 w-4" /></Button><Button variant="secondary" size="sm" className="h-8 w-8 p-0" aria-label={t('assetActions.copy')} title={t('assetActions.copy')} onClick={onCopy}><Copy className="h-4 w-4" /></Button></PermissionGate>
+          <PermissionGate permission={PERMISSIONS.ASSET_DELETE}><Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('assetActions.delete')} title={t('assetActions.delete')} loading={deleting} onClick={onDelete}><Trash2 className="h-4 w-4 text-danger" /></Button></PermissionGate>
         </div>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
