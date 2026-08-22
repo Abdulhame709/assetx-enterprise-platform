@@ -30,6 +30,7 @@ export const PERMISSIONS = {
   REPORT_CREATE: 'report.create',
   REPORT_DELETE: 'report.delete',
   REPORT_EXPORT: 'report.export',
+  AI_USE: 'ai.use',
   ANALYTICS_VIEW: 'analytics.view',
   COMPLIANCE_VIEW: 'compliance.view',
   AUDIT_VIEW: 'audit.view',

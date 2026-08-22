@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadReportExport } from './api';
+import { downloadReportExport, generateReportAiSummary } from './api';
+import { http } from '@/lib/api/client';
 
 vi.mock('@/lib/api/client', () => ({
   API_BASE_URL: '/api',
+  http: { post: vi.fn() },
 }));
 
 vi.mock('@/lib/auth/token-store', () => ({
@@ -12,6 +14,7 @@ vi.mock('@/lib/auth/token-store', () => ({
 describe('report export API', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(http.post).mockReset();
     const anchor = { href: '', download: '', click: vi.fn(), remove: vi.fn() };
     vi.stubGlobal('document', {
       body: { appendChild: vi.fn() },
@@ -72,6 +75,24 @@ describe('report export API', () => {
     expect(decoded).toContain('sorting=[{"field":"count","dir":"desc"}]');
     expect(decoded).toContain('"aggregate":"sum"');
     expect(decoded).toContain('"valueField":"purchase_price"');
+  });
+
+  it('requests a tenant-scoped AI summary for the supported report resource', async () => {
+    const summary = {
+      source: 'deterministic' as const,
+      provider: 'assetx-rules',
+      model: null,
+      summary: 'ملخص تجريبي',
+      key_findings: ['إجمالي الأصول: 2'],
+      warnings: [],
+      confidence: 1,
+      evidence: ['total_assets=2'],
+      generated_at: '2026-08-22T00:00:00.000Z',
+    };
+    vi.mocked(http.post).mockResolvedValueOnce(summary);
+
+    await expect(generateReportAiSummary('assets')).resolves.toEqual(summary);
+    expect(http.post).toHaveBeenCalledWith('/ai/reports/summary', { resource: 'assets' });
   });
 
   it('surfaces a failed export response', async () => {

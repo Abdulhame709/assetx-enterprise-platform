@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, Check, CircleCheckBig, Columns3, Download, Eye, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
+import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, BrainCircuit, Check, CircleCheckBig, Columns3, Download, Eye, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
-import { downloadReportExport, ReportAggregation, ReportColumn, ReportDefinition, ReportFormat, ReportGroup, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
+import { downloadReportExport, generateReportAiSummary, ReportAggregation, ReportAiSummary, ReportColumn, ReportDefinition, ReportFormat, ReportGroup, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
 import { createReportTemplate, deleteReportTemplate, listReportTemplates, ReportTemplateRecord } from '@/features/reports/templates-api';
 import { Field, Input, Select } from '@/components/ui/form';
 import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
@@ -212,12 +212,16 @@ export default function ReportsPage() {
   const [templateDeleting, setTemplateDeleting] = useState<string | null>(null);
   const [showDesigner, setShowDesigner] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [aiSummary, setAiSummary] = useState<ReportAiSummary | null>(null);
+  const [aiGenerating, setAiGenerating] = useState(false);
   const availableResources = useMemo(() => REPORT_RESOURCES.filter((item) => can(item.permission)), [can]);
   const selectedResource = availableResources.find((item) => item.resource === resource) ?? availableResources[0] ?? null;
   const columnCatalog = REPORT_COLUMN_CATALOG[resource];
   const selectedProfile = REPORT_PROFILES.find((item) => item.value === profile) ?? null;
   const canCreateTemplates = can(PERMISSIONS.REPORT_CREATE);
   const canDeleteTemplates = can(PERMISSIONS.REPORT_DELETE);
+  const canUseAi = can(PERMISSIONS.REPORT_VIEW) && can(PERMISSIONS.AI_USE);
+  const aiResourceSupported = resource === 'assets' || resource === 'dashboard';
   const printGeneratedAt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -226,6 +230,10 @@ export default function ReportsPage() {
   useEffect(() => {
     if (selectedResource && selectedResource.resource !== resource) setResource(selectedResource.resource);
   }, [resource, selectedResource]);
+
+  useEffect(() => {
+    setAiSummary(null);
+  }, [resource]);
 
   useEffect(() => {
     let active = true;
@@ -401,6 +409,20 @@ export default function ReportsPage() {
     }
   };
 
+  const generateAiSummary = async () => {
+    if (!canUseAi || !aiResourceSupported) return;
+    setAiGenerating(true);
+    try {
+      const result = await generateReportAiSummary(resource as 'assets' | 'dashboard');
+      setAiSummary(result);
+      toast.success(t('module.reportsAiTitle'), result.source === 'llm' ? t('module.reportsAiLlm') : t('module.reportsAiDeterministic'));
+    } catch (error) {
+      toast.error(t('module.reportsAiFailed'), humanError(error));
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const download = async () => {
     if (!selectedResource) return;
     const parsedLimit = Number(limit);
@@ -427,6 +449,7 @@ export default function ReportsPage() {
         actions={[
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
           { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, disabled: !selectedResource, variant: 'primary' },
+          { id: 'ai-summary', label: t('module.reportsAiGenerate'), icon: BrainCircuit, onClick: () => void generateAiSummary(), loading: aiGenerating, disabled: !canUseAi || !aiResourceSupported, separated: true },
           { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
           { id: 'designer', label: showDesigner ? t('module.reportsDesignerHide') : t('module.reportsDesignerShow'), icon: Columns3, onClick: () => setShowDesigner((visible) => !visible), separated: true },
           { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
@@ -500,6 +523,46 @@ export default function ReportsPage() {
                         <Input type="number" min={1} max={100000} step={1} value={limit} onChange={(event) => setLimit(event.target.value)} aria-label={t('module.reportsLimit')} />
                       </Field>
                     </div>
+                  )}
+                </CardBody>
+              </Card>
+
+              <Card className="border-brand/20 bg-gradient-to-br from-violet-500/10 via-surface to-surface print-hide" aria-live="polite">
+                <CardBody className="space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="rounded-xl bg-violet-500/10 p-2.5 text-violet-600"><BrainCircuit className="h-5 w-5" aria-hidden="true" /></span>
+                      <div>
+                        <p className="font-semibold text-ink">{t('module.reportsAiTitle')}</p>
+                        <p className="mt-1 text-sm text-ink-muted">{t('module.reportsAiDescription')}</p>
+                      </div>
+                    </div>
+                    <Button variant="secondary" size="sm" onClick={() => void generateAiSummary()} loading={aiGenerating} disabled={!canUseAi || !aiResourceSupported} title={!canUseAi ? t('module.reportsAiDisabled') : undefined}>
+                      <BrainCircuit className="h-4 w-4" />
+                      {aiGenerating ? t('module.reportsAiGenerating') : t('module.reportsAiGenerate')}
+                    </Button>
+                  </div>
+                  {!canUseAi ? (
+                    <p className="rounded-lg border border-dashed border-line px-3 py-3 text-sm text-ink-muted">{t('module.reportsAiDisabled')}</p>
+                  ) : !aiResourceSupported ? (
+                    <p className="rounded-lg border border-dashed border-line px-3 py-3 text-sm text-ink-muted">{t('module.reportsAiUnavailable')}</p>
+                  ) : aiSummary ? (
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-3">
+                        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-semibold text-violet-700">{aiSummary.source === 'llm' ? t('module.reportsAiLlm') : t('module.reportsAiDeterministic')}</span>
+                          <span className="text-xs text-ink-muted">{t('module.reportsAiConfidence')}: {Math.round(aiSummary.confidence * 100).toLocaleString(locale)}%</span>
+                        </div>
+                        <p className="text-sm leading-7 text-ink">{aiSummary.summary}</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div><p className="mb-2 text-xs font-semibold text-ink">{t('module.reportsAiFindings')}</p><ul className="space-y-1 text-sm text-ink-muted">{aiSummary.key_findings.map((item, index) => <li key={`finding-${index}`} className="rounded-lg bg-surface-muted/50 px-2 py-1.5">{item}</li>)}</ul></div>
+                        <div><p className="mb-2 text-xs font-semibold text-ink">{t('module.reportsAiWarnings')}</p><ul className="space-y-1 text-sm text-ink-muted">{aiSummary.warnings.length > 0 ? aiSummary.warnings.map((item, index) => <li key={`warning-${index}`} className="rounded-lg bg-warning/10 px-2 py-1.5">{item}</li>) : <li className="rounded-lg bg-surface-muted/50 px-2 py-1.5">—</li>}</ul></div>
+                        <div><p className="mb-2 text-xs font-semibold text-ink">{t('module.reportsAiEvidence')}</p><ul className="space-y-1 text-xs text-ink-muted">{aiSummary.evidence.map((item, index) => <li key={`evidence-${index}`} className="rounded-lg bg-surface-muted/50 px-2 py-1.5 font-mono">{item}</li>)}</ul></div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-line px-3 py-3 text-sm text-ink-muted">{t('module.reportsAiUnavailable')}</p>
                   )}
                 </CardBody>
               </Card>

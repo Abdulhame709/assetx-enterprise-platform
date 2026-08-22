@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/lib/api/client';
+import { API_BASE_URL, http } from '@/lib/api/client';
 
 export type ReportResource = 'assets' | 'movements' | 'inventory' | 'audit' | 'dashboard';
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
@@ -42,6 +42,25 @@ export interface ReportExportInput {
   columns?: ReportColumn[];
   sorting?: ReportSort[];
   grouping?: ReportGroup[];
+}
+
+export type AiReportResource = 'assets' | 'dashboard';
+export type AiSummarySource = 'llm' | 'deterministic';
+
+export interface ReportAiSummary {
+  source: AiSummarySource;
+  provider: string;
+  model: string | null;
+  summary: string;
+  key_findings: string[];
+  warnings: string[];
+  confidence: number;
+  evidence: string[];
+  generated_at: string;
+}
+
+export async function generateReportAiSummary(resource: AiReportResource): Promise<ReportAiSummary> {
+  return http.post<ReportAiSummary>('/ai/reports/summary', { resource });
 }
 
 /** Download a tenant-scoped report from the backend export stream. */

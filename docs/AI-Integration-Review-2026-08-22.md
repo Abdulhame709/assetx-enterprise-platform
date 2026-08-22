@@ -94,6 +94,14 @@ OpenAI-compatible model endpoint / platform model gateway
 5. تنفيذ خطة البحث باللغة الطبيعية بعد تثبيت allowlist وقياس الدقة، وليس قبل ذلك.
 6. تأجيل الصور والصيانة التنبؤية والصوت حتى تكتمل سياسات الخصوصية والبيانات التاريخية والقياس.
 
+## ما تم تنفيذه في هذه الدفعة
+
+تم تنفيذ أول نقطة AI عملية في AssetX عبر خدمة **ملخص التقارير العربية**. أضيفت حدود typed في `backend/src/core/ports/ai-text.port.ts` وadapter اختياري في `backend/src/infrastructure/ai/openai-compatible-text.provider.ts`. المزود لا يعمل إلا إذا كانت `AI_ENABLED=true` و`AI_PROVIDER=openai-compatible` وجميع إعدادات `AI_BASE_URL` و`AI_API_KEY` و`AI_MODEL` مهيأة خارج المستودع.
+
+أضيف endpoint `POST /ai/reports/summary` محمي بالمصادقة وtenant وبالصلاحيتين `report.view` و`ai.use`. يجمع backend مؤشرات لوحة الأصول من `ReportingService` ولا يثق في tenant أو الأرقام التي يرسلها المتصفح. إذا كان المزود غير مهيأ أو أعاد مخرجاً غير صالح، يعاد ملخص حتمي عربي بقواعد AssetX بدلاً من ظهور زر وهمي أو فشل كامل. المخرجات المولدة من النموذج تمر عبر JSON Schema والتحقق قبل عرضها، وكل تنفيذ يسجل حدث تدقيق مختصر دون حفظ prompt.
+
+أضيفت بطاقة عربية حقيقية في صفحة التقارير، وزر في شريط الأوامر، وحالات loading وdisabled وfallback ونتيجة منظمة تشمل الملخص والملاحظات والتحذيرات والأدلة ودرجة الثقة. لا تنفذ هذه الميزة أي تعديل على الأصول أو الحركات، ولا تعمل مباشرة من الهاتف إلى مزود النموذج.
+
 ## الخلاصة
 
 الدمج الصحيح ليس إضافة chatbot عام إلى الواجهة، بل بناء **خدمات AI ضيقة ومقيدة ومفسرة** فوق الخدمات الحالية. نقطة البداية الأنسب هي ملخص التقارير العربية، ثم تفسير فروقات الجرد. هذا يحافظ على Arabic First وOffline First وtenant isolation وAudit by Design، ويضيف قيمة فعلية دون منح النموذج صلاحية تعديل سجل الأصول أو تنفيذ حركة تشغيلية.
@@ -109,6 +117,18 @@ OpenAI-compatible model endpoint / platform model gateway
 [7] [Inventory controller](../backend/src/api/inventory/inventory.controller.ts)  
 [8] [Inventory detail UI](../web/src/app/(dashboard)/inventory/[id]/page.tsx)  
 [9] [Backend composition root and environment contract](../backend/src/app.module.ts)  
+
+## حالة التحقق بعد التنفيذ
+
+| الفحص | النتيجة |
+|---|---:|
+| Backend build | ناجح |
+| Backend unit tests | 26 ناجحاً، منها 3 اختبارات لخدمة ملخص AI |
+| Backend integration tests | 248 ناجحاً عبر 33 مجموعة اختبار |
+| Web TypeScript وproduction build | ناجحان |
+| Web tests | 73 ناجحاً، منها اختبار استدعاء ملخص AI |
+| Smoke test `POST /ai/reports/summary` | ناجح بحساب المعاينة؛ أعاد fallback الحتمي عند تعطيل المزود |
+| Secrets scan و`git diff --check` | ناجحان؛ لا مفاتيح AI داخل GitHub |
 
 ## الملفات التي تمت مراجعتها
 

@@ -11,6 +11,9 @@ import { ScheduledReportService } from './application/scheduled-report.service';
 import { ReportBuilderService } from './application/report-builder.service';
 import { ReportTemplateService } from './application/report-template.service';
 import { AnalyticsService } from './application/analytics.service';
+import { ReportNarrativeService } from './application/ai/report-narrative.service';
+import { OpenAiCompatibleTextProvider } from './infrastructure/ai/openai-compatible-text.provider';
+import { ReportAiController } from './api/ai/report-ai.controller';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteDatabase } from './infrastructure/database/pglite.database';
 import { PostgresDatabase } from './infrastructure/database/postgres.database';
@@ -148,6 +151,7 @@ import {
   SEARCH_PROVIDERS,
   SAVED_SEARCH_PORT,
   SAVED_REPORT_TEMPLATE_PORT,
+  AI_TEXT_PORT,
 } from './core/ports/tokens';
 
 // Secrets come from environment in production (Vault). Defaults for local dev only.
@@ -275,6 +279,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     SavedSearchService,
     { provide: SAVED_REPORT_TEMPLATE_PORT, useClass: SavedReportTemplateRepository },
     SavedReportTemplateService,
+    { provide: AI_TEXT_PORT, useClass: OpenAiCompatibleTextProvider },
+    ReportNarrativeService,
     CycleService,
     RecordService,
     InventoryResultService,
@@ -302,7 +308,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     LocationController, CategoryController, ModelController, EmployeeController,
     StatusController, MasterDataImportController,
     InventoryController, MovementController, MaintenanceController, DashboardController, AuditController, ComplianceController,
-    NotificationController, ExportController, SearchController, SavedSearchController, ReportTemplateController,
+    NotificationController, ExportController, SearchController, SavedSearchController, ReportTemplateController, ReportAiController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })
