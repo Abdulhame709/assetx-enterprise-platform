@@ -248,20 +248,20 @@ export default function MovementsPage() {
       render: (m) => (
         <div className="flex flex-wrap items-center justify-end gap-1">
           {m.status === 'pending' && canApprove && (
-            <Button variant="secondary" size="sm" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`} title={t('movements.approve')}
+            <Button variant="secondary" size="sm" className="h-8 w-8 p-0" aria-label={`${t('movements.approve')} ${label(m.movement_type)}`} title={t('movements.approve')}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'approve')}>
               <Check className="h-3.5 w-3.5 text-success" />
             </Button>
           )}
           {m.status === 'pending' && canReject && (
-            <Button variant="ghost" size="sm" aria-label={`${t('movements.reject')} ${label(m.movement_type)}`} title={t('movements.reject')}
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={`${t('movements.reject')} ${label(m.movement_type)}`} title={t('movements.reject')}
               loading={decidingId === m.id}
               onClick={() => decide(m, 'reject')}>
               <X className="h-3.5 w-3.5 text-danger" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" aria-label={t('movements.view')} title={t('movements.view')} onClick={() => setSelected(m)}>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('movements.view')} title={t('movements.view')} onClick={() => setSelected(m)}>
             <Eye className="h-4 w-4" />
           </Button>
         </div>
