@@ -7,7 +7,10 @@
 
 ```
 Browser (Next.js :3000)
-   │  REST/JSON + Bearer JWT
+   │  same-origin `/api/*` + Bearer JWT
+   ▼
+Next.js server proxy (`API_PROXY_TARGET`)
+   │
    ▼
 AssetX Backend (NestJS :3001)
    │  AuthGuard → TenantGuard (RLS) → PermissionGuard
@@ -35,7 +38,7 @@ Copy `web/.env.example` to `web/.env.local`. Key vars:
 
 | Var | Dev value | Notes |
 |---|---|---|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:3001` | Backend base URL |
+| `NEXT_PUBLIC_API_URL` | `/api` | Same-origin browser API base; Next.js proxies `/api/*` to backend |
 | `NEXT_PUBLIC_AUTH_MODE` | `real` | `real` = backend auth; `mock` = P1 demo only |
 
 ## 3. Running
@@ -50,7 +53,7 @@ PORT=3001 CORS_ORIGIN=http://localhost:3000 node dist/main.js   # → :3001
 # Terminal 2 — Web
 cd web
 npm install
-npm run dev   # → :3000
+API_PROXY_TARGET=http://127.0.0.1:3001 npm run dev   # → :3000
 ```
 
 Demo credentials (real backend, seeded at boot): `admin` / `AdminPass123` —
@@ -90,14 +93,14 @@ ASSETX_SEED_DEMO=1 npm start   # backend → seeds the demo tenant on boot
 
 | Env | `AUTH_MODE` | `API_URL` | Notes |
 |---|---|---|---|
-| Development | `real` (or `mock`) | `http://localhost:3001` | `mock` only for UI-only work |
+| Development | `real` (or `mock`) | `/api` via `API_PROXY_TARGET` | `mock` only for UI-only work; browser calls remain same-origin |
 | Test | `real` | test backend | Integration tests hit real API |
 | Production | `real` | prod API | Secrets via secret manager; CORS exact origin |
 
 ## 7. Verification
 
 ```bash
-cd web && npx tsc --noEmit && npx next lint && npm run build
+cd web && npx tsc --noEmit && npm run lint && npm run build
 cd backend && npm run build
 ```
 

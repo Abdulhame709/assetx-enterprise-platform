@@ -21,12 +21,13 @@ export function useAdvancedSearch(resource: SearchResource, query: AdvancedSearc
 }
 
 export function useStableSearchQuery(input: AdvancedSearchQuery): AdvancedSearchQuery {
+  const filtersKey = JSON.stringify(input.filters);
   return useMemo(() => input, [
     input.q,
     input.sort,
     input.dir,
     input.page,
     input.limit,
-    JSON.stringify(input.filters),
+    filtersKey,
   ]);
 }
