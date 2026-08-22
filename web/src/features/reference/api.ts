@@ -7,7 +7,7 @@ import { http } from '@/lib/api/client';
 
 export interface ReferenceStatus { id: string; name: string; color: string | null; is_active: boolean; }
 export interface ReferenceEmployee { id: string; name: string; department: string | null; phone: string | null; email: string | null; }
-export interface ReferenceModel { id: string; name: string; category_id: string | null; }
+export interface ReferenceModel { id: string; name: string; category_id: string | null; sub_type_id: string | null; }
 
 function asArray(raw: unknown): Record<string, unknown>[] {
   if (Array.isArray(raw)) return raw as Record<string, unknown>[];
@@ -74,13 +74,25 @@ export async function deleteEmployee(id: string): Promise<void> {
   await http.del(`/employees/${id}`);
 }
 
+function mapModel(raw: unknown): ReferenceModel {
+  const m = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: String(m.id ?? ''),
+    name: String(m.name ?? ''),
+    category_id: m.category_id != null ? String(m.category_id) : null,
+    sub_type_id: m.sub_type_id != null ? String(m.sub_type_id) : null,
+  };
+}
+
 export async function getModels(): Promise<ReferenceModel[]> {
   const raw = await http.get<unknown>('/models');
-  return asArray(raw)
-    .map((m) => ({
-      id: String(m.id ?? ''),
-      name: String(m.name ?? ''),
-      category_id: m.category_id != null ? String(m.category_id) : null,
-    }))
-    .filter((m) => m.id !== '');
+  return asArray(raw).map(mapModel).filter((m) => m.id !== '');
+}
+
+export async function createModel(input: { name: string; category_id?: string }): Promise<ReferenceModel> {
+  return mapModel(await http.post<unknown>('/models', input));
+}
+
+export async function updateModel(id: string, input: { name?: string; category_id?: string }): Promise<ReferenceModel> {
+  return mapModel(await http.patch<unknown>(`/models/${id}`, input));
 }
