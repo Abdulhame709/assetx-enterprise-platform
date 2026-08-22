@@ -1,6 +1,6 @@
 'use client';
 
-import { Boxes, Wrench, AlertTriangle, Activity } from 'lucide-react';
+import { Boxes, Wrench, AlertTriangle, Activity, Wallet } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { KpiCard } from '@/components/ui/KpiCard';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -26,11 +26,12 @@ export default function DashboardPage() {
       <AsyncBoundary state={state}>
         {(data) => (
           <>
-            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
               <KpiCard label={t('dashboard.total')} value={data.total_assets.toLocaleString(locale)} icon={Boxes} tone="info" />
               <KpiCard label={t('dashboard.active')} value={data.active_assets.toLocaleString(locale)} icon={Activity} tone="success" />
               <KpiCard label={t('dashboard.maintenance')} value={data.maintenance_assets.toLocaleString(locale)} icon={Wrench} tone="warning" />
               <KpiCard label={t('dashboard.assigned')} value={data.assigned_assets.toLocaleString(locale)} icon={AlertTriangle} tone="brand" />
+              <KpiCard label={t('dashboard.totalValue')} value={data.total_value === undefined ? '—' : data.total_value.toLocaleString(locale)} icon={Wallet} tone="info" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

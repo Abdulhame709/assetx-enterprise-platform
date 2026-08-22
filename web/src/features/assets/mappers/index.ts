@@ -179,6 +179,12 @@ export function mapLifecycleTransitions(raw: unknown): LifecycleTransitions | nu
   };
 }
 
+export function mapDashboardTotalValue(raw: unknown): number | undefined {
+  const r = normalizeObject<Record<string, unknown>>(raw);
+  if (!r || r.total_value === null || r.total_value === undefined) return undefined;
+  return toNumber(r.total_value, 0);
+}
+
 export function mapAnalytics(raw: unknown): AssetAnalyticsSummary {
   const r = normalizeObject<Record<string, unknown>>(raw) ?? {};
   const toBuckets = (v: unknown) =>
@@ -186,8 +192,10 @@ export function mapAnalytics(raw: unknown): AssetAnalyticsSummary {
       name: String(b.name ?? ''),
       count: toNumber(b.count, 0),
     }));
+  const totalValue = mapDashboardTotalValue(raw);
 
   return {
+    ...(totalValue === undefined ? {} : { total_value: totalValue }),
     total_assets: toNumber(r.total_assets, 0),
     active_assets: toNumber(r.active_assets, 0),
     assigned_assets: toNumber(r.assigned_assets, 0),

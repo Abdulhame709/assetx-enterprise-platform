@@ -76,6 +76,8 @@ export interface LifecycleDistributionBucket {
 }
 
 export interface AssetAnalyticsSummary {
+  /** Optional richer read-only metric from GET /dashboard/assets. */
+  total_value?: number;
   total_assets: number;
   active_assets: number;
   assigned_assets: number;
