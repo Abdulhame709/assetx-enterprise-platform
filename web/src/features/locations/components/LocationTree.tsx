@@ -5,20 +5,13 @@
  * Renders real DB rows; parent/child relations come from parent_id.
  */
 import { useMemo, useState } from 'react';
-import { Building2, ChevronRight, DoorOpen, Factory, Pencil, Plus, Trash2, TreePine, Warehouse } from 'lucide-react';
+import { ChevronRight, Pencil, Plus, Power } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/states';
-import { LocationNode, LocationType } from '../api';
+import { LocationNode } from '../api';
 import { useI18n } from '@/lib/i18n';
-
-const TYPE_ICON: Record<LocationType, typeof Building2> = {
-  building: Building2,
-  room: DoorOpen,
-  warehouse: Warehouse,
-  workshop: Factory,
-  outdoor: TreePine,
-};
+import { getLocationTypeIcon } from '@/features/location-types/icon-options';
 
 interface Row {
   node: LocationNode;
@@ -38,7 +31,7 @@ interface LocationTreeProps {
 }
 
 export function LocationTree({ locations, search, canCreate, canUpdate, canDelete, onAddChild, onEdit, onDelete }: LocationTreeProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const childrenOf = useMemo(() => {
@@ -104,13 +97,9 @@ export function LocationTree({ locations, search, canCreate, canUpdate, canDelet
   if (rows.length === 0) {
     return (
       <EmptyState
-        title={search ? 'No locations match your search' : 'No locations yet'}
-        description={
-          search
-            ? 'Try a different name, or clear the search to see the full tree.'
-            : 'Create your first root location (building, warehouse…) to start the hierarchy.'
-        }
-        actionLabel={!search && canCreate ? 'Create root location' : undefined}
+        title={search ? t('locationTree.noMatch') : t('locationTree.noLocations')}
+        description={search ? t('locationTree.noMatchDesc') : t('locationTree.noLocationsDesc')}
+        actionLabel={!search && canCreate ? t('locationTree.createRoot') : undefined}
         onAction={!search && canCreate ? () => onAddChild(null) : undefined}
       />
     );
@@ -119,7 +108,7 @@ export function LocationTree({ locations, search, canCreate, canUpdate, canDelet
   return (
     <div className="divide-y divide-line">
       {rows.map(({ node, depth, hasChildren }) => {
-        const Icon = TYPE_ICON[node.location_type] ?? DoorOpen;
+        const Icon = getLocationTypeIcon(node.location_type_icon_key ?? node.location_type);
         const isCollapsed = collapsed.has(node.id);
         return (
           <div
@@ -146,7 +135,7 @@ export function LocationTree({ locations, search, canCreate, canUpdate, canDelet
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="truncate text-sm font-medium text-ink">{node.name}</span>
-                <Badge tone="neutral" className="capitalize">{t(`locationForm.type.${node.location_type}`)}</Badge>
+                <Badge tone="neutral">{locale === 'ar' ? node.location_type_name_ar ?? node.location_type : node.location_type_name_en ?? node.location_type_name_ar ?? node.location_type}</Badge>
                 {!node.is_active && <Badge tone="warning">{t('locationTree.disabled')}</Badge>}
               </div>
               {depth > 0 && <p className="truncate text-xs text-ink-faint">{node.full_path}</p>}
@@ -176,12 +165,12 @@ export function LocationTree({ locations, search, canCreate, canUpdate, canDelet
               </button>}
               {canDelete && <button
                 type="button"
-                title={t('locationTree.delete')}
-                aria-label={t('locationTree.delete')}
+                  title={t('locationTree.deactivate')}
+                  aria-label={t('locationTree.deactivate')}
                 className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                 onClick={() => onDelete(node)}
               >
-                <Trash2 className="h-4 w-4" />
+                  <Power className="h-4 w-4" />
               </button>}
             </div>
           </div>

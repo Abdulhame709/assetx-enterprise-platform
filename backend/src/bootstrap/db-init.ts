@@ -57,13 +57,17 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
   await db.exec(migration009);
   const migration010 = fs.readFileSync(path.join(migrationsDir, '010_report_templates.sql'), 'utf8');
   await db.exec(migration010);
+  const migration011 = fs.readFileSync(path.join(migrationsDir, '011_hierarchy_integrity.sql'), 'utf8');
+  await db.exec(migration011);
+  const migration012 = fs.readFileSync(path.join(migrationsDir, '012_location_types_catalog.sql'), 'utf8');
+  await db.exec(migration012);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
       user_roles, user_permissions, password_reset_tokens, asset_categories, asset_models, statuses,
       locations, assets, asset_movements, maintenance_orders, inventory_cycles,
       inventory_team, inventory_records, audit_events, notification_templates,
-      notifications, settings, report_templates TO authenticated;
+      notifications, settings, report_templates, location_types TO authenticated;
     GRANT EXECUTE ON FUNCTION authenticate_user(text) TO authenticated;
     GRANT SELECT, INSERT, UPDATE, DELETE ON auth_sessions TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;

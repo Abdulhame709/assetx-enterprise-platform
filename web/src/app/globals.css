@@ -165,3 +165,82 @@
     text-decoration: none !important;
   }
 }
+
+/* =====================================================================
+   Runtime themes — presentation-only tokens. Business logic and API
+   contracts remain unchanged. ThemeProvider applies data-theme on <html>.
+   ===================================================================== */
+[data-theme='enterprise'] {
+  --ax-primary: 29 78 216;
+  --ax-primary-soft: 219 234 254;
+  --ax-primary-fg: 255 255 255;
+  --ax-surface: 255 255 255;
+  --ax-surface-raised: 250 250 250;
+  --ax-surface-overlay: 255 255 255;
+  --ax-surface-muted: 243 244 246;
+  --ax-ink: 17 24 39;
+  --ax-ink-muted: 107 114 128;
+  --ax-ink-faint: 156 163 175;
+  --ax-line: 229 231 235;
+}
+
+[data-theme='midnight'] {
+  --ax-primary: 96 165 250;
+  --ax-primary-soft: 30 58 138;
+  --ax-primary-fg: 15 23 42;
+  --ax-surface: 15 23 42;
+  --ax-surface-raised: 17 24 39;
+  --ax-surface-overlay: 30 41 59;
+  --ax-surface-muted: 30 41 59;
+  --ax-ink: 241 245 249;
+  --ax-ink-muted: 148 163 184;
+  --ax-ink-faint: 100 116 139;
+  --ax-line: 51 65 85;
+  --ax-success: 74 222 128;
+  --ax-warning: 251 191 36;
+  --ax-danger: 248 113 113;
+  --ax-info: 56 189 248;
+}
+
+[data-theme='emerald'] {
+  --ax-primary: 5 150 105;
+  --ax-primary-soft: 209 250 229;
+  --ax-primary-fg: 255 255 255;
+  --ax-surface: 255 255 255;
+  --ax-surface-raised: 248 250 252;
+  --ax-surface-overlay: 255 255 255;
+  --ax-surface-muted: 236 253 245;
+  --ax-ink: 15 23 42;
+  --ax-ink-muted: 71 85 105;
+  --ax-ink-faint: 148 163 184;
+  --ax-line: 226 232 240;
+}
+
+[data-theme='graphite'] {
+  --ax-primary: 167 139 250;
+  --ax-primary-soft: 55 48 163;
+  --ax-primary-fg: 24 24 27;
+  --ax-surface: 24 24 27;
+  --ax-surface-raised: 18 18 20;
+  --ax-surface-overlay: 39 39 42;
+  --ax-surface-muted: 39 39 42;
+  --ax-ink: 244 244 245;
+  --ax-ink-muted: 161 161 170;
+  --ax-ink-faint: 113 113 122;
+  --ax-line: 63 63 70;
+  --ax-success: 74 222 128;
+  --ax-warning: 251 191 36;
+  --ax-danger: 248 113 113;
+  --ax-info: 103 232 249;
+}
+
+.theme-preview-enterprise,
+.theme-preview-midnight,
+.theme-preview-emerald,
+.theme-preview-graphite {
+  background-image: linear-gradient(135deg, rgb(var(--preview-primary) / 1) 0 28%, rgb(var(--preview-surface) / 1) 28% 100%);
+}
+.theme-preview-enterprise { --preview-primary: 29 78 216; --preview-surface: 248 250 252; }
+.theme-preview-midnight { --preview-primary: 96 165 250; --preview-surface: 15 23 42; }
+.theme-preview-emerald { --preview-primary: 5 150 105; --preview-surface: 236 253 245; }
+.theme-preview-graphite { --preview-primary: 167 139 250; --preview-surface: 39 39 42; }

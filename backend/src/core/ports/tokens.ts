@@ -8,6 +8,7 @@ export const TOKEN_MANAGER = 'TOKEN_MANAGER';
 export const PGLITE = 'PGLITE';
 export const ASSET_PORT = 'ASSET_PORT';
 export const LOCATION_PORT = 'LOCATION_PORT';
+export const LOCATION_TYPE_PORT = 'LOCATION_TYPE_PORT';
 export const CATEGORY_PORT = 'CATEGORY_PORT';
 export const STATUS_PORT = 'STATUS_PORT';
 export const MODEL_PORT = 'MODEL_PORT';

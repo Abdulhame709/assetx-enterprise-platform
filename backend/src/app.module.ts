@@ -44,6 +44,9 @@ import { LifecycleController } from './api/lifecycle/lifecycle.controller';
 import { LocationService } from './application/location.service';
 import { LocationRepository } from './infrastructure/repositories/location.repository';
 import { LocationController } from './api/locations/location.controller';
+import { LocationTypeService } from './application/location-type.service';
+import { LocationTypeRepository } from './infrastructure/repositories/location-type.repository';
+import { LocationTypeController } from './api/locations/location-type.controller';
 import { CategoryService } from './application/category.service';
 import { CategoryRepository } from './infrastructure/repositories/category.repository';
 import { CategoryController } from './api/categories/category.controller';
@@ -132,6 +135,7 @@ import {
   TOKEN_MANAGER,
   ASSET_PORT,
   LOCATION_PORT,
+  LOCATION_TYPE_PORT,
   CATEGORY_PORT,
   STATUS_PORT,
   MODEL_PORT,
@@ -199,6 +203,8 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     MasterDataImportService,
     { provide: LOCATION_PORT, useClass: LocationRepository },
     LocationService,
+    { provide: LOCATION_TYPE_PORT, useClass: LocationTypeRepository },
+    LocationTypeService,
     { provide: CATEGORY_PORT, useClass: CategoryRepository },
     CategoryService,
     { provide: STATUS_PORT, useClass: StatusRepository },
@@ -305,7 +311,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
   ],
   controllers: [
     HealthController, AuthController, UsersController, TenantController, AssetController, AssetImportController, AssetAnalyticsController, LifecycleController,
-    LocationController, CategoryController, ModelController, EmployeeController,
+    LocationController, LocationTypeController, CategoryController, ModelController, EmployeeController,
     StatusController, MasterDataImportController,
     InventoryController, MovementController, MaintenanceController, DashboardController, AuditController, ComplianceController,
     NotificationController, ExportController, SearchController, SavedSearchController, ReportTemplateController, ReportAiController,

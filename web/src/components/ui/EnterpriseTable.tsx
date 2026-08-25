@@ -153,11 +153,9 @@ export function EnterpriseTable<T>({
               </Button>
             )}
             {visible.length > 0 && (
-              <div className="relative">
-                <Button variant="secondary" size="sm" aria-label={t('table.toggleColumns')}>
-                  <Columns3 className="h-3.5 w-3.5" /> {t('table.columns')}
-                </Button>
+                              <div className="relative">
                 <ColumnMenu<T>
+
                   options={visible}
                   hidden={hidden}
                   onToggle={toggleColumn}

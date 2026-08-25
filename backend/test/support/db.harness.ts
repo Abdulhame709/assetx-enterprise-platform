@@ -13,7 +13,9 @@ import { UsersService } from '../../src/application/users.service';
 import { AssetRepository } from '../../src/infrastructure/repositories/asset.repository';
 import { AssetService } from '../../src/application/asset.service';
 import { LocationRepository } from '../../src/infrastructure/repositories/location.repository';
+import { LocationTypeRepository } from '../../src/infrastructure/repositories/location-type.repository';
 import { LocationService } from '../../src/application/location.service';
+import { LocationTypeService } from '../../src/application/location-type.service';
 import { CategoryRepository } from '../../src/infrastructure/repositories/category.repository';
 import { CategoryService } from '../../src/application/category.service';
 import { ModelRepository } from '../../src/infrastructure/repositories/model.repository';
@@ -95,6 +97,7 @@ export interface Harness {
   assetRepo: AssetRepository;
   assets: AssetService;
   locations: LocationService;
+  locationTypes: LocationTypeService;
   categories: CategoryService;
   models: ModelService;
   employees: EmployeeService;
@@ -176,13 +179,23 @@ export async function createHarness(): Promise<Harness> {
   await db.exec(migration009);
   const migration010 = fs.readFileSync(path.join(migrationsDir, '010_report_templates.sql'), 'utf8');
   await db.exec(migration010);
+  const migration011 = fs.readFileSync(path.join(migrationsDir, '011_hierarchy_integrity.sql'), 'utf8');
+  await db.exec(migration011);
+  // Tenants must exist before migration 012 seeds the standard catalog.
+  await db.exec(`
+    INSERT INTO tenants (tenant_code, name, status)
+    VALUES ('tenant_a','Tenant A','active'), ('tenant_b','Tenant B','active')
+    ON CONFLICT (tenant_code) DO NOTHING;
+  `);
+  const migration012 = fs.readFileSync(path.join(migrationsDir, '012_location_types_catalog.sql'), 'utf8');
+  await db.exec(migration012);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
       user_roles, user_permissions, password_reset_tokens, asset_categories, asset_models, statuses,
       locations, assets, asset_movements, maintenance_orders, inventory_cycles,
       inventory_team, inventory_records, audit_events, notification_templates,
-      notifications, settings, report_templates TO authenticated;
+      notifications, report_templates, location_types TO authenticated;
     GRANT EXECUTE ON FUNCTION authenticate_user(text) TO authenticated;
     GRANT SELECT, INSERT, UPDATE, DELETE ON auth_sessions TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;
@@ -190,7 +203,7 @@ export async function createHarness(): Promise<Harness> {
 
   // Seed reference data for two tenants (as owner — RLS bypassed during setup)
   await db.exec(
-    `INSERT INTO tenants (tenant_code, name, status) VALUES ('tenant_a','Tenant A','active'), ('tenant_b','Tenant B','active');`,
+    `INSERT INTO tenants (tenant_code, name, status) VALUES ('tenant_a','Tenant A','active'), ('tenant_b','Tenant B','active') ON CONFLICT (tenant_code) DO NOTHING;`,
   );
   const { rows: tenants } = await db.query<{ id: string; tenant_code: string }>(
     `SELECT id, tenant_code FROM tenants;`,
@@ -250,7 +263,8 @@ export async function createHarness(): Promise<Harness> {
   const users = new UsersService(repo);
   const assetRepo = new AssetRepository(db);
   const assets = new AssetService(assetRepo, db, audit, bus);
-  const locations = new LocationService(new LocationRepository(db), db);
+  const locationTypes = new LocationTypeService(new LocationTypeRepository(db), db, audit);
+  const locations = new LocationService(new LocationRepository(db), new LocationTypeRepository(db), db);
   const categories = new CategoryService(new CategoryRepository(db), db, audit);
   const models = new ModelService(new ModelRepository(db), db);
   const employees = new EmployeeService(new EmployeeRepository(db), db);
@@ -313,5 +327,6 @@ export async function createHarness(): Promise<Harness> {
   const reportTemplates = new ReportTemplateService();
   const analytics = new AnalyticsService();
 
-  return { db, repo, auth, users, tokens, hasher, assetRepo, assets, locations, categories, models, employees, cycles, records, inventoryResult, movements, maintenance, reporting, audit, compliance, integrity, notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+  return { db, repo, auth, users, tokens, hasher, assetRepo, assets,     locations, locationTypes, categories, models, employees, cycles, records, inventoryResult, movements, maintenance, reporting, audit, compliance, integrity,
+ notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

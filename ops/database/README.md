@@ -67,7 +67,7 @@ WHERE relrowsecurity = true AND relkind = 'r';
 SELECT tenant_code, name, status FROM tenants ORDER BY tenant_code;
 ```
 
-يجب أن تكون الترحيلات الحالية عشرة، من `001_init.sql` حتى `010_report_templates.sql`، وأن يظهر سياق المستأجر عند تشغيل العملية، وأن تعيد RLS بيانات المستأجر المطلوب فقط. يجب أن يفشل الطلب المحمي بلا JWT، وأن ينجح مع صلاحية صحيحة، وأن يعيد `/health` حالة قاعدة البيانات `ok`. بعد ذلك يُختبر `pg_dump` و`pg_restore` إلى قاعدة منفصلة، ثم PITR وRPO/RTO على المزود السحابي قبل اعتماد production.
+يجب أن تكون الترحيلات الحالية اثني عشر ملفاً، من `001_init.sql` حتى `012_location_types_catalog.sql`، بما فيها إصلاحات hierarchy في `011_hierarchy_integrity.sql` وcatalog أنواع المواقع في `012_location_types_catalog.sql`. يجب أن يظهر سياق المستأجر عند تشغيل العملية، وأن تعيد RLS بيانات المستأجر المطلوب فقط. يجب أن يفشل الطلب المحمي بلا JWT، وأن ينجح مع صلاحية صحيحة، وأن يعيد `/health` حالة قاعدة البيانات `ok`. بعد ذلك يُختبر `pg_dump` و`pg_restore` إلى قاعدة منفصلة، ثم PITR وRPO/RTO على المزود السحابي قبل اعتماد production.
 
 ## الملفات المرجعية
 

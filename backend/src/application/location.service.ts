@@ -10,12 +10,14 @@ import {
   UpdateLocationInput,
 } from '../core/ports/location.port';
 import { Location } from '../core/entities/location.entity';
-import { DATABASE_PORT, LOCATION_PORT } from '../core/ports/tokens';
+import { DATABASE_PORT, LOCATION_PORT, LOCATION_TYPE_PORT } from '../core/ports/tokens';
+import { LocationTypePort } from '../core/ports/location-type.port';
 
 @Injectable()
 export class LocationService {
   constructor(
     @Inject(LOCATION_PORT) private readonly locations: LocationPort,
+    @Inject(LOCATION_TYPE_PORT) private readonly locationTypes: LocationTypePort,
     @Inject(DATABASE_PORT) private readonly db: DatabasePort,
   ) {}
 
@@ -25,6 +27,8 @@ export class LocationService {
     if (await this.locations.existsName(input.tenant_id, input.name, input.parent_id ?? null)) {
       throw new Error('DUPLICATE_LOCATION');
     }
+    const locationType = await this.locationTypes.findByCode(input.location_type ?? 'room', input.tenant_id);
+    if (!locationType) throw new Error('LOCATION_TYPE_NOT_FOUND');
     if (input.parent_id) {
       const parent = await this.locations.findById(input.parent_id, input.tenant_id);
       if (!parent) throw new Error('PARENT_NOT_FOUND');
@@ -36,10 +40,21 @@ export class LocationService {
     await this.db.setTenant(tenantId);
     const existing = await this.locations.findById(id, tenantId);
     if (!existing) throw new Error('LOCATION_NOT_FOUND');
-    if (input.name && input.name !== existing.name && await this.locations.existsName(tenantId, input.name, existing.parent_id, id)) {
+
+    const nextName = input.name === undefined ? existing.name : input.name.trim();
+    if (nextName.length < 2) throw new Error('NAME_INVALID');
+    if (await this.locations.existsName(tenantId, nextName, existing.parent_id, id)) {
       throw new Error('DUPLICATE_LOCATION');
     }
-    return this.locations.update(id, tenantId, input);
+    if (input.location_type !== undefined) {
+      const locationType = await this.locationTypes.findByCode(input.location_type, tenantId);
+      if (!locationType) throw new Error('LOCATION_TYPE_NOT_FOUND');
+    }
+
+    return this.locations.update(id, tenantId, {
+      ...input,
+      ...(input.name !== undefined ? { name: nextName } : {}),
+    });
   }
 
   async getById(id: string, tenantId: string): Promise<Location | null> {

@@ -22,4 +22,4 @@
 
 ## حدود الحالة الحالية
 
-تم تنفيذ rehearsal فعلي على PostgreSQL محلي: migrations العشرة، بما فيها `009_inventory_missing_movement.sql` و`010_report_templates.sql`، نجحت، وإعادة التطبيق عبر محمل الترحيلات كانت idempotent. هذه النتيجة لا تعني أن staging الحقيقي نُشر؛ لا توجد في هذا المستودع بيانات اتصال أو أسرار أو صلاحيات بنية تحتية. قبل الإنتاج يجب تكرار rehearsal على PostgreSQL/Supabase الفعلي، وفحص PITR وRPO/RTO، وإضافة reverse proxy/TLS ومراقبة مركزية، والتحقق من أن حساب التشغيل يرى صلاحيات tenant المستهدف فقط بعد تشغيل seed الصلاحيات.
+تم تنفيذ rehearsal فعلي على PostgreSQL محلي: migrations الاثنا عشر، بما فيها `009_inventory_missing_movement.sql` و`010_report_templates.sql` و`011_hierarchy_integrity.sql` و`012_location_types_catalog.sql`، نجحت، وإعادة التطبيق عبر محمل الترحيلات كانت idempotent. هذه النتيجة لا تعني أن staging الحقيقي نُشر؛ لا توجد في هذا المستودع بيانات اتصال أو أسرار أو صلاحيات بنية تحتية. قبل الإنتاج يجب تكرار rehearsal على PostgreSQL/Supabase الفعلي، وفحص PITR وRPO/RTO، وإضافة reverse proxy/TLS ومراقبة مركزية، والتحقق من أن حساب التشغيل يرى صلاحيات tenant المستهدف فقط بعد تشغيل seed الصلاحيات.

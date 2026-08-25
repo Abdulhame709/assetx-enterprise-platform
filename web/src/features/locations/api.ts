@@ -4,13 +4,16 @@
  */
 import { http } from '@/lib/api/client';
 
-export type LocationType = 'building' | 'room' | 'warehouse' | 'workshop' | 'outdoor';
+export type LocationType = string;
 
 export interface LocationNode {
   id: string;
   parent_id: string | null;
   name: string;
   location_type: LocationType;
+  location_type_name_ar?: string | null;
+  location_type_name_en?: string | null;
+  location_type_icon_key?: string | null;
   path: string;
   full_path: string;
   level_number: number;
@@ -31,7 +34,10 @@ export function mapLocation(raw: unknown): LocationNode | null {
     id: String(r.id),
     parent_id: r.parent_id != null ? String(r.parent_id) : null,
     name: String(r.name ?? ''),
-    location_type: (String(r.location_type ?? 'room') as LocationType),
+    location_type: String(r.location_type ?? 'room') as LocationType,
+    location_type_name_ar: r.location_type_name_ar == null ? null : String(r.location_type_name_ar),
+    location_type_name_en: r.location_type_name_en == null ? null : String(r.location_type_name_en),
+    location_type_icon_key: r.location_type_icon_key == null ? null : String(r.location_type_icon_key),
     path: String(r.path ?? ''),
     full_path: String(r.full_path ?? r.name ?? ''),
     level_number: Number(r.level_number ?? 0),

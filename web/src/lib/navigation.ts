@@ -82,7 +82,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'nav.administration',
     items: [
       { label: 'nav.administrationPage', href: '/administration', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
-      { label: 'nav.settings', href: '/settings', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
+      { label: 'nav.settings', href: '/settings', icon: Settings, permission: PERMISSIONS.SETTINGS_VIEW },
     ],
   },
 ];

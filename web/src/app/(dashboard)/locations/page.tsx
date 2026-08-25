@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { humanError } from '@/lib/api/errors';
 import { useLocations, deleteLocation, LocationNode } from '@/features/locations/use-locations';
+import { useLocationTypes } from '@/features/location-types/use-location-types';
 import { LocationTree } from '@/features/locations/components/LocationTree';
 import { LocationFormModal } from '@/features/locations/components/LocationFormModal';
 import { useI18n } from '@/lib/i18n';
@@ -32,6 +33,7 @@ export default function LocationsPage() {
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
   const searchInputRef = useRef<HTMLInputElement>(null);
   const state = useLocations();
+  const typeState = useLocationTypes();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { t, locale } = useI18n();
@@ -94,6 +96,7 @@ export default function LocationsPage() {
           {state.status === 'error' && (
             <ErrorState message={humanError(state.error)} onRetry={state.reload} />
           )}
+          {typeState.status === 'error' && <p className="border-b border-line bg-danger/5 px-3 py-2 text-sm text-danger" role="alert">{humanError(typeState.error)}</p>}
           {state.status === 'success' && state.data && (
             <LocationTree
               locations={state.data}
@@ -117,6 +120,7 @@ export default function LocationsPage() {
           mode={modal.mode}
           parent={modal.mode === 'create-child' ? modal.parent : null}
           node={modal.mode === 'edit' ? modal.node : null}
+          locationTypes={typeState.data ?? []}
           onClose={() => setModal({ mode: 'closed' })}
           onSaved={() => {
             toast.success(
@@ -124,6 +128,7 @@ export default function LocationsPage() {
               t('locationPage.saved'),
             );
             state.reload();
+            typeState.reload();
           }}
         />
       )}

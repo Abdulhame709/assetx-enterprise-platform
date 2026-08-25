@@ -7,12 +7,12 @@ export interface CreateLocationInput {
   tenant_id: string;
   parent_id?: string | null;
   name: string;
-  location_type?: Location['location_type'];
+  location_type?: string;
 }
 
 export interface UpdateLocationInput {
   name?: string;
-  location_type?: Location['location_type'];
+  location_type?: string;
 }
 
 export interface LocationPort {

@@ -2,11 +2,11 @@
 
 /**
  * Asset Types — hierarchical classification management (backend: /categories).
- * Create root/child + rename only — the backend exposes no delete for categories,
- * so no delete action is offered (contract parity, no fake buttons).
+ * Create root/child + rename/reparent — the backend exposes soft deactivation
+ * rather than hard delete, so no hard-delete action is offered (contract parity).
  */
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronRight, FileSpreadsheet, Pencil, Plus, Printer, RefreshCw, Search, Tag, Trash2, Undo2 } from 'lucide-react';
+import { ChevronRight, FileSpreadsheet, Pencil, Plus, Power, Printer, RefreshCw, Search, Tag, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
@@ -83,6 +83,30 @@ export default function AssetTypesPage() {
   }, [state.data, childrenOf, search]);
 
   const roots = state.data?.filter((t) => !t.parent_id).length ?? 0;
+
+  const parentOptions = useMemo(() => {
+    if (modal.mode !== 'edit') return [];
+    const all = state.data ?? [];
+    const children = new Map<string, string[]>();
+    for (const item of all) {
+      if (!item.parent_id) continue;
+      const siblings = children.get(item.parent_id) ?? [];
+      siblings.push(item.id);
+      children.set(item.parent_id, siblings);
+    }
+    const descendants = new Set<string>();
+    const visit = (id: string) => {
+      for (const childId of children.get(id) ?? []) {
+        if (descendants.has(childId)) continue;
+        descendants.add(childId);
+        visit(childId);
+      }
+    };
+    visit(modal.node.id);
+    return all
+      .filter((item) => item.id !== modal.node.id && !descendants.has(item.id))
+      .sort((a, b) => a.full_path.localeCompare(b.full_path));
+  }, [state.data, modal]);
 
   const deactivate = async (node: AssetTypeNode) => {
     const accepted = await confirm({
@@ -199,7 +223,7 @@ export default function AssetTypesPage() {
                         className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                         onClick={() => deactivate(node)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Power className="h-4 w-4" />
                       </button>
                     </PermissionGate>
                   </div>
@@ -215,6 +239,7 @@ export default function AssetTypesPage() {
           mode={modal.mode}
           parent={modal.mode === 'create' ? modal.parent : null}
           node={modal.mode === 'edit' ? modal.node : null}
+          parentOptions={parentOptions}
           onClose={() => setModal({ mode: 'closed' })}
           onSaved={(verb) => {
             toast.success(verb === 'edit' ? t('assetTypes.updated') : t('assetTypes.created'), t('assetTypes.saved'));
@@ -228,20 +253,26 @@ export default function AssetTypesPage() {
 }
 
 function AssetTypeModal({
-  mode, parent, node, onClose, onSaved,
+  mode, parent, node, parentOptions, onClose, onSaved,
 }: {
   mode: 'create' | 'edit';
   parent: AssetTypeNode | null;
   node: AssetTypeNode | null;
+  parentOptions: AssetTypeNode[];
   onClose: () => void;
   onSaved: (verb: 'create' | 'edit') => void;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(mode === 'edit' ? node?.name ?? '' : '');
+  const [parentId, setParentId] = useState(mode === 'edit' ? node?.parent_id ?? '' : '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setName(mode === 'edit' ? node?.name ?? '' : ''); setError(null); }, [mode, node]);
+  useEffect(() => {
+    setName(mode === 'edit' ? node?.name ?? '' : '');
+    setParentId(mode === 'edit' ? node?.parent_id ?? '' : '');
+    setError(null);
+  }, [mode, node]);
 
   const title = mode === 'edit'
     ? t('assetTypes.renameTitle').replace('{name}', node?.name ?? t('assetTypes.title'))
@@ -253,7 +284,7 @@ function AssetTypeModal({
     if (name.trim().length < 2) { setError(t('assetTypes.nameTooShort')); return; }
     setSaving(true);
     try {
-      if (mode === 'edit' && node) await updateAssetType(node.id, { name: name.trim() });
+      if (mode === 'edit' && node) await updateAssetType(node.id, { name: name.trim(), parent_id: parentId || null });
       else await createAssetType({ name: name.trim(), parent_id: parent?.id ?? null });
       onSaved(mode);
     } catch (err) {
@@ -269,6 +300,16 @@ function AssetTypeModal({
         <Field label={t('assetTypes.name')} hint={t('assetTypes.nameHint')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required minLength={2} />
         </Field>
+        {mode === 'edit' && (
+          <Field label={t('assetTypes.parent')} hint={t('assetTypes.parentHint')}>
+            <select value={parentId} onChange={(e) => setParentId(e.target.value)} className="ax-input">
+              <option value="">{t('assetTypes.rootParent')}</option>
+              {parentOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.full_path}</option>
+              ))}
+            </select>
+          </Field>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetTypes.cancel')}</Button>

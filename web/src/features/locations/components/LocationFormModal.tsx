@@ -2,17 +2,16 @@
 
 /**
  * LocationFormModal — create (root or child) / edit a location.
- * Validation mirrors backend rules (name ≥ 2 chars, duplicate name → server error).
+ * Type options are tenant-scoped location-type records loaded from Settings.
  */
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/form';
 import { humanError } from '@/lib/api/errors';
 import { createLocation, updateLocation, LocationNode, LocationType } from '../api';
+import type { LocationTypeOption } from '@/features/location-types/api';
 import { useI18n } from '@/lib/i18n';
-
-const LOCATION_TYPES: LocationType[] = ['building', 'room', 'warehouse', 'workshop', 'outdoor'];
 
 interface Props {
   open: boolean;
@@ -20,33 +19,51 @@ interface Props {
   mode: 'create-root' | 'create-child' | 'edit';
   parent?: LocationNode | null;
   node?: LocationNode | null;
+  locationTypes: LocationTypeOption[];
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function LocationFormModal({ open, mode, parent, node, onClose, onSaved }: Props) {
-  const { t } = useI18n();
+export function LocationFormModal({ open, mode, parent, node, locationTypes, onClose, onSaved }: Props) {
+  const { t, locale } = useI18n();
   const [name, setName] = useState('');
-  const [type, setType] = useState<LocationType>('room');
+  const [type, setType] = useState<LocationType>('');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const availableTypes = useMemo(() => {
+    const currentCode = mode === 'edit' ? node?.location_type : null;
+    const active = locationTypes.filter((item) => item.is_active || item.code === currentCode);
+    return active;
+  }, [locationTypes, mode, node?.location_type]);
 
   useEffect(() => {
     if (!open) return;
     setName(mode === 'edit' ? node?.name ?? '' : '');
-    setType(mode === 'edit' ? node?.location_type ?? 'room' : parent?.location_type === 'building' ? 'room' : (parent ? 'room' : 'building'));
+    const current = mode === 'edit' ? node?.location_type : null;
+    const preferred = current
+      ?? (parent?.location_type === 'building' ? availableTypes.find((item) => item.code === 'room')?.code : null)
+      ?? availableTypes.find((item) => item.code === 'building')?.code
+      ?? availableTypes[0]?.code
+      ?? '';
+    setType(preferred);
     setError(null);
-  }, [open, mode, node, parent]);
+  }, [open, mode, node, parent, availableTypes]);
 
   const title =
     mode === 'edit' ? t('locationForm.editTitle').replace('{name}', node?.name ?? t('common.location')) :
     mode === 'create-child' ? t('locationForm.addChildTitle').replace('{name}', parent?.name ?? '') :
     t('locationForm.createRootTitle');
 
+  const typeLabel = (option: LocationTypeOption) => locale === 'ar'
+    ? option.name_ar
+    : option.name_en ?? option.name_ar;
+
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     if (name.trim().length < 2) { setError(t('locationForm.nameTooShort')); return; }
+    if (!type) { setError(t('locationForm.typeRequired')); return; }
     setSaving(true);
     try {
       if (mode === 'edit' && node) {
@@ -69,17 +86,18 @@ export function LocationFormModal({ open, mode, parent, node, onClose, onSaved }
         <Field label={t('locationForm.name')} hint={t('locationForm.nameHint')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required minLength={2} />
         </Field>
-        <Field label={t('locationForm.type')}>
-          <Select value={type} onChange={(e) => setType(e.target.value as LocationType)}>
-            {LOCATION_TYPES.map((typeOption) => (
-              <option key={typeOption} value={typeOption} className="capitalize">{t(`locationForm.type.${typeOption}`)}</option>
+        <Field label={t('locationForm.type')} hint={t('locationForm.typeSettingsHint')}>
+          <Select value={type} onChange={(e) => setType(e.target.value)} disabled={availableTypes.length === 0}>
+            {availableTypes.map((typeOption) => (
+              <option key={typeOption.code} value={typeOption.code}>{typeLabel(typeOption)}</option>
             ))}
           </Select>
         </Field>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {availableTypes.length === 0 && <p className="text-sm text-danger">{t('locationForm.noTypes')}</p>}
+        {error && <p className="text-sm text-danger" role="alert">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('locationForm.cancel')}</Button>
-          <Button type="submit" variant="primary" size="sm" loading={saving}>
+          <Button type="submit" variant="primary" size="sm" loading={saving} disabled={availableTypes.length === 0}>
             {mode === 'edit' ? t('locationForm.save') : t('locationForm.create')}
           </Button>
         </div>

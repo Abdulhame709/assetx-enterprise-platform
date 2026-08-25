@@ -8,7 +8,10 @@ export interface Location {
   tenant_id: string;
   parent_id: string | null;
   name: string;
-  location_type: 'building' | 'room' | 'warehouse' | 'workshop' | 'outdoor';
+  location_type: string;
+  location_type_name_ar?: string | null;
+  location_type_name_en?: string | null;
+  location_type_icon_key?: string | null;
   path: string;        // materialized path (LTREE-compatible, ADR-005)
   full_path: string;   // display name
   level_number: number;
