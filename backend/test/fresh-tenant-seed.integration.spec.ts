@@ -80,6 +80,23 @@ describe('fresh tenant seed after migration 012', () => {
       );
       expect(defaultLocation.rows).toEqual([{ location_type: 'building' }]);
 
+      const administratorLocationTypePermissions = await pg.query<{ count: string }>(
+        `
+          SELECT count(*)::text AS count
+          FROM role_permissions rp
+          JOIN roles r ON r.id = rp.role_id
+          JOIN permissions p ON p.id = rp.permission_id
+          WHERE r.tenant_id = $1
+            AND r.name = 'Administrator'
+            AND p.module_name IN (
+              'location_type.view', 'location_type.create', 'location_type.update',
+              'location_type.delete', 'settings.view', 'settings.update'
+            );
+        `,
+        [tenantId],
+      );
+      expect(administratorLocationTypePermissions.rows[0]?.count).toBe('6');
+
       await pg.exec(readProjectFile('db/seed/000_location_types.sql'));
       const typeCountAfterReplay = await pg.query<{ count: string }>(
         'SELECT count(*)::text AS count FROM location_types WHERE tenant_id = $1;',

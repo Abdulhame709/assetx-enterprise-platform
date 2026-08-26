@@ -34,7 +34,9 @@ BEGIN
         "category.view", "category.create", "category.update", "category.delete",
         "model.view", "model.create", "model.update", "model.delete",
         "employee.view", "employee.create", "employee.update", "employee.delete",
-        "status.view", "status.create", "status.update", "status.delete"
+        "status.view", "status.create", "status.update", "status.delete",
+        "location_type.view", "location_type.create", "location_type.update", "location_type.delete",
+        "settings.view", "settings.update"
       ],
       "Asset Manager": [
         "asset.view", "asset.create", "asset.update", "asset.delete", "asset.transfer",
@@ -47,29 +49,30 @@ BEGIN
         "category.view", "category.create", "category.update", "category.delete",
         "model.view", "model.create", "model.update", "model.delete",
         "employee.view", "employee.create", "employee.update", "employee.delete",
-        "status.view", "status.create", "status.update", "status.delete"
+        "status.view", "status.create", "status.update", "status.delete",
+        "location_type.view", "location_type.create", "location_type.update", "location_type.delete"
       ],
       "Auditor": [
         "asset.view", "movement.view", "inventory.view", "inventory.verify", "dashboard.view",
         "export.assets", "export.movements", "export.inventory", "export.audit", "export.dashboard",
         "report.view", "report.export", "audit.export", "audit.view", "compliance.view",
         "notification.view", "search.global", "search.save",
-        "location.view", "category.view", "model.view", "employee.view", "status.view"
+        "location.view", "category.view", "model.view", "employee.view", "status.view", "location_type.view"
       ],
       "Department Manager": [
         "asset.view", "movement.view", "inventory.view", "dashboard.view",
         "notification.view", "search.global", "search.save",
-        "location.view", "category.view", "model.view", "employee.view", "status.view"
+        "location.view", "category.view", "model.view", "employee.view", "status.view", "location_type.view"
       ],
       "Inventory Team": [
-        "inventory.view", "inventory.execute", "asset.view", "location.view", "status.view", "notification.view"
+        "inventory.view", "inventory.execute", "asset.view", "location.view", "status.view", "notification.view", "location_type.view"
       ],
       "Maintenance": [
-        "asset.view", "movement.view", "location.view", "status.view", "notification.view",
+        "asset.view", "movement.view", "location.view", "status.view", "notification.view", "location_type.view",
         "maintenance.view", "maintenance.create", "maintenance.manage"
       ],
       "Employee": [
-        "asset.view", "location.view", "status.view", "notification.view"
+        "asset.view", "location.view", "status.view", "notification.view", "location_type.view"
       ]
     }
     $catalog$::jsonb)
