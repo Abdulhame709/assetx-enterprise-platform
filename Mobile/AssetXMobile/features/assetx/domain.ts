@@ -6,6 +6,7 @@ export type OfflineMutationMode = "record" | "update";
 export interface AssetXUser { id: string; username: string; tenant_id: string; }
 export interface AuthTokens { accessToken: string; refreshToken: string; }
 export interface InventoryCycle { id: string; year: number; status: CycleStatus; start_date: string | null; end_date: string | null; created_at: string; }
+export interface LocationOption { id: string; name: string; full_path: string; parent_id: string | null; level_number: number; is_active: boolean; }
 export interface MobileInventorySnapshotRecord {
   record_id: string; asset_id: string; asset_code: string; asset_name: string;
   expected_location_id: string | null; expected_location: string | null; expected_location_path: string | null;
@@ -36,5 +37,8 @@ export function friendlyError(error: unknown): string {
     INVALID_CREDENTIALS: "اسم المستخدم أو كلمة المرور غير صحيحين.", SESSION_REVOKED: "انتهت الجلسة. سجل الدخول مرة أخرى.",
     SYNC_CONFLICT: "حدث تعارض لأن هذا السجل عُدّل من جهاز آخر.", CYCLE_CLOSED: "هذه الدورة مغلقة ولا يمكن تعديلها.",
     NETWORK_REQUEST_FAILED: "تعذر الاتصال بالخادم. احفظ العمل ثم حاول المزامنة لاحقاً.",
+    SAME_LOCATION: "الموقع الفعلي يطابق الموقع المسجل للأصل، لذلك لا يلزم اقتراح نقل.",
+    DUPLICATE_PENDING: "يوجد اقتراح نقل معلق لهذا الأصل بالفعل.",
+    FORBIDDEN: "ليس لدى هذا الحساب صلاحية إنشاء اقتراح نقل.",
   } as Record<string, string>)[raw] ?? "تعذر إكمال العملية. تحقق من الاتصال ثم أعد المحاولة.";
 }
