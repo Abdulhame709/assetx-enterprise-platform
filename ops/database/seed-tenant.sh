@@ -32,13 +32,16 @@ if [[ ! "$TENANT_ID" =~ ^[0-9a-fA-F-]{36}$ ]]; then
   exit 1
 fi
 
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v tenant_id="$TENANT_ID" <<SQL
+(
+  cd "$ROOT_DIR"
+  psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v tenant_id="$TENANT_ID" <<'SQL'
 BEGIN;
 SELECT set_config('app.tenant_id', :'tenant_id', true);
-\i $ROOT_DIR/db/seed/000_location_types.sql
-\i $ROOT_DIR/db/seed/001_seed.sql
-\i $ROOT_DIR/db/seed/002_permissions.sql
+\i db/seed/000_location_types.sql
+\i db/seed/001_seed.sql
+\i db/seed/002_permissions.sql
 COMMIT;
 SQL
+)
 
 echo "AssetX tenant seed completed: $TENANT_CODE ($TENANT_ID)"
