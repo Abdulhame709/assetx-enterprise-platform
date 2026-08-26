@@ -98,11 +98,18 @@ describe('fresh tenant seed after migration 012', () => {
       expect(administratorLocationTypePermissions.rows[0]?.count).toBe('6');
 
       await pg.exec(readProjectFile('db/seed/000_location_types.sql'));
+      await pg.exec(readProjectFile('db/seed/001_seed.sql'));
       const typeCountAfterReplay = await pg.query<{ count: string }>(
         'SELECT count(*)::text AS count FROM location_types WHERE tenant_id = $1;',
         [tenantId],
       );
       expect(typeCountAfterReplay.rows[0]?.count).toBe('5');
+
+      const headquartersCountAfterReplay = await pg.query<{ count: string }>(
+        "SELECT count(*)::text AS count FROM locations WHERE tenant_id = $1 AND name = 'Headquarters';",
+        [tenantId],
+      );
+      expect(headquartersCountAfterReplay.rows[0]?.count).toBe('1');
     } finally {
       await pg.close();
     }

@@ -72,8 +72,15 @@ ON CONFLICT DO NOTHING;
 -- ---------------------------------------------------------------------------
 INSERT INTO locations (tenant_id, name, location_type, path, full_path, level_number)
 SELECT id, 'Headquarters', 'building', 'hq', 'Headquarters', 0
-FROM tenants WHERE id = current_tenant_id()
-ON CONFLICT DO NOTHING;
+FROM tenants
+WHERE id = current_tenant_id()
+  AND NOT EXISTS (
+    SELECT 1
+    FROM locations existing
+    WHERE existing.tenant_id = current_tenant_id()
+      AND existing.parent_id IS NULL
+      AND lower(existing.name) = lower('Headquarters')
+  );
 
 -- ---------------------------------------------------------------------------
 -- 7. Default settings (tenant-scoped)
