@@ -56,7 +56,7 @@ TENANT_CODE="$TENANT_CODE" DATABASE_URL="$DATABASE_URL" ./ops/database/seed-tena
 
 ## التحقق بعد الإعداد
 
-نفّذ الاستعلامات التالية بحساب إداري للقراءة التشخيصية، ثم نفّذ smoke test بحساب `assetx_app`:
+نفّذ الاستعلامات التالية بحساب إداري للقراءة التشخيصية، ثم نفّذ فحص RLS بالحساب غير المالك `assetx_app`. يستخدم سكربت RLS tenant `local_assetx` افتراضياً، ويمكن تغييره بتمرير `-v tenant_code=...`:
 
 ```sql
 SELECT count(*) AS migration_count FROM schema_migrations;
@@ -67,7 +67,7 @@ WHERE relrowsecurity = true AND relkind = 'r';
 SELECT tenant_code, name, status FROM tenants ORDER BY tenant_code;
 ```
 
-يجب أن تكون الترحيلات الحالية اثني عشر ملفاً، من `001_init.sql` حتى `012_location_types_catalog.sql`، بما فيها إصلاحات hierarchy في `011_hierarchy_integrity.sql` وcatalog أنواع المواقع في `012_location_types_catalog.sql`. يجب أن يظهر سياق المستأجر عند تشغيل العملية، وأن تعيد RLS بيانات المستأجر المطلوب فقط. يجب أن يفشل الطلب المحمي بلا JWT، وأن ينجح مع صلاحية صحيحة، وأن يعيد `/health` حالة قاعدة البيانات `ok`. بعد ذلك يُختبر `pg_dump` و`pg_restore` إلى قاعدة منفصلة، ثم PITR وRPO/RTO على المزود السحابي قبل اعتماد production.
+يجب أن تكون الترحيلات الحالية اثني عشر ملفاً، من `001_init.sql` حتى `012_location_types_catalog.sql`، بما فيها إصلاحات hierarchy في `011_hierarchy_integrity.sql` وcatalog أنواع المواقع في `012_location_types_catalog.sql`. بعد ذلك شغّل `ops/database/verify-rls.sql` باستخدام `assetx_app`؛ يجب أن يعرض `target_roles=7` و`probe_roles=0` ثم ينفذ `ROLLBACK`. يجب أن يظهر سياق المستأجر عند تشغيل العملية، وأن تعيد RLS بيانات المستأجر المطلوب فقط. يجب أن يفشل الطلب المحمي بلا JWT، وأن ينجح مع صلاحية صحيحة، وأن يعيد `/health` حالة قاعدة البيانات `ok`. بعد ذلك يُختبر `pg_dump` و`pg_restore` إلى قاعدة منفصلة، ثم PITR وRPO/RTO على المزود السحابي قبل اعتماد production.
 
 ## الملفات المرجعية
 
@@ -79,6 +79,7 @@ SELECT tenant_code, name, status FROM tenants ORDER BY tenant_code;
 | `db/seed/002_permissions.sql` | كتالوج الصلاحيات وربطها بالأدوار، idempotent |
 | `backend/src/bootstrap/migrate.ts` | CLI الرسمي لتطبيق الترحيلات على PostgreSQL |
 | `backend/src/infrastructure/database/postgres.database.ts` | pool وtransaction وrequest-scoped tenant context |
+| `ops/database/verify-rls.sql` | اختبار RLS قابل للتراجع، tenant افتراضي `local_assetx` وقابل للتغيير |
 | `ops/staging/provision-runtime-role.sql` | إنشاء/منح دور التشغيل بواسطة مسؤول PostgreSQL |
 | `ops/database/seed-tenant.sh` | إنشاء/حل tenant ثم تشغيل catalog الأنواع وseed البيانات والصلاحيات بالترتيب الصحيح |
 | `docs/Staging-Database-Architecture.md` | قرار الفصل بين Local وStaging وProduction |
