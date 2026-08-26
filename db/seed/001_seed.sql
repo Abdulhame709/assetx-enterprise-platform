@@ -64,7 +64,7 @@ INSERT INTO asset_categories (tenant_id, name, full_path, level_number) VALUES
   (current_tenant_id(), 'IT Equipment','IT Equipment', 0),
   (current_tenant_id(), 'Vehicles',   'Vehicles',   0),
   (current_tenant_id(), 'Office Equipment', 'Office Equipment', 0)
-ON CONFLICT (tenant_id, name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------------
 -- 6. Default location root (tenant-scoped)

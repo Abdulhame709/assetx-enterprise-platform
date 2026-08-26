@@ -35,6 +35,7 @@ fi
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v tenant_id="$TENANT_ID" <<SQL
 BEGIN;
 SELECT set_config('app.tenant_id', :'tenant_id', true);
+\\i $ROOT_DIR/db/seed/000_location_types.sql
 \\i $ROOT_DIR/db/seed/001_seed.sql
 \\i $ROOT_DIR/db/seed/002_permissions.sql
 COMMIT;

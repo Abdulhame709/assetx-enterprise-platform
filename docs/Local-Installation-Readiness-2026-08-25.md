@@ -2,7 +2,7 @@
 
 **المشروع:** `assetx-enterprise-platform`
 **الفرع الحالي:** `chore/phase1-environment-postgres`
-**آخر commit منشور:** `d132499 ui: standardize ERP command toolbar and navigation`
+**آخر commit منشور قبل هذه الدفعة:** `24de84b feat: add configurable location types and theme settings`
 **النطاق:** فحص ما تبقى قبل تثبيت PostgreSQL وتشغيل AssetX محلياً.
 
 ## النتيجة التنفيذية
@@ -33,9 +33,9 @@
 
 ثانياً، يجب توفير PostgreSQL محلي فارغ وعميل `psql`، ثم إنشاء قاعدة `assetx` وأدوار منفصلة للمهاجر والتطبيق. لا ينبغي استخدام مالك القاعدة لتشغيل HTTP Backend اليومي، ولا ينبغي وضع كلمات المرور داخل المستودع.
 
-ثالثاً، يجب إنشاء ملف أسرار خارج Git يحتوي `DATABASE_URL` وأسرار JWT و`CORS_ORIGIN`، ثم بناء backend وتشغيل `backend` migration CLI الرسمي. سيطبق runner جميع الملفات من `001_init.sql` إلى `012_location_types_catalog.sql` بترتيبها، ويسجلها في `schema_migrations`، ويمكن تشغيله مرة ثانية للتحقق من idempotency.
+ثالثاً، يجب إنشاء ملف أسرار خارج Git يحتوي `DATABASE_URL` وأسرار JWT و`CORS_ORIGIN`، ثم بناء backend وتشغيل `backend` migration CLI الرسمي. سيطبق runner جميع الملفات من `001_init.sql` إلى `012_location_types_catalog.sql` بترتيبها، ويسجلها في `schema_migrations`. بعد ذلك يزرع `seed-tenant.sh` catalog الأنواع قبل الموقع الافتراضي، ويمكن إعادة تشغيله للتحقق من idempotency.
 
-رابعاً، يجب تشغيل `ops/database/seed-tenant.sh` بعد الترحيلات لإنشاء tenant محلي idempotent وتشغيل seed الصلاحيات داخل سياق `app.tenant_id`. بعدها يُشغل Backend على 3001 وWeb على 3000، ثم تُنفذ health/auth/RLS smoke tests.
+رابعاً، يجب تشغيل `ops/database/seed-tenant.sh` بعد الترحيلات لإنشاء tenant محلي idempotent. يبدأ السكربت الآن بملف `db/seed/000_location_types.sql` لزرع الأنواع القياسية الخمسة داخل tenant الجديد، ثم يشغّل `001_seed.sql` و`002_permissions.sql` داخل سياق `app.tenant_id`. بعدها يُشغل Backend على 3001 وWeb على 3000، ثم تُنفذ health/auth/RLS smoke tests.
 
 خامساً، بعد نجاح التثبيت، يجب فصل التغييرات المصدرية عن وثائق UI audit غير المتتبعة، ومراجعة commit source-only قبل الدفع إلى GitHub. لا ينبغي دفع أسرار أو ملفات env أو قاعدة بيانات محلية.
 
@@ -54,7 +54,7 @@
 | 3 | إنشاء القاعدة والأدوار المحلية | قاعدة فارغة وأدوار migrator/runtime منفصلة |
 | 4 | إنشاء الأسرار خارج Git | الملف بصلاحية مقيدة ولا يظهر في `git status` |
 | 5 | بناء Backend وتشغيل migration runner | 12 سجل migration دون خطأ |
-| 6 | تشغيل seed tenant والصلاحيات | tenant محلي وصلاحيات idempotent |
+| 6 | تشغيل catalog الأنواع ثم seed tenant والصلاحيات | tenant محلي، خمسة أنواع قياسية، وصلاحيات idempotent |
 | 7 | تشغيل Backend وWeb | `/health` و`/login` يعملان |
 | 8 | اختبار auth وRLS والمسار الأساسي | JWT صحيح، tenant isolation ناجح، وإنشاء/قراءة موقع وأصل ناجحان |
 | 9 | فحص backup/restore المحلي | dump/restore بعميل متوافق أو توثيق سبب عدم التحقق |
@@ -71,7 +71,8 @@
 | `web/.env.example` | أسماء متغيرات Web فقط |
 | `backend/src/bootstrap/migrate.ts` | runner الرسمي للترحيلات |
 | `db/migrations/` | المخطط التنفيذي، 12 ملفاً حالياً |
-| `ops/database/seed-tenant.sh` | seed tenant idempotent |
+| `db/seed/000_location_types.sql` | زرع الأنواع القياسية الخمسة لكل tenant جديد بعد migration 012 |
+| `ops/database/seed-tenant.sh` | إنشاء/حل tenant ثم تشغيل catalog الأنواع وseed tenant idempotently |
 | `ops/database/verify-rls.sql` | اختبار RLS قابل للتراجع |
 | `ops/staging/provision-runtime-role.sql` | نمط إنشاء دور runtime محدود |
 

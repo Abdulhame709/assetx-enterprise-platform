@@ -10,7 +10,7 @@
 
 | البيئة | قاعدة البيانات | تطبيق الترحيلات | seed | حالة هذه الجلسة |
 |---|---|---|---|---|
-| Local PostgreSQL | `127.0.0.1:5432/assetx` | `backend` migration CLI | `001_seed.sql` ثم `002_permissions.sql` | جاهزة ومتحقق منها |
+| Local PostgreSQL | `127.0.0.1:5432/assetx` | `backend` migration CLI | `000_location_types.sql` ثم `001_seed.sql` ثم `002_permissions.sql` | مسار التثبيت المحلي |
 | Local PGlite | مدمجة داخل Backend | bootstrap محلي | demo bootstrap عند التشغيل | مسار fallback والاختبارات |
 | Staging Cloud | PostgreSQL مُدار | job مستقل قبل الخدمات | tenant محدد صراحةً | جاهز للتطبيق بعد توفير URL والأدوار |
 | Production Cloud | PostgreSQL مُدار مع TLS | pipeline محمي قبل deploy | لا demo seed | غير منفذة حتى الآن |
@@ -29,7 +29,7 @@ npm --prefix backend run build
 DATABASE_URL="$DATABASE_URL" npm --prefix backend run db:migrate
 ```
 
-أنشئ tenant للتحقق أو استخدم tenant موجوداً، ثم شغّل seed في سياق tenant. قيمة `app.tenant_id` مطلوبة قبل أي seed tenant-scoped، لأن RLS تمنع إدخال صفوف بلا سياق.
+أنشئ tenant للتحقق أو استخدم tenant موجوداً، ثم شغّل seed في سياق tenant. قيمة `app.tenant_id` مطلوبة قبل أي seed tenant-scoped، لأن RLS تمنع إدخال صفوف بلا سياق. يزرع `ops/database/seed-tenant.sh` أولاً ملف `000_location_types.sql` حتى تتوفر الأنواع القياسية (`building`, `room`, `warehouse`, `workshop`, `outdoor`) قبل أن ينشئ `001_seed.sql` الموقع الافتراضي `Headquarters`.
 
 ```bash
 TENANT_CODE=local_assetx ./ops/database/seed-tenant.sh
@@ -74,11 +74,12 @@ SELECT tenant_code, name, status FROM tenants ORDER BY tenant_code;
 | الملف | الوظيفة |
 |---|---|
 | `db/migrations/` | المصدر التنفيذي للمخطط والترحيلات الرقمية |
+| `db/seed/000_location_types.sql` | الأنواع القياسية الخمسة لكل tenant بعد migration 012، بشكل idempotent |
 | `db/seed/001_seed.sql` | notification channels/templates، الأدوار، الحالات، الفئات، الموقع والإعدادات الأساسية |
 | `db/seed/002_permissions.sql` | كتالوج الصلاحيات وربطها بالأدوار، idempotent |
 | `backend/src/bootstrap/migrate.ts` | CLI الرسمي لتطبيق الترحيلات على PostgreSQL |
 | `backend/src/infrastructure/database/postgres.database.ts` | pool وtransaction وrequest-scoped tenant context |
 | `ops/staging/provision-runtime-role.sql` | إنشاء/منح دور التشغيل بواسطة مسؤول PostgreSQL |
-| `ops/database/seed-tenant.sh` | تشغيل seed tenant-scoped بعد تحديد tenant صراحةً |
+| `ops/database/seed-tenant.sh` | إنشاء/حل tenant ثم تشغيل catalog الأنواع وseed البيانات والصلاحيات بالترتيب الصحيح |
 | `docs/Staging-Database-Architecture.md` | قرار الفصل بين Local وStaging وProduction |
 | `docs/Staging-Rehearsal-Report.md` | نتيجة rehearsal المحلي للترحيلات والنسخ والاستعادة |
