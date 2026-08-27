@@ -8,6 +8,7 @@
     "start": "node dist/main.js",
     "start:dev": "ts-node src/main.ts",
     "db:migrate": "node dist/bootstrap/migrate.js",
+    "users:reset-local-password": "ts-node src/bootstrap/reset-local-password.ts",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config test/jest.config.js",
     "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --config test/jest.unit.config.js",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --config test/jest.integration.config.js",
