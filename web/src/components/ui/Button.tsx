@@ -38,9 +38,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
       ref={ref}
       className={cn(base, variants[variant], sizes[size], className)}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
     >
-      {loading && <Spinner className="h-4 w-4" />}
+      <span className={cn('inline-flex h-4 w-4 items-center justify-center', !loading && 'hidden')} aria-hidden>
+        <Spinner className="h-4 w-4" />
+      </span>
       {children}
     </button>
   );
