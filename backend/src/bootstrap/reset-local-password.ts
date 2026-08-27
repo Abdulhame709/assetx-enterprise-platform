@@ -32,7 +32,7 @@ function promptHidden(label: string): Promise<string> {
       process.stdin.pause();
     };
     const onData = (chunk: Buffer) => {
-      const input = chunk.toString('utf8');
+      for (const input of chunk.toString('utf8')) {
       if (input === '\u0003') {
         cleanup();
         reject(new Error('PASSWORD_RESET_CANCELLED'));
@@ -46,9 +46,14 @@ function promptHidden(label: string): Promise<string> {
       }
       if (input === '\u007f' || input === '\b') {
         value = value.slice(0, -1);
+        process.stdout.write('\b \b');
         return;
       }
-      if (!/[\x00-\x1f]/.test(input)) value += input;
+      if (!/[\x00-\x1f]/.test(input)) {
+        value += input;
+        process.stdout.write('•');
+      }
+      }
     };
     process.stdout.write(label);
     process.stdin.setRawMode(true);
