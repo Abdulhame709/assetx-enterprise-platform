@@ -9,6 +9,7 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/http/http-exception.filter';
+import { loadLocalEnvironment } from './bootstrap/local-environment';
 
 function assertProductionConfig(): void {
   if (process.env.NODE_ENV !== 'production') return;
@@ -32,6 +33,7 @@ function assertProductionConfig(): void {
 }
 
 async function bootstrap() {
+  loadLocalEnvironment();
   assertProductionConfig();
   const app = await NestFactory.create(AppModule, { logger: false });
   app.use(helmet());

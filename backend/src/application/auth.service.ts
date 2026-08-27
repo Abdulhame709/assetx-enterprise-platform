@@ -136,6 +136,16 @@ export class AuthService {
     };
   }
 
+  /**
+   * Local maintenance-only verification used after a password reset. This
+   * deliberately does not create a session, return tokens, or expose hashes.
+   */
+  async verifyPasswordForLocalReset(username: string, password: string): Promise<boolean> {
+    const user = await this.users.findByUsername(username);
+    if (!user || !user.is_active) return false;
+    return this.hasher.verify(password, user.password_hash);
+  }
+
   /** Logout: revoke the access token's server-side session. */
   async logout(token: string): Promise<void> {
     const payload = this.tokens.decode(token);

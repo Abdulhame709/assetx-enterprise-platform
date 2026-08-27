@@ -1,23 +1,8 @@
 import 'reflect-metadata';
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { AuthService } from '../application/auth.service';
-
-function loadLocalEnvironment(): void {
-  const environmentPath = resolve(process.cwd(), '.env');
-  if (!existsSync(environmentPath)) return;
-  for (const line of readFileSync(environmentPath, 'utf8').split(/\r?\n/)) {
-    const match = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/);
-    if (!match || process.env[match[1]] !== undefined) continue;
-    const [, key, rawValue] = match;
-    const value = rawValue.length >= 2 && ((rawValue.startsWith('"') && rawValue.endsWith('"')) || (rawValue.startsWith("'") && rawValue.endsWith("'")))
-      ? rawValue.slice(1, -1)
-      : rawValue;
-    process.env[key] = value;
-  }
-}
+import { loadLocalEnvironment } from './local-environment';
 
 function promptHidden(label: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -78,6 +63,8 @@ async function main(): Promise<void> {
     if (password !== confirmation) throw new Error('PASSWORD_CONFIRMATION_MISMATCH');
 
     await auth.completePasswordReset(reset.resetToken, password);
+    const accepted = await auth.verifyPasswordForLocalReset(username, password);
+    if (!accepted) throw new Error('PASSWORD_RESET_VERIFICATION_FAILED');
     console.log(`تمت إعادة تعيين كلمة مرور المستخدم المحلي: ${username}`);
   } finally {
     await app.close();
