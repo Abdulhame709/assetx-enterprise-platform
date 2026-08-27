@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -11,7 +11,7 @@ import { useSession } from "@/features/assetx/session-context";
 export default function FieldScreen() {
   const router = useRouter(); const { user, backendUrl } = useSession(); const [cycles, setCycles] = useState<InventoryCycle[]>([]); const [downloadedCycleId, setDownloadedCycleId] = useState<string | null>(null); const [pending, setPending] = useState(0); const [error, setError] = useState<string | null>(null); const [loading, setLoading] = useState(true);
   const refresh = useCallback(async () => { setLoading(true); try { const [availableCycles, snapshots, mutations] = await Promise.all([getCycles(), listStoredSnapshots(), listPendingMutations()]); setCycles(availableCycles); setDownloadedCycleId(snapshots[0]?.cycle_id ?? null); setPending(mutations.length); setError(null); } catch (nextError) { setError(friendlyError(nextError)); const [snapshots, mutations] = await Promise.all([listStoredSnapshots(), listPendingMutations()]); setDownloadedCycleId(snapshots[0]?.cycle_id ?? null); setPending(mutations.length); } finally { setLoading(false); } }, []);
-  useFocusEffect(useCallback(() => { void refresh(); }, [refresh])); useEffect(() => { void refresh(); }, [refresh]);
+  useFocusEffect(useCallback(() => { void refresh(); }, [refresh]));
   const activeCycle = cycles.find((cycle) => cycle.id === downloadedCycleId) ?? cycles.find((cycle) => cycle.status === "in_progress") ?? cycles[0] ?? null;
   return <AppScreen scroll><PageHeader title="الميدان" subtitle={user ? `مرحباً ${user.username}` : ""} action={<Pressable onPress={() => void refresh()} style={styles.headerIcon}><MaterialIcons name="refresh" size={24} color="#FFFFFF" /></Pressable>} /><View style={styles.content}>
     <Card><View style={styles.connectionRow}><StatusBadge label={backendUrl ? "الإعداد محفوظ" : "الإعداد ناقص"} tone={backendUrl ? "green" : "amber"} /><Text style={styles.connectionTitle}>اتصال النظام</Text></View><Text style={styles.connectionUrl} numberOfLines={1}>{backendUrl ?? "لم يتم إدخال رابط Backend بعد"}</Text></Card>
