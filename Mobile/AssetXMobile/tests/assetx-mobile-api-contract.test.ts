@@ -21,6 +21,11 @@ describe("AssetX Mobile live API contracts", () => {
     expect(storage.saveAuth).toHaveBeenCalled();
   });
 
+  it("preserves the backend invalid-credentials code for the Arabic login message", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ data: null, error: { code: "INVALID_CREDENTIALS", message: "INVALID_CREDENTIALS", details: {} } }), { status: 401 }));
+    await expect(login("field", "wrong-password")).rejects.toMatchObject({ message: "INVALID_CREDENTIALS", status: 401 });
+  });
+
   it("downloads the correct cycle snapshot with the saved token", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ cycle: { id: "cycle-1", year: 2026, status: "in_progress", created_at: "2026-01-01" }, records: [] }), { status: 200 }));
     await expect(downloadMobileSnapshot("cycle-1")).resolves.toMatchObject({ cycle: { id: "cycle-1" }, records: [] });
