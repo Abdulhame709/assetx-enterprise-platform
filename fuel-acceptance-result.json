@@ -1,0 +1,36 @@
+{
+  "actorUserId": 1,
+  "productId": 1,
+  "supplierId": 1,
+  "receipt": {
+    "id": 1,
+    "correctedQuantity": 987,
+    "totalAmount": 690900,
+    "balanceAfter": 1987
+  },
+  "issue": {
+    "id": 1,
+    "previousReading": 10000,
+    "quantityIssued": 200,
+    "correctedQuantity": 198.7,
+    "balanceAfter": 1788.3
+  },
+  "waste": {
+    "id": 1,
+    "balanceAfter": 1778.3
+  },
+  "inventory": {
+    "id": 1,
+    "bookBalance": 1778.3,
+    "physicalBalance": 1778.3,
+    "difference": 0,
+    "resultType": "balanced"
+  },
+  "availableBalance": 1778.3,
+  "expected": {
+    "correctedReceipt": 987,
+    "correctedIssue": 198.7,
+    "finalBalance": 1778.3,
+    "inventoryDifference": 0
+  }
+}

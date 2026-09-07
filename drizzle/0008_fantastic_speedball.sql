@@ -1,0 +1,1 @@
+ALTER TABLE `userPermissions` MODIFY COLUMN `action` enum('view','create','update','delete','assign','approve','print','export') NOT NULL;

@@ -1,0 +1,2 @@
+ALTER TABLE `sectionRoleGrants` MODIFY COLUMN `section` enum('energy','fuel','platform') NOT NULL;--> statement-breakpoint
+ALTER TABLE `userPermissions` MODIFY COLUMN `section` enum('energy','fuel','platform') NOT NULL;
