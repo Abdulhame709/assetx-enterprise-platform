@@ -20,7 +20,7 @@ const fuelDb = (roles: Array<"viewer" | "operator" | "supervisor" | "accountant"
   select: () => ({ from: () => ({ where: () => Promise.resolve(roles.map(role => ({ role }))) }) }),
 });
 
-function createContext(role: "admin" | "energy_operator" | "accountant" | "maintenance" | "reviewer" | "auditor" | "management") {
+function createContext(role: "admin" | "energy_operator" | "accountant" | "maintenance" | "reviewer" | "auditor" | "management", isActive = true) {
   return {
     user: {
       id: 1,
@@ -29,6 +29,7 @@ function createContext(role: "admin" | "energy_operator" | "accountant" | "maint
       email: "test@example.com",
       loginMethod: "manus",
       role,
+      isActive,
       createdAt: new Date(),
       updatedAt: new Date(),
       lastSignedIn: new Date(),
@@ -68,6 +69,10 @@ describe("صلاحيات الخادم", () => {
     mockedPermissionOverride.mockResolvedValue(null);
     await expect(testRouter.createCaller(createContext("management")).settingsWrite()).resolves.toBe("settings written");
     await expect(testRouter.createCaller(createContext("energy_operator")).settingsWrite()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("يمنع الحساب الموقوف من الإجراءات المحمية", async () => {
+    await expect(testRouter.createCaller(createContext("admin", false)).read()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("يفرض منح قسم الوقود حتى على أدوار الطاقة غير الإدارية", async () => {

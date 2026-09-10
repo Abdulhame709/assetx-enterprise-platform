@@ -38,6 +38,7 @@ export const users = mysqlTable("users", {
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", userRoles).default("management").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -75,6 +76,23 @@ export const siteRoleGrants = mysqlTable(
     index("site_role_grant_user_idx").on(table.userId, table.section),
     index("site_role_grant_site_idx").on(table.siteId, table.section),
   ],
+);
+
+export const userInvitationStatuses = ["pending", "accepted", "cancelled"] as const;
+
+export const userInvitations = mysqlTable(
+  "userInvitations",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    email: varchar("email", { length: 320 }).notNull(),
+    name: varchar("name", { length: 180 }).notNull(),
+    role: mysqlEnum("role", userRoles).default("user").notNull(),
+    status: mysqlEnum("status", userInvitationStatuses).default("pending").notNull(),
+    invitedBy: int("invitedBy").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  table => [index("user_invitation_email_idx").on(table.email, table.status), index("user_invitation_status_idx").on(table.status, table.createdAt)],
 );
 
 export const alertResolutions = mysqlTable(

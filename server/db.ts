@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   alertActionHistory,
@@ -29,6 +29,7 @@ import {
   type InsertUser,
   utilityInvoices,
   utilityMeters,
+  userInvitations,
   userPermissions,
   users,
   type fuelSectionRoles,
@@ -89,9 +90,16 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet[key] = user[key] ?? null;
     }
   });
-  values.role = user.role ?? (user.openId === ENV.ownerOpenId ? "admin" : "management");
-  updateSet.role = values.role;
+  const [invitation] = user.email
+    ? await db.select({ id: userInvitations.id, role: userInvitations.role }).from(userInvitations).where(and(eq(userInvitations.email, user.email), eq(userInvitations.status, "pending"))).orderBy(desc(userInvitations.createdAt)).limit(1)
+    : [];
+  const assignedRole = user.role ?? invitation?.role ?? (user.openId === ENV.ownerOpenId ? "admin" : undefined);
+  if (assignedRole) {
+    values.role = assignedRole;
+    updateSet.role = assignedRole;
+  }
   await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  if (invitation) await db.update(userInvitations).set({ status: "accepted" }).where(eq(userInvitations.id, invitation.id));
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -298,7 +306,32 @@ export async function saveSettingVersion(input: { settingGroup: string; settingK
 
 export async function listUsers() {
   const db = await dbOrThrow();
-  return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, lastSignedIn: users.lastSignedIn }).from(users).orderBy(users.name);
+  return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, isActive: users.isActive, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(users.name);
+}
+
+export async function createUserInvitation(input: { name: string; email: string; role: typeof users.$inferInsert.role; actorUserId: number }) {
+  const db = await dbOrThrow();
+  const email = input.email.trim().toLowerCase();
+  const [existingUser] = await db.select({ id: users.id, isActive: users.isActive }).from(users).where(eq(users.email, email)).limit(1);
+  if (existingUser) throw new Error(existingUser.isActive ? "يوجد مستخدم بهذا البريد بالفعل." : "يوجد حساب موقوف بهذا البريد؛ فعّله أو عدّل بياناته بدل إنشاء دعوة جديدة.");
+  const [pending] = await db.select({ id: userInvitations.id }).from(userInvitations).where(and(eq(userInvitations.email, email), eq(userInvitations.status, "pending"))).limit(1);
+  if (pending) throw new Error("توجد دعوة معلقة لهذا البريد بالفعل.");
+  const [result] = await db.insert(userInvitations).values({ name: input.name.trim(), email, role: input.role ?? "user", invitedBy: input.actorUserId });
+  await writeAudit({ actorUserId: input.actorUserId, action: "invite", entityType: "user_invitation", entityId: result.insertId, afterValue: { name: input.name.trim(), email, role: input.role } });
+  return { id: result.insertId, success: true };
+}
+
+export async function updateUserProfile(input: { userId: number; name: string; email: string; actorUserId: number }) {
+  const db = await dbOrThrow();
+  const [before] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+  if (!before) throw new Error("المستخدم غير موجود.");
+  const email = input.email.trim().toLowerCase();
+  const [duplicate] = await db.select({ id: users.id }).from(users).where(and(eq(users.email, email), ne(users.id, input.userId))).limit(1);
+  if (duplicate) throw new Error("البريد الإلكتروني مستخدم لحساب آخر.");
+  const changes = { name: input.name.trim(), email };
+  await db.update(users).set(changes).where(eq(users.id, input.userId));
+  await writeAudit({ actorUserId: input.actorUserId, action: "update_profile", entityType: "user", entityId: input.userId, beforeValue: { name: before.name, email: before.email }, afterValue: changes });
+  return { success: true };
 }
 
 export async function updateUserRole(input: { userId: number; role: typeof users.$inferInsert.role; actorUserId: number }) {
@@ -308,6 +341,34 @@ export async function updateUserRole(input: { userId: number; role: typeof users
   const role = input.role ?? "management";
   await db.update(users).set({ role }).where(eq(users.id, input.userId));
   await writeAudit({ actorUserId: input.actorUserId, action: "update_role", entityType: "user", entityId: input.userId, beforeValue: { role: before.role }, afterValue: { role } });
+  return { success: true };
+}
+
+export async function setUserActive(input: { userId: number; isActive: boolean; actorUserId: number }) {
+  const db = await dbOrThrow();
+  if (input.userId === input.actorUserId && !input.isActive) throw new Error("لا يمكن توقيف الحساب المستخدم حاليًا.");
+  const [before] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+  if (!before) throw new Error("المستخدم غير موجود.");
+  if (!input.isActive && before.role === "admin") {
+    const [otherAdmin] = await db.select({ id: users.id }).from(users).where(and(eq(users.role, "admin"), eq(users.isActive, true), ne(users.id, input.userId))).limit(1);
+    if (!otherAdmin) throw new Error("لا يمكن توقيف آخر مدير نظام نشط.");
+  }
+  await db.update(users).set({ isActive: input.isActive }).where(eq(users.id, input.userId));
+  await writeAudit({ actorUserId: input.actorUserId, action: input.isActive ? "activate" : "deactivate", entityType: "user", entityId: input.userId, beforeValue: { isActive: before.isActive }, afterValue: { isActive: input.isActive } });
+  return { success: true, isActive: input.isActive };
+}
+
+export async function archiveUser(input: { userId: number; actorUserId: number }) {
+  const db = await dbOrThrow();
+  if (input.userId === input.actorUserId) throw new Error("لا يمكن حذف الحساب الحالي.");
+  const [before] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+  if (!before) throw new Error("المستخدم غير موجود.");
+  if (before.role === "admin") {
+    const [otherAdmin] = await db.select({ id: users.id }).from(users).where(and(eq(users.role, "admin"), eq(users.isActive, true), ne(users.id, input.userId))).limit(1);
+    if (!otherAdmin) throw new Error("لا يمكن حذف آخر مدير نظام نشط.");
+  }
+  await db.update(users).set({ isActive: false }).where(eq(users.id, input.userId));
+  await writeAudit({ actorUserId: input.actorUserId, action: "archive", entityType: "user", entityId: input.userId, beforeValue: { isActive: before.isActive, role: before.role }, afterValue: { isActive: false } });
   return { success: true };
 }
 
