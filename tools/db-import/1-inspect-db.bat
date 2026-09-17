@@ -23,7 +23,7 @@ if not defined SQLCMD goto nosqlcmd
 echo [OK] step 1/3 : sqlcmd found
 echo.
 
-set CAND=localhost 127.0.0.1 .\SQLEXPRESS
+set CAND=.\SQLEXPRESS02 .\SQLEXPRESS %COMPUTERNAME%\SQLEXPRESS02 %COMPUTERNAME%\SQLEXPRESS localhost\SQLEXPRESS02 localhost\SQLEXPRESS 127.0.0.1\SQLEXPRESS02 localhost 127.0.0.1 .
 for /f "tokens=1" %%I in ('reg query "HKLM\SOFTWARE\Microsoft\Microsoft SQL Server\Instance Names\SQL" 2^>nul ^| findstr /i "REG_SZ"') do (
   if /i "%%I"=="MSSQLSERVER" (set CAND=!CAND! localhost) else (set CAND=!CAND! localhost\%%I)
 )
@@ -31,40 +31,60 @@ for /f "tokens=1" %%I in ('reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\Micros
   if /i "%%I"=="MSSQLSERVER" (set CAND=!CAND! localhost) else (set CAND=!CAND! localhost\%%I)
 )
 
+echo [2/3] searching for your SQL Server ... please wait
 set "SERVER="
 for %%S in (%CAND%) do if not defined SERVER (
-  "%SQLCMD%" -S "%%S" -E -l 4 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
+  "%SQLCMD%" -S "%%S" -E -C -l 4 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
+  if errorlevel 1 "%SQLCMD%" -S "%%S" -E -l 4 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
   if not errorlevel 1 set "SERVER=%%S"
 )
-if not defined SERVER goto trysqluser
+if defined SERVER goto runreport
+
+echo.
+echo Windows login did not work on the automatic list.
+echo Open SQL Server Management Studio and look at the top line:
+echo    Server name:  ....................................
+echo Type that exact name here and press Enter.
+echo Example:  YOUR-PC\SQLEXPRESS02
+echo.
+set "SRV="
+set /p SRV=Server name: 
+if not defined SRV goto noserver
+"%SQLCMD%" -S "%SRV%" -E -C -l 6 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
+if errorlevel 1 "%SQLCMD%" -S "%SRV%" -E -l 6 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
+if errorlevel 1 goto asksqluser
+set "SERVER=%SRV%"
 goto runreport
 
-:trysqluser
-echo [2/3] Windows login did not work.
-echo If your SQL Server needs a username and password, type them now.
-echo (press Enter without a username to skip)
+:asksqluser
+echo.
+echo That name did not connect with Windows login either.
+echo Press Enter to try the username and password instead.
+echo (This is the same login you use inside SQL Server Management Studio)
 echo.
 set "SQLU="
 set "SQLP="
 set /p SQLU=SQL username: 
 if not defined SQLU goto noserver
 set /p SQLP=SQL password: 
-for %%S in (%CAND%) do if not defined SERVER (
-  "%SQLCMD%" -S "%%S" -U "%SQLU%" -P "%SQLP%" -l 5 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
-  if not errorlevel 1 set "SERVER=%%S"
-)
-if not defined SERVER goto noserver
+"%SQLCMD%" -S "%SRV%" -U "%SQLU%" -P "%SQLP%" -C -l 6 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
+if errorlevel 1 "%SQLCMD%" -S "%SRV%" -U "%SQLU%" -P "%SQLP%" -l 6 -b -Q "SET NOCOUNT ON; SELECT 1" >nul 2>nul
+if errorlevel 1 goto noserver
+set "SERVER=%SRV%"
 set "USE_SQL=1"
 
 :runreport
+echo.
 echo [2/3] connected to: %SERVER%
 echo [3/3] reading tables and columns ... please wait (up to 1 minute)
 echo.
 if defined USE_SQL (
-  "%SQLCMD%" -S "%SERVER%" -U "%SQLU%" -P "%SQLP%" -d master -W -s"|" -f 65001 -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
+  "%SQLCMD%" -S "%SERVER%" -U "%SQLU%" -P "%SQLP%" -C -d master -W -s"|" -f 65001 -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
+  if errorlevel 1 "%SQLCMD%" -S "%SERVER%" -U "%SQLU%" -P "%SQLP%" -C -d master -W -s"|" -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
   if errorlevel 1 "%SQLCMD%" -S "%SERVER%" -U "%SQLU%" -P "%SQLP%" -d master -W -s"|" -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
 ) else (
-  "%SQLCMD%" -S "%SERVER%" -E -d master -W -s"|" -f 65001 -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
+  "%SQLCMD%" -S "%SERVER%" -E -C -d master -W -s"|" -f 65001 -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
+  if errorlevel 1 "%SQLCMD%" -S "%SERVER%" -E -C -d master -W -s"|" -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
   if errorlevel 1 "%SQLCMD%" -S "%SERVER%" -E -d master -W -s"|" -i "%~dp0inspect.sql" -o "%REPORT%" 2>nul
 )
 if not exist "%REPORT%" goto noresult
