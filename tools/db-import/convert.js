@@ -78,7 +78,8 @@ function sqlcmdToFile(sqlcmd, server, database, query, outputFile) {
 }
 
 function listDatabases(sqlcmd, server) {
-  const file = path.join(OUT_DIR, 'databases.txt');
+  fs.mkdirSync(RAW_DIR, { recursive: true });
+  const file = path.join(RAW_DIR, 'databases.txt');
   const result = sqlcmdToFile(sqlcmd, server, 'master', 'SELECT name FROM sys.databases WHERE database_id > 4 ORDER BY name', file);
   if (result.status !== 0 && !fs.existsSync(file)) return [];
   const text = fs.existsSync(file) ? fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '') : '';
