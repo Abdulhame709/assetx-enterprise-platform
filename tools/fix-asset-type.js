@@ -5,9 +5,57 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
+function looksLikeProject(dir) {
+  return fs.existsSync(path.join(dir, 'web', 'package.json')) && fs.existsSync(path.join(dir, 'backend', 'package.json'));
+}
+
+/**
+ * Locates the project folder wherever this tool was unpacked.
+ * The archive may be extracted directly into the project, into a sub folder of it
+ * (assetx-enterprise-platform-v2\assetx-asset-type-fix\tools\...), or onto the
+ * Desktop - all of which happen in practice, so every ancestor is inspected first.
+ */
 function root() {
-  for (const c of [__dirname, path.join(__dirname, '..'), path.join(__dirname, 'tools')]) {
-    if (fs.existsSync(path.join(c, 'web', 'package.json')) && fs.existsSync(path.join(c, 'backend', 'package.json'))) return c;
+  if (process.env.ASSETX_ROOT && looksLikeProject(process.env.ASSETX_ROOT)) return process.env.ASSETX_ROOT;
+  const explicit = process.argv.find((a) => a.startsWith('--root='));
+  if (explicit && looksLikeProject(explicit.slice('--root='.length))) return explicit.slice('--root='.length);
+
+  // 1) Walk up from the script location and from the current folder.
+  for (const start of [__dirname, process.cwd()]) {
+    let dir = path.resolve(start);
+    for (let level = 0; level < 6; level += 1) {
+      if (looksLikeProject(dir)) return dir;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+
+  // 2) Fall back to the folders a Windows user normally extracts into.
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  const bases = [home, path.join(home, 'Desktop'), path.join(home, 'OneDrive', 'Desktop'), path.join(home, 'Documents'), path.join(home, 'Downloads'), 'C:\\', 'D:\\'];
+  const names = ['assetx-enterprise-platform-v2', 'assetx-enterprise-platform', 'assetx-enterprise-platform-main'];
+  const seen = new Set();
+  const candidates = [];
+  for (const base of bases) {
+    if (!base || !fs.existsSync(base)) continue;
+    candidates.push(base);
+    for (const name of names) candidates.push(path.join(base, name));
+    try {
+      for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const full = path.join(base, entry.name);
+        if (seen.has(full)) continue;
+        seen.add(full);
+        if (/assetx|asset-?x/i.test(entry.name)) {
+          candidates.push(full);
+          for (const name of names) candidates.push(path.join(full, name));
+        }
+      }
+    } catch { /* unreadable folder - skip */ }
+  }
+  for (const candidate of candidates) {
+    if (candidate && looksLikeProject(candidate)) return candidate;
   }
   return null;
 }
@@ -42,7 +90,18 @@ function patch(r, rel, oldText, newText, label, optional, alreadyMarker) {
 }
 
 const R = root();
-if (!R) { console.log('ERROR: project root not found (web/ + backend/ must be nearby)'); process.exit(2); }
+if (!R) {
+  console.log('ERROR: the AssetX project folder was not found.');
+  console.log('');
+  console.log('Fix: move this "tools" folder and run-fix-type.bat into the project folder');
+  console.log('     C:\\Users\\Elite\\assetx-enterprise-platform-v2');
+  console.log('     so that the paths become:');
+  console.log('     C:\\Users\\Elite\\assetx-enterprise-platform-v2\\run-fix-type.bat');
+  console.log('     C:\\Users\\Elite\\assetx-enterprise-platform-v2\\tools\\fix-asset-type.js');
+  console.log('');
+  console.log('     Then run run-fix-type.bat again.');
+  process.exit(2);
+}
 console.log('ROOT: ' + R);
 let ok = 0;
 
