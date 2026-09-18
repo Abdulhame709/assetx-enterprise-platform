@@ -38,6 +38,9 @@ export interface AssetSummary {
   full_asset_code: string;
   base_asset_code: string;
   quantity: number;
+  // UX fix: the list/preview must show the asset type. The column existed in the
+  // table but was dropped by this projection, so every list row rendered "—".
+  category_id: string | null;
   status_id: string | null;
   location_id: string | null;
   employee_id: string | null;

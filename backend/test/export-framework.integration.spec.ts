@@ -68,8 +68,10 @@ describe('Export Framework — integration (Task T8)', () => {
       options: { profile: 'executive' },
     });
     const csv = await collect(result.stream);
-    const header = csv.split('\n')[0];
+    // CSV exports start with a UTF-8 BOM so Excel opens Arabic correctly; strip it before comparing.
+    const header = csv.replace(/^\uFEFF/, '').split('\n')[0];
     expect(header).toBe('Asset,Asset Code,Qty,Value,Active');
+    expect(csv.startsWith('\uFEFF')).toBe(true);
     // non-profile columns are excluded
     expect(csv).not.toContain('base_asset_code');
     expect(csv).toContain('Frame Asset A');

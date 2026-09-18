@@ -276,6 +276,7 @@ export class AssetService {
       full_asset_code: a.full_asset_code,
       base_asset_code: a.base_asset_code,
       quantity: a.quantity,
+      category_id: a.category_id,
       status_id: a.status_id,
       location_id: a.location_id,
       employee_id: a.employee_id,

@@ -3,6 +3,7 @@
 // Run: node tools/fix-asset-type.js
 const fs = require('fs');
 const path = require('path');
+const { spawnSync } = require('child_process');
 
 function root() {
   for (const c of [__dirname, path.join(__dirname, '..'), path.join(__dirname, 'tools')]) {
@@ -89,6 +90,32 @@ patch(R, 'web/src/features/assets/types.ts',
   status_id: string | null;`,
   '4/3 web types (optional)', true, 'category_id?: string | null;');
 
+// ---- optional rebuild: the backend may run from the compiled "dist" folder ----
+function rebuildIfCompiled(r) {
+  const backendDir = path.join(r, 'backend');
+  const distEntry = path.join(backendDir, 'dist', 'main.js');
+  if (!fs.existsSync(distEntry)) {
+    console.log('STEP rebuild: not needed (the backend runs from source).');
+    return true;
+  }
+  console.log('STEP rebuild: the backend runs from dist - rebuilding so the fix takes effect ...');
+  const tsc = path.join(backendDir, 'node_modules', 'typescript', 'bin', 'tsc');
+  let result;
+  if (fs.existsSync(tsc)) {
+    result = spawnSync(process.execPath, [tsc, '-p', 'tsconfig.json'], { cwd: backendDir, encoding: 'utf8' });
+  } else {
+    result = spawnSync('npm', ['run', 'build'], { cwd: backendDir, encoding: 'utf8', shell: true });
+  }
+  const output = String(result.stdout || '') + String(result.stderr || '');
+  if (result.status !== 0) {
+    console.log('STEP rebuild: FAILED');
+    console.log(output.split(/\r?\n/).filter(Boolean).slice(-12).join('\n'));
+    return false;
+  }
+  console.log('STEP rebuild: OK (dist updated).');
+  return true;
+}
+
 // ---- verification ----
 function has(rel, needle) {
   const p = path.join(R, rel);
@@ -106,5 +133,11 @@ for (const [name, pass] of checks) {
   if (!pass) failed += 1;
 }
 console.log('---');
-console.log(failed === 0 ? 'VERIFY: ALL OK (' + ok + '/4 patched)' : 'VERIFY: FAILED');
-process.exit(failed === 0 ? 0 : 1);
+if (failed !== 0) {
+  console.log('VERIFY: FAILED');
+  process.exit(1);
+}
+const rebuilt = rebuildIfCompiled(R);
+console.log('---');
+console.log(rebuilt ? 'VERIFY: ALL OK (' + ok + '/4 patched)' : 'VERIFY: PATCHED BUT REBUILD FAILED - send me the lines above.');
+process.exit(rebuilt ? 0 : 3);
