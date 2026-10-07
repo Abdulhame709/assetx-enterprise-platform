@@ -55,6 +55,16 @@ export type InventoryResult =
 
 export interface InventoryRecordResult extends InventoryRecord {
   result: InventoryResult;
+  expected_status_name?: string | null;
+  actual_status_name?: string | null;
+  asset_name?: string | null;
+  asset_code?: string | null;
+  expected_location_name?: string | null;
+  expected_location_path?: string | null;
+  actual_location_name?: string | null;
+  actual_location_path?: string | null;
+  expected_employee_name?: string | null;
+  actual_employee_name?: string | null;
 }
 
 /** Aggregate summary from the Inventory Engine. */

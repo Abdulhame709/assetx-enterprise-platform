@@ -3,6 +3,8 @@
  * Real PostgreSQL (PGlite) + RLS. Reference: FRS FR-INV-* · BR-INV-001/002/003 · ADL-006/008
  */
 import { createHarness, Harness } from './support/db.harness';
+import { StatusService } from '../src/application/status.service';
+import { StatusRepository } from '../src/infrastructure/repositories/status.repository';
 
 describe('Inventory Core — integration (real PostgreSQL + RLS)', () => {
   let h: Harness;
@@ -54,6 +56,27 @@ describe('Inventory Core — integration (real PostgreSQL + RLS)', () => {
     const results = await h.inventoryResult.getResults(cycle.id, h.tenantA);
     const rec = results.find((r) => r.asset_id === assetId);
     expect(rec!.result).toBe('missing');
+  });
+
+  it('Record — counting in place is MATCHED and results expose status names (field sync)', async () => {
+    const statuses = new StatusService(new StatusRepository(h.db), h.db, h.audit);
+    const target = await statuses.create({ tenant_id: h.tenantA, name: 'Counted State', color: '#16a34a' });
+    const { cycle } = await h.cycles.create(h.tenantA, 2035, { all: true });
+    await h.cycles.start(cycle.id, h.tenantA);
+    const assetId = assetsInCycle[0];
+    const expected = await h.assets.getById(assetId, h.tenantA);
+    // Mobile field sync sends actual_location_id = expected when counting in place,
+    // plus the dominant condition status via actual_status_id.
+    await h.records.record(cycle.id, h.tenantA, assetId, {
+      actual_quantity: 1,
+      actual_location_id: expected!.location_id ?? null,
+      actual_status_id: target.id,
+    }, userId);
+    const results = await h.inventoryResult.getResults(cycle.id, h.tenantA);
+    const rec = results.find((r) => r.asset_id === assetId);
+    expect(rec!.result).toBe('matched');
+    expect(rec!.actual_status_name).toBe('Counted State');
+    expect(rec!.expected_status_name).toBeTruthy();
   });
 
   it('Record — cannot record into a closed cycle (BR-INV-002)', async () => {

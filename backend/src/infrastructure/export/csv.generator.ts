@@ -21,10 +21,16 @@ export class CsvGenerator implements FileGenerator {
     const headerKeys = plan.keys;
     const headerLabels = plan.labels;
     let index = 0;
+    let bomSent = false;
     const self = this;
 
     const stream = new Readable({
       read() {
+        if (!bomSent) {
+          bomSent = true;
+          // UTF-8 BOM so Excel/PDF viewers render Arabic correctly.
+          this.push('\uFEFF');
+        }
         if (index === 0 && includeHeaders) {
           this.push(self.row(headerLabels));
         }

@@ -60,19 +60,29 @@ export class ExportController {
     const parsedSorting = this.parseSorting(sorting);
     const parsedGrouping = this.parseGrouping(grouping);
     const reportMetadata = this.buildReportMetadata(parsedColumns, parsedSorting, parsedGrouping);
-    const result = await this.exports.generate({
-      tenant_id: u.tenant_id,
-      userId: u.sub,
-      resource: resource as never,
-      format: fmt,
-      options: {
-        limit: limit ? Number(limit) : 10000,
-        includeHeaders: true,
-        ...(parsedProfile ? { profile: parsedProfile } : {}),
-        ...(parsedColumns ? { columns: parsedColumns } : {}),
-        ...(reportMetadata ? { filters: { __report: reportMetadata } } : {}),
-      },
-    });
+    let result;
+    try {
+      result = await this.exports.generate({
+        tenant_id: u.tenant_id,
+        userId: u.sub,
+        resource: resource as never,
+        format: fmt,
+        options: {
+          limit: limit ? Number(limit) : 10000,
+          includeHeaders: true,
+          ...(parsedProfile ? { profile: parsedProfile } : {}),
+          ...(parsedColumns ? { columns: parsedColumns } : {}),
+          ...(reportMetadata ? { filters: { __report: reportMetadata } } : {}),
+        },
+      });
+    } catch (err) {
+      // Surface the real reason (e.g. DB/SQL errors) so a failed export is
+      // diagnosable instead of a generic 500.
+      const reason = (err as Error)?.message ?? 'unknown export error';
+      // eslint-disable-next-line no-console
+      console.error(`[ExportController] ${resource}/${fmt} export failed:`, err);
+      throw new BadRequestException(`EXPORT_FAILED: ${reason}`);
+    }
     res.setHeader('Content-Type', result.mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
     result.stream.pipe(res);

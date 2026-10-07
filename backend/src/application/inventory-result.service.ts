@@ -74,6 +74,15 @@ export class InventoryResultService {
     return this.getSummary(latest.id, tenantId);
   }
 
+  /** Per-record computed results for the most recent cycle, or [] if none exists. */
+  async getResultsForLatest(tenantId: string): Promise<InventoryRecordResult[]> {
+    await this.db.setTenant(tenantId);
+    const cycles = await this.cycles.list(tenantId);
+    if (cycles.length === 0) return [];
+    // list is ordered by year DESC (latest first)
+    return this.results.getResults(cycles[0].id, tenantId);
+  }
+
   /** Per-record computed results (found/missing/transferred/...). */
   async getResults(cycleId: string, tenantId: string): Promise<InventoryRecordResult[]> {
     await this.db.setTenant(tenantId);

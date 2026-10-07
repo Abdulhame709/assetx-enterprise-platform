@@ -13,7 +13,7 @@
  * Reference: Task T8 — Enterprise Export Framework.
  */
 import { Inject, Injectable } from '@nestjs/common';
-import { PassThrough } from 'stream';
+import { PassThrough, Transform } from 'stream';
 import { EventBus } from '../../core/events/event-bus';
 import { DOMAIN_EVENTS } from '../../core/events/event-types';
 import { EVENT_BUS } from '../../core/ports/tokens';
@@ -81,13 +81,11 @@ export class ExportPipelineService {
 
     // 4+5 · WRITE → STREAM — produce the output stream and measure it.
     const raw = ctx.strategy.write(state);
-    const { pass, bytes } = this.measured(raw);
     let lastEmitted = 0;
-
-    pass.on('data', (chunk: Buffer) => {
-      if (bytes() - lastEmitted >= PROGRESS_INTERVAL_BYTES) {
-        lastEmitted = bytes();
-        this.publishProgress(ctx, { phase: 'stream', rows: outputRows, bytes: bytes(), percent: null });
+    const { pass, bytes } = this.measured(raw, (total) => {
+      if (total - lastEmitted >= PROGRESS_INTERVAL_BYTES) {
+        lastEmitted = total;
+        this.publishProgress(ctx, { phase: 'stream', rows: outputRows, bytes: total, percent: null });
       }
     });
 
@@ -174,14 +172,24 @@ export class ExportPipelineService {
     return transformed;
   }
 
-  /** Wrap a readable in a PassThrough that counts bytes as they flow. */
-  private measured(raw: NodeJS.ReadableStream): { pass: PassThrough; bytes: () => number } {
+  /**
+   * Wrap a readable in a counting Transform that passes bytes through.
+   * Counting happens on the WRITABLE side (transform callback) so nothing is
+   * consumed from the readable side before the response consumer attaches.
+   * The old PassThrough + 'data' listener approach silently ate the stream.
+   */
+  private measured(raw: NodeJS.ReadableStream, onProgress?: (total: number) => void): { pass: PassThrough; bytes: () => number } {
     let count = 0;
-    const pass = new PassThrough();
-    pass.on('data', (c: Buffer) => { count += c.length; });
+    const pass = new Transform({
+      transform(chunk: Buffer, _enc: BufferEncoding, callback: (err?: Error | null, data?: Buffer) => void) {
+        count += chunk.length;
+        if (onProgress) onProgress(count);
+        callback(null, chunk);
+      },
+    });
     raw.on('error', (e) => pass.destroy(e));
     raw.pipe(pass);
-    return { pass, bytes: () => count };
+    return { pass: pass as unknown as PassThrough, bytes: () => count };
   }
 
   private publishProgress(ctx: ExportPipelineContext, p: { phase: string; rows: number; bytes: number; percent: number | null }): void {

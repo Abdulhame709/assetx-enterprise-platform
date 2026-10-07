@@ -68,12 +68,18 @@ export class ExportProfileRegistry {
         preferredFormat: 'csv',
         pageSize: 5000,
         columns: [
-          { key: 'full_asset_code', label: 'Asset Code', order: 1 },
-          { key: 'name', label: 'Asset', order: 2 },
-          { key: 'quantity', label: 'Qty', order: 3 },
-          { key: 'location_id', label: 'Location', order: 4 },
-          { key: 'serial_number', label: 'Serial No', order: 5 },
-          { key: 'barcode', label: 'Barcode', order: 6 },
+          { key: 'asset_code', label: 'Asset Code', order: 1 },
+          { key: 'asset_name', label: 'Asset', order: 2 },
+          { key: 'expected_quantity', label: 'Expected Qty', order: 3 },
+          { key: 'actual_quantity', label: 'Actual Qty', order: 4 },
+          { key: 'expected_location_path', label: 'Expected Location', order: 5 },
+          { key: 'actual_location_path', label: 'Actual Location', order: 6 },
+          { key: 'expected_employee_name', label: 'Expected Custodian', order: 7 },
+          { key: 'actual_employee_name', label: 'Actual Custodian', order: 8 },
+          { key: 'expected_status_name', label: 'Expected Status', order: 9 },
+          { key: 'actual_status_name', label: 'Actual Status', order: 10 },
+          { key: 'result', label: 'Result', order: 11 },
+          { key: 'notes', label: 'Notes', order: 12 },
         ],
       },
       compliance: {
@@ -115,9 +121,18 @@ export class ExportProfileRegistry {
       label: c.label,
       order: c.order,
     }));
-    // Caller-specified columns take precedence, appended after profile columns.
+    // Caller-specified columns take precedence. When the caller (the web
+    // report designer) supplies a column that already exists in the profile,
+    // the caller's display label and order win — so translated column names
+    // (Arabic/English per UI language) are never overwritten by the profile.
     for (const c of options.columns ?? []) {
-      if (!merged.some((m) => m.key === c.key)) merged.push({ key: c.key, label: c.label, order: c.order });
+      const existing = merged.find((m) => m.key === c.key);
+      if (existing) {
+        if (c.label) existing.label = c.label;
+        if (c.order !== undefined) existing.order = c.order;
+      } else {
+        merged.push({ key: c.key, label: c.label, order: c.order });
+      }
     }
     return {
       ...options,
