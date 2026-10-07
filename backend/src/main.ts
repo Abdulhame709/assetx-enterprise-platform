@@ -56,7 +56,10 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
-  const port = Number(process.env.PORT ?? 3000);
+  // Match the web proxy target (next.config.mjs -> 127.0.0.1:3001) and the
+  // documented PORT=3001 in .env.example. Previously defaulted to 3000, which
+  // made the web app get ECONNREFUSED whenever backend/.env was absent.
+  const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);
   // eslint-disable-next-line no-console
   console.log(`AssetX Backend listening on :${port}`);
