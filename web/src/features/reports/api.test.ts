@@ -100,4 +100,13 @@ describe('report export API', () => {
 
     await expect(downloadReportExport({ resource: 'audit', format: 'pdf' })).rejects.toThrow('Export failed (403)');
   });
+
+  it('includes the backend reason when an export fails with a JSON error body', async () => {
+    const body = { error: { message: 'EXPORT_FAILED: syntax error at or near "es"' } };
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify(body), { status: 400 }));
+
+    await expect(downloadReportExport({ resource: 'inventory', format: 'csv' })).rejects.toThrow(
+      'Export failed (400): EXPORT_FAILED: syntax error at or near "es"',
+    );
+  });
 });

@@ -75,7 +75,18 @@ export async function downloadReportExport({ resource, format, limit = 10000, pr
   const response = await fetch(`${API_BASE_URL}/exports/${resource}?${params.toString()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!response.ok) throw new Error(`Export failed (${response.status})`);
+  if (!response.ok) {
+    // Read the response body (JSON { error: { message } }) so the real cause
+    // of a failed export is shown instead of a generic status code.
+    let detail = '';
+    try {
+      const body = await response.json();
+      detail = typeof body?.error?.message === 'string' ? body.error.message : '';
+    } catch {
+      detail = '';
+    }
+    throw new Error(`Export failed (${response.status})${detail ? ': ' + detail.slice(0, 300) : ''}`);
+  }
 
   const blob = await response.blob();
   const disposition = response.headers.get('Content-Disposition') ?? '';
