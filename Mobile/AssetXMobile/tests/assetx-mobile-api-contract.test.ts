@@ -39,4 +39,13 @@ describe("AssetX Mobile live API contracts", () => {
     expect(String(fetchMock.mock.calls[0][1]?.body)).toContain('"movement_type":"transfer"');
     expect(String(fetchMock.mock.calls[0][1]?.body)).not.toContain('"status":"approved"');
   });
+
+  it("sends the target status and recipient employee with the transfer request", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response(JSON.stringify({ id: "move-2", status: "pending" }), { status: 201 }));
+    await expect(createPendingTransferRequest({ asset_id: "asset-1", from_location_id: "from-1", to_location_id: "to-1", quantity: 2, reason: "field discrepancy", notes: "ملاحظة", to_employee_id: "emp-1", to_status_id: "status-maint" })).resolves.toEqual({ id: "move-2", status: "pending" });
+    const body = String(fetchMock.mock.calls[0][1]?.body);
+    expect(body).toContain('"to_employee_id":"emp-1"');
+    expect(body).toContain('"to_status_id":"status-maint"');
+    expect(body).not.toContain('"status":"approved"');
+  });
 });

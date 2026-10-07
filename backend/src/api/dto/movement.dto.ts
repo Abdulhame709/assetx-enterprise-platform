@@ -13,6 +13,7 @@ export interface CreateMovementDto {
   to_employee_id?: string;
   from_location_id?: string;
   from_employee_id?: string;
+  to_status_id?: string;
   reason?: string;
   reference_number?: string;
   quantity?: number;

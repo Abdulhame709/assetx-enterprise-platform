@@ -1,4 +1,4 @@
-import { AssetXApiError, type AssetXUser, type AuthTokens, type InventoryCycle, type InventorySyncResult, type LocationOption, type MobileInventorySnapshot, type PendingInventoryMutation } from "./domain";
+import { AssetXApiError, type AssetStatusOption, type AssetXUser, type AuthTokens, type EmployeeOption, type InventoryCycle, type InventorySyncResult, type LocationOption, type MobileInventorySnapshot, type PendingInventoryMutation } from "./domain";
 import { clearAuth, getBackendUrl, getStoredUser, getTokens, saveAuth } from "./secure-storage";
 import { toInventorySyncRequest } from "./contracts";
 
@@ -10,6 +10,8 @@ const stringOrNull = (value: unknown): string | null => value === null || value 
 const numberOrNull = (value: unknown): number | null => value === null || value === undefined || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
 function mapCycle(value: unknown): InventoryCycle | null { const row = asRecord(value); if (!row.id) return null; return { id: String(row.id), year: Number(row.year ?? 0), status: row.status === "in_progress" || row.status === "closed" ? row.status : "new", start_date: stringOrNull(row.start_date), end_date: stringOrNull(row.end_date), created_at: String(row.created_at ?? "") }; }
 function mapLocation(value: unknown): LocationOption | null { const row = asRecord(value); if (!row.id || !row.name) return null; return { id: String(row.id), name: String(row.name), full_path: String(row.full_path ?? row.name), parent_id: stringOrNull(row.parent_id), level_number: Number(row.level_number ?? 0), is_active: row.is_active !== false }; }
+function mapStatus(value: unknown): AssetStatusOption | null { const row = asRecord(value); if (!row.id || !row.name) return null; return { id: String(row.id), name: String(row.name), color: stringOrNull(row.color) }; }
+function mapEmployee(value: unknown): EmployeeOption | null { const row = asRecord(value); if (!row.id || !row.name) return null; return { id: String(row.id), name: String(row.name), department: stringOrNull(row.department), is_active: row.is_active !== false }; }
 function mapSnapshot(value: unknown): MobileInventorySnapshot {
   const payload = asRecord(value); const cycle = mapCycle(payload.cycle); if (!cycle) throw new AssetXApiError("UNEXPECTED_RESPONSE");
   const records = asArray(payload.records).map((value) => { const row = asRecord(value); if (!row.record_id) return null; return {
@@ -28,7 +30,12 @@ function errorFrom(status: number, payload: unknown) {
   const nestedError = asRecord(row.error);
   const code = typeof nestedError.code === "string" ? nestedError.code : undefined;
   const message = typeof nestedError.message === "string" ? nestedError.message : typeof row.message === "string" ? row.message : typeof row.error === "string" ? row.error : undefined;
-  return new AssetXApiError(code ?? message ?? "REQUEST_FAILED", status);
+  // Backend may expose the domain code (e.g. DUPLICATE_PENDING) as message while
+  // `code` is a generic HTTP class (CONFLICT/NOT_FOUND/...). Prefer the precise
+  // domain message so the Arabic UI can explain the real reason.
+  const genericCodes = new Set(["HTTP_ERROR", "CONFLICT", "NOT_FOUND", "INTERNAL_ERROR", "BAD_REQUEST", "FORBIDDEN", "UNAUTHORIZED"]);
+  const precise = code && !genericCodes.has(code) ? code : message && !genericCodes.has(message) ? message : code ?? message;
+  return new AssetXApiError(precise ?? "REQUEST_FAILED", status);
 }
 async function requestTokenRefresh(baseUrl: string): Promise<AuthTokens | null> { const tokens = await getTokens(); if (!tokens) return null; const response = await request(baseUrl, "/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken: tokens.refreshToken }) }); const payload = await readResponse(response); if (!response.ok) { await clearAuth(); return null; } const row = asRecord(payload); const accessToken = typeof row.accessToken === "string" ? row.accessToken : null; const refreshToken = typeof row.refreshToken === "string" ? row.refreshToken : null; const user = await getStoredUser(); if (!accessToken || !refreshToken || !user) { await clearAuth(); return null; } await saveAuth({ accessToken, refreshToken }, user); return { accessToken, refreshToken }; }
 async function refreshAccessToken(baseUrl: string): Promise<AuthTokens | null> { if (!refreshInFlight) { refreshInFlight = requestTokenRefresh(baseUrl).finally(() => { refreshInFlight = null; }); } return refreshInFlight; }
@@ -38,5 +45,21 @@ export async function logout(): Promise<void> { try { await authenticatedJson("/
 export async function getCycles(): Promise<InventoryCycle[]> { const payload = await authenticatedJson<unknown>("/inventory/cycles", "GET"); return asArray(payload).map(mapCycle).filter((cycle): cycle is InventoryCycle => cycle !== null).sort((a, b) => b.year - a.year); }
 export async function downloadMobileSnapshot(cycleId: string) { return mapSnapshot(await authenticatedJson<unknown>(`/inventory/cycles/${cycleId}/mobile-snapshot`, "GET")); }
 export async function getLocations(): Promise<LocationOption[]> { return asArray(await authenticatedJson<unknown>("/locations", "GET")).map(mapLocation).filter((location): location is LocationOption => location !== null && location.is_active).sort((a, b) => a.full_path.localeCompare(b.full_path)); }
-export async function createPendingTransferRequest(input: { asset_id: string; from_location_id: string | null; to_location_id: string; quantity: number | null; reason: string; notes?: string | null }) { const payload = await authenticatedJson<unknown>(`/assets/${input.asset_id}/movements`, "POST", { movement_type: "transfer", from_location_id: input.from_location_id ?? undefined, to_location_id: input.to_location_id, quantity: input.quantity ?? undefined, reason: input.reason, notes: input.notes ?? undefined }); const row = asRecord(payload); return { id: String(row.id ?? ""), status: String(row.status ?? "pending") }; }
+let cachedStatuses: AssetStatusOption[] | null = null;
+/** جلب الحالات من الخادم مع تخزين محلي مؤقت (آخر نتيجة) كي يعمل التفصيل دون اتصال. */
+export async function getStatuses(): Promise<AssetStatusOption[]> {
+  try {
+    const remote = asArray(await authenticatedJson<unknown>("/statuses", "GET")).map(mapStatus).filter((status): status is AssetStatusOption => status !== null).sort((a, b) => a.name.localeCompare(b.name));
+    cachedStatuses = remote;
+    return remote;
+  } catch (error) {
+    if (cachedStatuses) return cachedStatuses;
+    throw error;
+  }
+}
+/** جلب الموظفين النشطين (الاسم/القسم فقط) لاختيار المستلم عند اقتراح النقل. */
+export async function getEmployees(): Promise<EmployeeOption[]> {
+  return asArray(await authenticatedJson<unknown>("/employees", "GET")).map(mapEmployee).filter((employee): employee is EmployeeOption => employee !== null && employee.is_active).sort((a, b) => a.name.localeCompare(b.name));
+}
+export async function createPendingTransferRequest(input: { asset_id: string; from_location_id: string | null; to_location_id: string; quantity: number | null; reason: string; notes?: string | null; to_employee_id?: string | null; to_status_id?: string | null }) { const payload = await authenticatedJson<unknown>(`/assets/${input.asset_id}/movements`, "POST", { movement_type: "transfer", from_location_id: input.from_location_id ?? undefined, to_location_id: input.to_location_id, quantity: input.quantity ?? undefined, reason: input.reason, notes: input.notes ?? undefined, to_employee_id: input.to_employee_id ?? undefined, to_status_id: input.to_status_id ?? undefined }); const row = asRecord(payload); return { id: String(row.id ?? ""), status: String(row.status ?? "pending") }; }
 export async function syncCycle(cycleId: string, mutations: PendingInventoryMutation[]): Promise<InventorySyncResult[]> { const payload = await authenticatedJson<unknown>(`/inventory/cycles/${cycleId}/sync`, "POST", toInventorySyncRequest(mutations)); return asArray(asRecord(payload).results).map((value) => { const row = asRecord(value); return { mutation_id: String(row.mutation_id ?? ""), record_id: String(row.record_id ?? ""), status: row.status === "synced" || row.status === "conflict" ? row.status : "error", updated_at: typeof row.updated_at === "string" ? row.updated_at : undefined, code: typeof row.code === "string" ? row.code : undefined }; }).filter((result) => result.mutation_id !== "") as InventorySyncResult[]; }
