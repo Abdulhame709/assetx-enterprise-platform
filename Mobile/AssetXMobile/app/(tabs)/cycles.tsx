@@ -65,22 +65,25 @@ export default function CyclesScreen() {
           const blocked = loadingId !== null && !downloading;
           const label = downloading ? "يجري التنزيل..." : saved ? "فتح الدورة" : "تنزيل إلى الهاتف";
           const icon = saved ? "arrow-back" : "download";
+          const action = saved
+            ? () => router.push(`/inventory/${item.id}`)
+            : () => void downloadCycle(item);
           return (
-            <View style={styles.row}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${label}: دورة جرد ${item.year}`}
+              disabled={blocked || downloading}
+              onPress={action}
+              style={[styles.row, (blocked || downloading) && styles.disabled]}
+            >
               <StatusBadge label={saved ? "محفوظة محلياً" : displayCycleStatus(item.status)} tone={saved ? "green" : item.status === "in_progress" ? "blue" : "gray"} />
               <Text style={styles.rowTitle}>دورة جرد {item.year}</Text>
               <Text style={styles.rowDetail}>{saved ? "يمكن العمل عليها دون اتصال" : "تحتاج إلى تنزيل لقطة الدورة"}</Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${label}: دورة جرد ${item.year}`}
-                disabled={blocked || downloading}
-                onPress={() => saved ? router.push(`/inventory/${item.id}`) : void downloadCycle(item)}
-                style={({ pressed }) => [styles.cycleAction, (blocked || downloading) && styles.disabled, pressed && styles.pressed]}
-              >
+              <View style={[styles.cycleAction, saved ? styles.cycleActionSaved : styles.cycleActionDownload]}>
                 {downloading ? <ActivityIndicator color="#FFFFFF" /> : <MaterialIcons name={icon} size={21} color="#FFFFFF" />}
                 <Text style={styles.cycleActionText}>{label}</Text>
-              </Pressable>
-            </View>
+              </View>
+            </Pressable>
           );
         }}
       />
@@ -94,8 +97,9 @@ const styles = StyleSheet.create({
   row: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16, gap: 10 },
   rowTitle: { color: colors.slate, fontSize: 19, fontWeight: "900", textAlign: "right", writingDirection: "rtl" },
   rowDetail: { color: colors.muted, textAlign: "right", writingDirection: "rtl" },
-  cycleAction: { minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, paddingHorizontal: 18, backgroundColor: colors.blue },
+  cycleAction: { minHeight: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 8, paddingHorizontal: 18 },
+  cycleActionDownload: { backgroundColor: "#2563EB" },
+  cycleActionSaved: { backgroundColor: "#16A34A" },
   cycleActionText: { color: "#FFFFFF", fontWeight: "800", fontSize: 16, writingDirection: "rtl" },
   disabled: { opacity: 0.55 },
-  pressed: { opacity: 0.82, transform: [{ scale: 0.98 }] },
 });

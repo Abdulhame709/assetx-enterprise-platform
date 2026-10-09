@@ -41,7 +41,7 @@ const config: ExpoConfig = {
     ["expo-splash-screen", { image: "./assets/images/splash-icon.png", imageWidth: 192, resizeMode: "contain", backgroundColor: "#0B2545" }],
     ["expo-build-properties", { android: { buildArchs: ["armeabi-v7a", "arm64-v8a"], minSdkVersion: 24 } }],
   ],
-  experiments: { reactCompiler: true },
+  experiments: { reactCompiler: false },
 };
 
 export default config;
