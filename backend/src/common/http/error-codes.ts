@@ -8,6 +8,7 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   FORBIDDEN:               { http: 403, code: 'FORBIDDEN' },
   INVALID_CREDENTIALS:     { http: 401, code: 'INVALID_CREDENTIALS' },
   ACCOUNT_LOCKED:          { http: 429, code: 'ACCOUNT_LOCKED' },
+  SYNC_BATCH_TOO_LARGE:    { http: 413, code: 'PAYLOAD_TOO_LARGE' },
   PASSWORD_TOO_WEAK:       { http: 400, code: 'VALIDATION_ERROR' },
   TENANT_REQUIRED:         { http: 400, code: 'VALIDATION_ERROR' },
   USERNAME_EXISTS:         { http: 409, code: 'CONFLICT' },

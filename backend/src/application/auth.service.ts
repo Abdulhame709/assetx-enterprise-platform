@@ -52,7 +52,7 @@ export class AuthService {
     if (
       !password ||
       password.length < 10 ||
-      !/[A-Za-z]/.test(password) ||
+      !/\p{L}/u.test(password) ||
       !/\d/.test(password) ||
       (username && password.toLowerCase() === username.toLowerCase())
     ) {
@@ -75,7 +75,7 @@ export class AuthService {
           AND created_at > now() - ($2::int * interval '1 minute')
           AND created_at > COALESCE(
                 (SELECT max(created_at) FROM audit_events
-                  WHERE user_id = $1 AND action_type = 'AUTH_LOGIN_SUCCESS'),
+                  WHERE user_id = $1 AND action_type IN ('AUTH_LOGIN_SUCCESS', 'AUTH_PASSWORD_RESET')),
                 '-infinity'::timestamptz)`,
       [userId, LOGIN_LOCKOUT_MINUTES],
     );
@@ -108,10 +108,48 @@ export class AuthService {
     user: { id: string; username: string; tenant_id: string };
   }> {
     const user = await this.users.findByUsername(input.username);
-    if (!user || !user.is_active) throw new Error('INVALID_CREDENTIALS');
+    if (!user || !user.is_active) {
+      // Spend the same hashing time as a real check so response time does not
+      // reveal whether the username exists.
+      await this.hasher.verify(input.password, await this.dummyHash());
+      throw new Error('INVALID_CREDENTIALS');
+    }
+    // Attempts for one user are checked and recorded one at a time, so parallel
+    // requests cannot all pass the lockout check before any failure is written.
+    return this.serializePerUser(user.id, () => this.loginKnownUser(input, user));
+  }
+
+  private dummyHashPromise?: Promise<string>;
+  private dummyHash(): Promise<string> {
+    this.dummyHashPromise ??= this.hasher.hash(randomUUID());
+    return this.dummyHashPromise;
+  }
+
+  private readonly loginQueues = new Map<string, Promise<unknown>>();
+  private async serializePerUser<T>(key: string, task: () => Promise<T>): Promise<T> {
+    const previous = this.loginQueues.get(key) ?? Promise.resolve();
+    const run = previous.then(task, task);
+    const tail = run.catch(() => undefined);
+    this.loginQueues.set(key, tail);
+    try {
+      return await run;
+    } finally {
+      if (this.loginQueues.get(key) === tail) this.loginQueues.delete(key);
+    }
+  }
+
+  private async loginKnownUser(
+    input: LoginInput,
+    user: NonNullable<Awaited<ReturnType<UserRepository['findByUsername']>>>,
+  ): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: { id: string; username: string; tenant_id: string };
+  }> {
     if (await this.isLockedOut(user.id, user.tenant_id)) throw new Error('ACCOUNT_LOCKED');
     const valid = await this.hasher.verify(input.password, user.password_hash);
     if (!valid) {
+      // Not swallowed: if the failure cannot be recorded the lockout would silently stop working.
       await this.audit.log({
         tenant_id: user.tenant_id,
         userId: user.id,
@@ -119,7 +157,7 @@ export class AuthService {
         entity: 'auth',
         entityId: user.id,
         metadata: { username: input.username, reason: 'invalid_password' },
-      }).catch(() => undefined);
+      });
       throw new Error('INVALID_CREDENTIALS');
     }
 
@@ -301,6 +339,7 @@ export class AuthService {
     await this.db.setTenant(token.tenant_id);
     const user = await this.users.findById(token.user_id);
     if (!user || !user.is_active) throw new Error('PASSWORD_RESET_TOKEN_INVALID');
+    this.validatePassword(newPassword, user.username);
 
     const passwordHash = await this.hasher.hash(newPassword);
     await this.db.query(

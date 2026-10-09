@@ -7,7 +7,7 @@ NestJS + TypeScript backend for the AssetX Enterprise Platform, following **Clea
 ```
 src/
 ├── core/            Domain layer — entities (user/role/permission/tenant), ports (Database, Auth)
-├── application/     Services — auth (register/login/logout/refresh/reset), users
+├── application/     Services — auth (login/logout/refresh/reset), users
 ├── infrastructure/  PGlite database, bcrypt hasher, JWT token manager, repositories
 ├── api/             Controllers + DTOs (auth, users, tenant)
 ├── common/          Guards (auth, rbac, tenant) · decorators · http error filter
@@ -47,7 +47,7 @@ Tests: unit + integration + API + security, on a real PostgreSQL engine — auth
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| POST | /auth/register | — | Register user |
+| POST | /users/admin/users | Bearer (admin.user) | Admin creates a user (no public registration) |
 | POST | /auth/login | — | Login → JWT pair |
 | POST | /auth/logout | Bearer | Revoke session |
 | POST | /auth/refresh | — | New access token |

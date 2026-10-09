@@ -15,11 +15,20 @@ function assertProductionConfig(): void {
   if (process.env.NODE_ENV !== 'production') return;
 
   const required = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'CORS_ORIGIN'];
+  const tooShort = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'].filter(
+    (key) => (process.env[key] ?? '').trim().length < 32,
+  );
   const missing = required.filter((key) => !process.env[key]?.trim());
   const weakDefaults = ['change-me', 'assetx-local-', 'dev-only'];
   const weak = required.filter((key) =>
     weakDefaults.some((marker) => (process.env[key] ?? '').includes(marker)),
   );
+
+  if (tooShort.length) {
+    throw new Error(
+      `PRODUCTION_CONFIG_INVALID: secrets shorter than 32 characters: ${tooShort.join(',')}`,
+    );
+  }
 
   if (missing.length || weak.length) {
     throw new Error(
@@ -36,6 +45,11 @@ async function bootstrap() {
   loadLocalEnvironment();
   assertProductionConfig();
   const app = await NestFactory.create(AppModule, { logger: false });
+  // The web app proxies API calls (Next.js rewrite), so the socket address is the
+  // proxy. Trust one hop so rate limits and lockout logs use the real client IP.
+  // Set TRUST_PROXY_HOPS=0 if the backend is exposed directly to the internet.
+  const proxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
+  if (proxyHops > 0) app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
   app.use(helmet());
 
   const origins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
