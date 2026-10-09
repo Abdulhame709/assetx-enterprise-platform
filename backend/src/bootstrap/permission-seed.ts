@@ -28,6 +28,8 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'model.view', 'model.create', 'model.update', 'model.delete',
     'employee.view', 'employee.create', 'employee.update', 'employee.delete',
     'status.view', 'status.create', 'status.update', 'status.delete',
+    // User & role administration (kept in step with db/seed/002_permissions.sql)
+    'admin.user', 'admin.role',
   ],
   'Asset Manager': [
     'asset.view', 'asset.create', 'asset.update', 'asset.delete', 'asset.transfer',

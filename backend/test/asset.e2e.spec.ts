@@ -93,7 +93,7 @@ describe('Asset module — E2E HTTP (guards, RBAC, RLS)', () => {
     expect(created.json.id).toBeDefined();
 
     // register a plain employee (no role) → role defaults to 'Employee'
-    await request('POST', '/auth/register', { tenantId: demo, username: 'plain_emp', password: 'Pass123456' });
+    await request('POST', '/users/admin/users', { username: 'plain_emp', password: 'Pass123456' }, token);
     const empLogin = await request('POST', '/auth/login', { username: 'plain_emp', password: 'Pass123456' });
     const empToken = empLogin.json.accessToken;
 

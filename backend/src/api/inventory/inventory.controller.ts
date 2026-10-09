@@ -19,6 +19,9 @@ import {
   CreateCycleDto, RecordResultDto, UpdateRecordDto, VerifyRecordDto, InventorySyncDto,
 } from '../dto/inventory.dto';
 
+/** Largest offline batch accepted by POST cycles/:id/sync (mobile sends 100 per request). */
+const MAX_SYNC_BATCH = 100;
+
 @Controller('inventory')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class InventoryController {
@@ -104,36 +107,43 @@ export class InventoryController {
   @RequirePermission('inventory.execute')
   async sync(@Param('id') id: string, @Body() dto: InventorySyncDto, @CurrentUser() user: RequestUser) {
     assertUuid(id);
-    const mutations = Array.isArray(dto?.mutations) ? dto.mutations.slice(0, 100) : [];
-    const results = await Promise.all(mutations.map(async (mutation) => {
+    const mutations = Array.isArray(dto?.mutations) ? dto.mutations : [];
+    // Never drop mutations silently: an oversized batch is rejected as a whole
+    // (the mobile client already sends batches of at most MAX_SYNC_BATCH).
+    if (mutations.length > MAX_SYNC_BATCH) throw new Error('SYNC_BATCH_TOO_LARGE');
+    // Sequential on purpose: several edits of one record must apply in queue order.
+    const results: Array<Record<string, unknown>> = [];
+    for (const mutation of mutations) {
       try {
         assertUuid(mutation.record_id);
         assertUuid(mutation.asset_id);
-        const updated = await this.records.sync(
+        const applied = await this.records.sync(
           id,
           mutation.record_id,
           user.tenant_id,
           mutation.asset_id,
+          mutation.mutation_id,
           mutation.base_updated_at,
           mutation.payload,
           user.sub,
         );
-        return {
+        results.push({
           mutation_id: mutation.mutation_id,
           record_id: mutation.record_id,
           status: 'synced' as const,
-          updated_at: updated.updated_at,
-        };
+          updated_at: applied.updated_at,
+          ...(applied.replayed ? { replayed: true } : {}),
+        });
       } catch (error) {
         const code = error instanceof Error ? error.message : 'SYNC_FAILED';
-        return {
-          mutation_id: mutation.mutation_id,
-          record_id: mutation.record_id,
+        results.push({
+          mutation_id: mutation?.mutation_id,
+          record_id: mutation?.record_id,
           status: code === 'SYNC_CONFLICT' ? 'conflict' as const : 'error' as const,
           code,
-        };
+        });
       }
-    }));
+    }
     return { cycle_id: id, results };
   }
 

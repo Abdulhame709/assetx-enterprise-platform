@@ -72,7 +72,7 @@ describe('Notification — E2E HTTP', () => {
     expect(typeof unread.json.unread).toBe('number');
 
     // employee (no notification.view) → 403
-    await req('POST', '/auth/register', { tenantId: demo, username: 'nt_emp', password: 'Pass123456' });
+    await req('POST', '/users/admin/users', { username: 'nt_emp', password: 'Pass123456' }, adminToken);
     await db.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id)
        SELECT '${demo}', u.id, r.id FROM users u, roles r

@@ -7,6 +7,7 @@ import { Module, Global } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { randomBytes } from 'crypto';
 import { ScheduledReportService } from './application/scheduled-report.service';
 import { ReportBuilderService } from './application/report-builder.service';
 import { ReportTemplateService } from './application/report-template.service';
@@ -158,9 +159,21 @@ import {
   AI_TEXT_PORT,
 } from './core/ports/tokens';
 
-// Secrets come from environment in production (Vault). Defaults for local dev only.
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET ?? 'assetx-local-access-secret-dev-only';
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-secret-dev-only';
+// Secrets come from the environment (Vault in production). There is no
+// hard-coded fallback: when unset outside production, a random per-process
+// secret is generated, so sessions simply end when the server restarts.
+// Production refuses to start without real secrets (see assertProductionConfig).
+// Resolved lazily (inside the provider factory) so values loaded from
+// backend/.env by bootstrap() are honoured; module-level evaluation would run
+// before that file is read.
+let jwtSecrets: { access: string; refresh: string } | undefined;
+function resolveJwtSecrets(): { access: string; refresh: string } {
+  jwtSecrets ??= {
+    access: process.env.JWT_ACCESS_SECRET?.trim() || randomBytes(48).toString('base64url'),
+    refresh: process.env.JWT_REFRESH_SECRET?.trim() || randomBytes(48).toString('base64url'),
+  };
+  return jwtSecrets;
+}
 
 @Global()
 @Module({
@@ -189,7 +202,10 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'assetx-local-refresh-s
     { provide: PASSWORD_HASHER, useClass: BcryptHasher },
     {
       provide: TOKEN_MANAGER,
-      useFactory: () => new JwtTokenManager(ACCESS_SECRET, REFRESH_SECRET),
+      useFactory: () => {
+        const { access, refresh } = resolveJwtSecrets();
+        return new JwtTokenManager(access, refresh);
+      },
     },
     UserRepository,
     AuthService,

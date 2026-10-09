@@ -3,7 +3,8 @@
  * GET /users/me · PATCH /users/profile
  * Reference: API Spec (DOC-10) §13 (admin/users) + user profile
  */
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { CreateUserRequestDto } from '../dto/auth.dto';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
@@ -34,6 +35,21 @@ export class UsersController {
   @RequirePermission('admin.role')
   listTenantRoles(@CurrentUser() user: RequestUser) {
     return this.users.listTenantRoles(user.tenant_id);
+  }
+
+  @Post('admin/users')
+  @RequirePermission('admin.user')
+  createTenantUser(@CurrentUser() user: RequestUser, @Body() dto: CreateUserRequestDto) {
+    // Assigning roles is a separate privilege (same rule as PATCH admin/users/:id/roles).
+    if (dto.role_ids?.length && !user.permissions.includes('admin.role')) {
+      throw new Error('FORBIDDEN');
+    }
+    return this.users.createTenantUser(user.tenant_id, {
+      username: dto.username,
+      email: dto.email,
+      password: dto.password,
+      roleIds: dto.role_ids,
+    });
   }
 
   @Patch('admin/users/:id/status')

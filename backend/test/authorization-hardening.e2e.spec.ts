@@ -79,7 +79,8 @@ describe('Authorization Hardening — E2E HTTP', () => {
 
   it('a user without a permission gets 403 (permission-based denial)', async () => {
     // register a plain user, assign Employee role (asset.view only)
-    await req('POST', '/auth/register', { tenantId: demo, username: 'ah_emp', password: 'Pass123456' });
+    const adminLogin = await req('POST', '/auth/login', { username: 'admin', password: 'AdminPass123' });
+    await req('POST', '/users/admin/users', { username: 'ah_emp', password: 'Pass123456' }, adminLogin.json.accessToken);
     await db.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id)
        SELECT '${demo}', u.id, r.id FROM users u, roles r

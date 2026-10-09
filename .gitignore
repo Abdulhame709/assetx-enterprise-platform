@@ -1,0 +1,23 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local backups and one-off artifacts
+assetx-backup-*.json
+*.bak
+StartX.bat
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Dependencies and build output (each package also has its own .gitignore)
+node_modules/
+dist/
+.next/
+coverage/

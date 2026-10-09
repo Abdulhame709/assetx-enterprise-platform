@@ -70,7 +70,7 @@ describe('Movement — E2E HTTP (RBAC, approve workflow)', () => {
     const mvId = created.json.id;
 
     // employee cannot approve (403)
-    await req('POST', '/auth/register', { tenantId: demo, username: 'mv_emp', password: 'Pass123456' });
+    await req('POST', '/users/admin/users', { username: 'mv_emp', password: 'Pass123456' }, adminToken);
     const emp = await req('POST', '/auth/login', { username: 'mv_emp', password: 'Pass123456' });
     const empToken = emp.json.accessToken;
     const forbidden = await req('PATCH', `/movements/${mvId}/approve`, {}, empToken);

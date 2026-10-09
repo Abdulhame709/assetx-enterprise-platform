@@ -54,7 +54,7 @@ export default function LoginScreen() {
             <FormInput label="كلمة المرور" value={password} onChangeText={setPassword} placeholder="كلمة المرور" secureTextEntry returnKeyType="done" onSubmitEditing={() => void handleLogin()} />
           </Card>
 
-          <Pressable accessibilityRole="button" disabled={!canSubmit || loading} onPress={() => void handleLogin()} style={({ pressed }) => [styles.loginButton, (!canSubmit || loading) && styles.loginButtonDisabled, pressed && styles.pressed]}>
+          <Pressable accessibilityRole="button" disabled={!canSubmit || loading} onPress={() => void handleLogin()} style={[styles.loginButton, (!canSubmit || loading) && styles.loginButtonDisabled]}>
             {loading ? <Text style={styles.loginButtonText}>جارٍ الدخول…</Text> : <><MaterialIcons name="login" size={22} color="#FFFFFF" /><Text style={styles.loginButtonText}>دخول آمن</Text></>}
           </Pressable>
           <Text style={styles.security}>لا يحتفظ التطبيق بكلمة المرور. تحفظ رموز الجلسة المشفرة على الجهاز فقط.</Text>

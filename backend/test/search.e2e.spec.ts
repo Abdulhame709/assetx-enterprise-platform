@@ -77,11 +77,12 @@ describe('Advanced Search — E2E HTTP', () => {
   it('a user without asset.view → 403', async () => {
     // register a user with a role lacking asset.view — Employee has asset.view,
     // so use global search (search.global) instead: Employee lacks it → 403
+    const adminToken = await login('admin', 'AdminPass123');
     await new Promise<any>((resolve) => {
-      const r = http.request(`${baseUrl}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
-        let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => resolve({}));
+      const r = http.request(`${baseUrl}/users/admin/users`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` } }, (res) => {
+        res.on('data', () => undefined); res.on('end', () => resolve({}));
       });
-      r.write(JSON.stringify({ tenantId: demo, username: 's_emp', password: 'Pass123456' })); r.end();
+      r.write(JSON.stringify({ username: 's_emp', password: 'Pass123456' })); r.end();
     });
     await db.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id)

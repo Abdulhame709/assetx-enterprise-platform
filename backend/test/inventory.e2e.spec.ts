@@ -65,7 +65,7 @@ describe('Inventory — E2E HTTP (RBAC, cycle lifecycle)', () => {
     expect(started.json.status).toBe('in_progress');
 
     // register a plain employee
-    await req('POST', '/auth/register', { tenantId: demo, username: 'inv_emp', password: 'Pass123456' });
+    await req('POST', '/users/admin/users', { username: 'inv_emp', password: 'Pass123456' }, adminToken);
     const emp = await req('POST', '/auth/login', { username: 'inv_emp', password: 'Pass123456' });
     const empToken = emp.json.accessToken;
 

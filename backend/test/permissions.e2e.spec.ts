@@ -63,7 +63,7 @@ describe('Permission guard — E2E HTTP', () => {
     const st = (await db.query(`SELECT id FROM statuses WHERE tenant_id='${demo}' LIMIT 1`)).rows[0].id;
 
     // user with 'Asset Manager' role (has asset.create via catalog)
-    await req('POST', '/auth/register', { tenantId: demo, username: 'pm_mgr', password: 'Pass123456' });
+    await req('POST', '/users/admin/users', { username: 'pm_mgr', password: 'Pass123456' }, adminToken);
     await db.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id)
        SELECT '${demo}', u.id, r.id FROM users u, roles r

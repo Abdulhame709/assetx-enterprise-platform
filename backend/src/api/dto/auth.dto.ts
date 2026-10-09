@@ -4,6 +4,8 @@
  */
 import { Transform } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEmail,
   IsOptional,
   IsString,
@@ -15,11 +17,8 @@ import {
 const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
-export class RegisterRequestDto {
-  @IsOptional()
-  @IsUUID()
-  tenantId?: string;
-
+/** Body of POST /users/admin/users. The tenant always comes from the admin's token. */
+export class CreateUserRequestDto {
   @Transform(trim)
   @IsString()
   @MinLength(3)
@@ -33,9 +32,15 @@ export class RegisterRequestDto {
   email?: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(10)
   @MaxLength(128)
   password!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsUUID('all', { each: true })
+  role_ids?: string[];
 }
 
 export class LoginRequestDto {
@@ -65,7 +70,7 @@ export class ResetPasswordRequestDto {
   resetToken!: string;
 
   @IsString()
-  @MinLength(8)
+  @MinLength(10)
   @MaxLength(128)
   newPassword!: string;
 }

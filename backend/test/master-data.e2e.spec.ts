@@ -59,7 +59,7 @@ describe('Master Data — E2E HTTP (RBAC, auth, duplicate)', () => {
     expect(created.json.path).toBe('datacenter');
 
     // employee
-    await req('POST', '/auth/register', { tenantId: '00000000-0000-4000-8000-000000000001', username: 'md_emp', password: 'Pass123456' });
+    await req('POST', '/users/admin/users', { username: 'md_emp', password: 'Pass123456' }, adminToken);
     const emp = await req('POST', '/auth/login', { username: 'md_emp', password: 'Pass123456' });
     const empToken = emp.json.accessToken;
 

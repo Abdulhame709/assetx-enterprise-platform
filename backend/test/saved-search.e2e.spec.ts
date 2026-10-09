@@ -76,7 +76,7 @@ describe('Saved Search — E2E HTTP', () => {
     expect(noAuth.status).toBe(401);
 
     // employee (no search.save) → 403
-    await jsonReq('POST', '/auth/register', { tenantId: demo, username: 'ss_emp', password: 'Pass123456' });
+    await jsonReq('POST', '/users/admin/users', { username: 'ss_emp', password: 'Pass123456' }, await login('admin', 'AdminPass123'));
     await db.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id)
        SELECT '${demo}', u.id, r.id FROM users u, roles r

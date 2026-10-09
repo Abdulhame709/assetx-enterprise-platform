@@ -7,11 +7,13 @@ import { DATABASE_PORT } from '../core/ports/tokens';
 import { UserRepository } from '../infrastructure/repositories/user.repository';
 import { DatabasePort } from '../core/ports/database.port';
 import { bumpPermissionVersion } from '../bootstrap/permission-version';
+import { AuthService } from './auth.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly users: UserRepository,
+    private readonly auth: AuthService,
     @Optional() @Inject(DATABASE_PORT) private readonly db?: DatabasePort,
   ) {}
 
@@ -45,6 +47,32 @@ export class UsersService {
   /** GET /users/admin/roles — list active tenant roles for role assignment. */
   async listTenantRoles(tenantId: string) {
     return this.users.listTenantRoles(tenantId);
+  }
+
+  /**
+   * POST /users/admin/users — an administrator creates a user inside their own
+   * tenant. The tenant is never taken from the request body.
+   */
+  async createTenantUser(
+    tenantId: string,
+    input: { username: string; email?: string; password: string; roleIds?: string[] },
+  ) {
+    const roleIds = [...new Set(input.roleIds ?? [])];
+    if (roleIds.length) {
+      const known = new Set((await this.users.listTenantRoles(tenantId)).map((role) => role.id));
+      if (roleIds.some((id) => !known.has(id))) throw new Error('ROLE_NOT_FOUND');
+    }
+    const created = await this.auth.register({
+      tenantId,
+      username: input.username,
+      email: input.email,
+      password: input.password,
+    });
+    if (roleIds.length) {
+      await this.users.replaceTenantUserRoles(created.user.id, tenantId, roleIds);
+      if (this.db) await bumpPermissionVersion(this.db, tenantId);
+    }
+    return { id: created.user.id, username: created.user.username, role_ids: roleIds };
   }
 
   /** PATCH /users/admin/users/:id/status — activate/deactivate a tenant user. */

@@ -260,7 +260,7 @@ export async function createHarness(): Promise<Harness> {
   const sse = new SSEManager();
   const realtime = new RealtimeService(bus, sse);
   const auth = new AuthService(db, repo, hasher, tokens, audit);
-  const users = new UsersService(repo);
+  const users = new UsersService(repo, auth);
   const assetRepo = new AssetRepository(db);
   const assets = new AssetService(assetRepo, db, audit, bus);
   const locationTypes = new LocationTypeService(new LocationTypeRepository(db), db, audit);
