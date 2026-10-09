@@ -58,11 +58,14 @@ describe('Export — E2E HTTP', () => {
     });
   }
 
-  function jsonReq(method: string, path: string, body?: unknown): Promise<any> {
+  function jsonReq(method: string, path: string, body?: unknown, token?: string): Promise<any> {
     return new Promise((resolve, reject) => {
       const r = http.request(`${baseUrl}${path}`, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       }, (res) => {
         let d = ''; res.on('data', (c) => (d += c)); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(d); } });
       });
@@ -88,7 +91,8 @@ describe('Export — E2E HTTP', () => {
 
   it('a user without export.assets permission → 403', async () => {
     // register + assign Employee role (has no export.assets)
-    await jsonReq('POST', '/auth/register', { tenantId: demo, username: 'exp_emp', password: 'Pass123456' });
+    const adminToken = await login('admin', 'AdminPass123');
+    await jsonReq('POST', '/users/admin/users', { username: 'exp_emp', password: 'Pass123456' }, adminToken);
     await db.query(
       `INSERT INTO user_roles (tenant_id, user_id, role_id)
        SELECT '${demo}', u.id, r.id FROM users u, roles r

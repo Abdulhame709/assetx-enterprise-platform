@@ -15,6 +15,8 @@ import { createHash, randomBytes, randomUUID } from 'crypto';
 
 const PASSWORD_RESET_TTL_MS = 15 * 60 * 1000;
 const REFRESH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const LOGIN_MAX_FAILED_ATTEMPTS = 5;
+const LOGIN_LOCKOUT_MINUTES = 15;
 
 function hashOpaqueToken(token: string): string {
   return createHash('sha256').update(token, 'utf8').digest('hex');
@@ -42,15 +44,46 @@ export class AuthService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Validate minimal password policy (implementation-level; full rules in Validation Rules spec). */
-  private validatePassword(password: string): void {
-    if (!password || password.length < 8) {
+  /**
+   * Password policy: at least 10 characters, containing a letter and a digit,
+   * and not equal to the username.
+   */
+  private validatePassword(password: string, username?: string): void {
+    if (
+      !password ||
+      password.length < 10 ||
+      !/[A-Za-z]/.test(password) ||
+      !/\d/.test(password) ||
+      (username && password.toLowerCase() === username.toLowerCase())
+    ) {
       throw new Error('PASSWORD_TOO_WEAK');
     }
   }
 
+  /**
+   * True when the user failed LOGIN_MAX_FAILED_ATTEMPTS logins within the
+   * lockout window and has not logged in successfully since. Derived from the
+   * audit trail so it holds across restarts and multiple server instances.
+   */
+  private async isLockedOut(userId: string, tenantId: string): Promise<boolean> {
+    await this.db.setTenant(tenantId);
+    const { rows } = await this.db.query<{ failed: string }>(
+      `SELECT count(*)::text AS failed
+         FROM audit_events
+        WHERE user_id = $1
+          AND action_type = 'AUTH_LOGIN_FAILED'
+          AND created_at > now() - ($2::int * interval '1 minute')
+          AND created_at > COALESCE(
+                (SELECT max(created_at) FROM audit_events
+                  WHERE user_id = $1 AND action_type = 'AUTH_LOGIN_SUCCESS'),
+                '-infinity'::timestamptz)`,
+      [userId, LOGIN_LOCKOUT_MINUTES],
+    );
+    return Number(rows[0]?.failed ?? 0) >= LOGIN_MAX_FAILED_ATTEMPTS;
+  }
+
   async register(input: RegisterInput): Promise<{ user: { id: string; username: string }; message: string }> {
-    this.validatePassword(input.password);
+    this.validatePassword(input.password, input.username);
     if (!input.tenantId) throw new Error('TENANT_REQUIRED');
     await this.db.setTenant(input.tenantId);
     const existing = await this.users.findByUsername(input.username);
@@ -76,6 +109,7 @@ export class AuthService {
   }> {
     const user = await this.users.findByUsername(input.username);
     if (!user || !user.is_active) throw new Error('INVALID_CREDENTIALS');
+    if (await this.isLockedOut(user.id, user.tenant_id)) throw new Error('ACCOUNT_LOCKED');
     const valid = await this.hasher.verify(input.password, user.password_hash);
     if (!valid) {
       await this.audit.log({
