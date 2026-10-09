@@ -9,10 +9,16 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch makes the older, still-running check pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
     name: Backend build and tests
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: backend
@@ -30,15 +36,19 @@ jobs:
       - name: Build
         run: npm run build
       - name: Unit tests
-        run: NODE_OPTIONS=--experimental-vm-modules npm run test:unit -- --runInBand
+        run: npm run test:unit -- --runInBand
       - name: Integration tests
-        run: NODE_OPTIONS=--experimental-vm-modules npm run test:integration -- --runInBand
+        run: npm run test:integration -- --runInBand
+      # End-to-end tests exercise the real HTTP API (login, permissions, sync).
+      - name: End-to-end tests
+        run: npm run test:e2e -- --runInBand
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
 
   web:
     name: Web build and tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: web
@@ -61,3 +71,45 @@ jobs:
         run: npm test -- --run
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
+
+  mobile:
+    name: Mobile typecheck and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: Mobile/AssetXMobile
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: Mobile/AssetXMobile/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm run check
+      - name: Tests
+        run: pnpm test
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Fails the build if a password, API key or token was committed.
+      - name: Scan for committed secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
