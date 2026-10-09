@@ -1,0 +1,301 @@
+﻿<Window x:Class="AssetManagement.Views.InventoryReportForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="تقرير ملخص الجرد السنوي"
+        Width="1250" Height="750"
+        MinWidth="950" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        FlowDirection="RightToLeft"
+        FontFamily="Segoe UI"
+        FontSize="14"
+        Background="#F0F2F5">
+
+    <Window.Resources>
+        <Style x:Key="ActionBtn" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FilterCmb" TargetType="ComboBox">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderBrush" Value="#BDC3C7"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+
+        <Style x:Key="ResultCard" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="20,15"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="MinWidth" Value="145"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="3"
+                                      Opacity="0.15" Direction="270"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ═══ العنوان ═══ -->
+        <Border Grid.Row="0" Padding="20,14">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                    <GradientStop Color="#6A1B9A" Offset="0"/>
+                    <GradientStop Color="#8E24AA" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="📋" FontSize="26" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="تقرير ملخص الجرد السنوي" Foreground="White"
+                                   FontSize="20" FontWeight="Bold"/>
+                        <TextBlock Text="مقارنة البيانات المتوقعة بالفعلية لكل دورة جرد"
+                                   Foreground="#E1BEE7" FontSize="12" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="نسبة الإنجاز: " Foreground="#CE93D8" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <TextBlock x:Name="txtCompletionRate" Text="0%" Foreground="#FFC107"
+                               FontSize="22" FontWeight="Bold" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ═══ الفلاتر ═══ -->
+        <Border Grid.Row="1" Background="White" Margin="10,10,10,0"
+                Padding="15" CornerRadius="8"
+                BorderBrush="#E0E0E0" BorderThickness="1">
+            <WrapPanel>
+                <!-- اختيار الدورة -->
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="📅 دورة الجرد" FontSize="11"
+                               Foreground="#7F8C8D" Margin="0,0,0,3"/>
+                    <ComboBox x:Name="cmbCycle" Style="{StaticResource FilterCmb}"
+                              Width="250" DisplayMemberPath="CycleName"
+                              SelectedValuePath="CycleID"
+                              SelectionChanged="cmbCycle_SelectionChanged"/>
+                </StackPanel>
+
+                <!-- فلتر النتيجة -->
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="📊 فلتر النتيجة" FontSize="11"
+                               Foreground="#7F8C8D" Margin="0,0,0,3"/>
+                    <ComboBox x:Name="cmbResultFilter" Style="{StaticResource FilterCmb}"
+                              Width="160" SelectionChanged="cmbResultFilter_SelectionChanged">
+                        <ComboBoxItem Content="-- الكل --" IsSelected="True"/>
+                        <ComboBoxItem Content="مطابق"/>
+                        <ComboBoxItem Content="عجز"/>
+                        <ComboBoxItem Content="زيادة"/>
+                        <ComboBoxItem Content="منقول"/>
+                        <ComboBoxItem Content="مفقود"/>
+                        <ComboBoxItem Content="لم يُجرد"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- الموقع -->
+                <StackPanel Margin="0,0,15,5">
+                    <TextBlock Text="🏢 الموقع" FontSize="11"
+                               Foreground="#7F8C8D" Margin="0,0,0,3"/>
+                    <ComboBox x:Name="cmbInvLocation" Style="{StaticResource FilterCmb}"
+                              Width="180" DisplayMemberPath="MainLocationName"
+                              SelectedValuePath="MainLocationID"
+                              SelectionChanged="cmbResultFilter_SelectionChanged"/>
+                </StackPanel>
+
+                <!-- أزرار -->
+                <StackPanel Margin="15,18,0,0" Orientation="Horizontal">
+                    <Button Content="📊 إنشاء التقرير" Background="#6A1B9A"
+                            Style="{StaticResource ActionBtn}" Click="btnGenerate_Click"/>
+                    <Button Content="🔄 تعيين" Background="#95A5A6"
+                            Style="{StaticResource ActionBtn}" Click="btnInvReset_Click"/>
+                    <Border Width="1" Background="#E0E0E0" Margin="10,0"/>
+                    <Button Content="📥 تصدير" Background="#27AE60"
+                            Style="{StaticResource ActionBtn}" Click="btnInvExport_Click"/>
+                    <Button Content="🖨️ طباعة" Background="#8E44AD"
+                            Style="{StaticResource ActionBtn}" Click="btnInvPrint_Click"/>
+                </StackPanel>
+            </WrapPanel>
+        </Border>
+
+        <!-- ═══ بطاقات ملخص النتائج ═══ -->
+        <WrapPanel Grid.Row="2" Margin="10,10,10,0" HorizontalAlignment="Center">
+            <!-- مطابق -->
+            <Border Style="{StaticResource ResultCard}" Background="#E8F5E9"
+                    MouseLeftButtonDown="Card_Click" Tag="مطابق">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="✅ مطابق" FontSize="12" Foreground="#2E7D32"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtMatched" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="#1B5E20"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- عجز -->
+            <Border Style="{StaticResource ResultCard}" Background="#FFF3E0"
+                    MouseLeftButtonDown="Card_Click" Tag="عجز">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="⚠️ عجز" FontSize="12" Foreground="#E65100"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtDeficit" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="#BF360C"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- زيادة -->
+            <Border Style="{StaticResource ResultCard}" Background="#E3F2FD"
+                    MouseLeftButtonDown="Card_Click" Tag="زيادة">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="📦 زيادة" FontSize="12" Foreground="#1565C0"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtSurplus" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="#0D47A1"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- منقول -->
+            <Border Style="{StaticResource ResultCard}" Background="#F3E5F5"
+                    MouseLeftButtonDown="Card_Click" Tag="منقول">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="🔄 منقول" FontSize="12" Foreground="#7B1FA2"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtMoved" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="#4A148C"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- مفقود -->
+            <Border Style="{StaticResource ResultCard}" Background="#FFEBEE"
+                    MouseLeftButtonDown="Card_Click" Tag="مفقود">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="❌ مفقود" FontSize="12" Foreground="#C62828"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtMissing" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="#B71C1C"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- لم يُجرد -->
+            <Border Style="{StaticResource ResultCard}" Background="#ECEFF1"
+                    MouseLeftButtonDown="Card_Click" Tag="لم يُجرد">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="⏳ لم يُجرد" FontSize="12" Foreground="#546E7A"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtNotDone" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="#37474F"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- الإجمالي -->
+            <Border Style="{StaticResource ResultCard}" Background="#263238">
+                <StackPanel HorizontalAlignment="Center">
+                    <TextBlock Text="📊 الإجمالي" FontSize="12" Foreground="#90A4AE"
+                               HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtTotal" Text="0" FontSize="32"
+                               FontWeight="Bold" Foreground="White"
+                               HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+        </WrapPanel>
+
+        <!-- ═══ جدول البيانات التفصيلي ═══ -->
+        <Border Grid.Row="3" Background="White" Margin="10,10,10,5"
+                CornerRadius="8" BorderBrush="#E0E0E0" BorderThickness="1">
+            <DataGrid x:Name="dgInventory"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      CanUserAddRows="False"
+                      SelectionMode="Single"
+                      SelectionUnit="FullRow"
+                      GridLinesVisibility="Horizontal"
+                      AlternatingRowBackground="#F8F9FA"
+                      BorderThickness="0"
+                      FontSize="12"
+                      ColumnHeaderHeight="40"
+                      RowHeight="34"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#6A1B9A"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Padding" Value="10,8"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                        <Setter Property="BorderBrush" Value="#4A148C"/>
+                        <Setter Property="BorderThickness" Value="0,0,1,0"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding RecordID}" Width="50"/>
+                    <DataGridTextColumn Header="كود الأصل" Binding="{Binding FullAssetCode}" Width="130"/>
+                    <DataGridTextColumn Header="اسم الأصل" Binding="{Binding AssetName}" Width="200"/>
+                    <DataGridTextColumn Header="الموقع المتوقع" Binding="{Binding ExpectedLocation}" Width="160"/>
+                    <DataGridTextColumn Header="الموقع الفعلي" Binding="{Binding ActualLocation}" Width="160"/>
+                    <DataGridTextColumn Header="الكمية المتوقعة" Binding="{Binding ExpectedQuantity}" Width="90"/>
+                    <DataGridTextColumn Header="الكمية الفعلية" Binding="{Binding ActualQuantity}" Width="90"/>
+                    <DataGridTextColumn Header="الفرق" Binding="{Binding Difference}" Width="60"/>
+                    <DataGridTextColumn Header="الحالة المتوقعة" Binding="{Binding ExpectedStatus}" Width="100"/>
+                    <DataGridTextColumn Header="الحالة الفعلية" Binding="{Binding ActualStatus}" Width="100"/>
+                    <DataGridTextColumn Header="النتيجة" Binding="{Binding InventoryResult}" Width="90"/>
+                    <DataGridTextColumn Header="تاريخ الجرد" Binding="{Binding InventoryDate, StringFormat='{}{0:yyyy/MM/dd}'}" Width="100"/>
+                    <DataGridTextColumn Header="جرد بواسطة" Binding="{Binding InventoryBy}" Width="100"/>
+                    <DataGridTextColumn Header="ملاحظات" Binding="{Binding Notes}" Width="150"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <!-- ═══ شريط الحالة ═══ -->
+        <Border Grid.Row="4" Background="#1E293B" Padding="15,8">
+            <TextBlock x:Name="txtInvStatus" Text="اختر دورة الجرد ثم اضغط 'إنشاء التقرير'"
+                       Foreground="#94A3B8" FontSize="12" VerticalAlignment="Center"/>
+        </Border>
+    </Grid>
+</Window>

@@ -7,11 +7,27 @@
 export interface CreateLocationDto {
   parent_id?: string;
   name: string;
-  location_type?: 'building' | 'room' | 'warehouse' | 'workshop' | 'outdoor';
+  location_type?: string;
 }
 export interface UpdateLocationDto {
   name?: string;
-  location_type?: 'building' | 'room' | 'warehouse' | 'workshop' | 'outdoor';
+  location_type?: string;
+}
+
+// Configurable location-type catalog
+export interface CreateLocationTypeDto {
+  code: string;
+  name_ar: string;
+  name_en?: string;
+  icon_key?: string;
+  sort_order?: number;
+}
+export interface UpdateLocationTypeDto {
+  name_ar?: string;
+  name_en?: string | null;
+  icon_key?: string;
+  sort_order?: number;
+  is_active?: boolean;
 }
 
 // Category

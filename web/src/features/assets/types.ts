@@ -9,6 +9,8 @@ export interface AssetSummary {
   full_asset_code: string;
   base_asset_code: string;
   quantity: number;
+  /** Present on list payloads too (the API summary projection now carries it). */
+  category_id?: string | null;
   status_id: string | null;
   location_id: string | null;
   employee_id: string | null;
@@ -76,6 +78,8 @@ export interface LifecycleDistributionBucket {
 }
 
 export interface AssetAnalyticsSummary {
+  /** Optional richer read-only metric from GET /dashboard/assets. */
+  total_value?: number;
   total_assets: number;
   active_assets: number;
   assigned_assets: number;

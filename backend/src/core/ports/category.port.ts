@@ -19,7 +19,8 @@ export interface CategoryPort {
   update(id: string, tenantId: string, input: UpdateCategoryInput): Promise<Category | null>;
   findById(id: string, tenantId: string): Promise<Category | null>;
   list(tenantId: string): Promise<Category[]>;
-  existsName(tenantId: string, name: string, excludeId?: string): Promise<boolean>;
+  /** Duplicate name check among active siblings in the same tenant. */
+  existsName(tenantId: string, name: string, parentId?: string | null, excludeId?: string): Promise<boolean>;
   /** Count assets using a category (protect against orphan delete if needed). */
   countAssets(id: string, tenantId: string): Promise<number>;
   countChildren(id: string, tenantId: string): Promise<number>;

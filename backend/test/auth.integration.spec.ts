@@ -105,5 +105,11 @@ describe('AuthService — integration (real PostgreSQL)', () => {
     // new password works
     const res = await h.auth.login({ username: 'alice', password: 'NewStrongPass456' });
     expect(res.accessToken).toBeDefined();
+    await expect(
+      h.auth.verifyPasswordForLocalReset('alice', 'NewStrongPass456'),
+    ).resolves.toBe(true);
+    await expect(
+      h.auth.verifyPasswordForLocalReset('alice', 'StrongPass123'),
+    ).resolves.toBe(false);
   });
 });

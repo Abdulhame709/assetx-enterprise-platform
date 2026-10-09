@@ -10,6 +10,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthResponse, AuthStatus, LoginInput, Session } from '@/types/auth';
 import { AUTH_MODE, realLogin, realLogout, restoreSessionFromStored } from './auth-service';
+import { buildSessionFromPayload, decodeJwtPayload, isTokenExpired } from './auth-adapter';
 import { mockLogin } from './mock-session';
 import { hasPermission, PermissionKey } from './permissions';
 import { tokenStore } from './token-store';
@@ -60,6 +61,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (AUTH_MODE === 'mock') {
           setSession(storedSession);
           if (storedSession.accessToken) tokenStore.set(storedSession.accessToken, storedSession.refreshToken ?? null);
+          setStatus('authenticated');
+          return;
+        }
+
+        // Fast-path valid persisted access tokens. This avoids keeping the whole
+        // application shell in a loading state while the auth service performs
+        // an unnecessary async recovery step on a normal page refresh.
+        const accessToken = tokenStore.getAccess();
+        const refreshToken = tokenStore.getRefresh();
+        if (accessToken && !isTokenExpired(accessToken)) {
+          const payload = decodeJwtPayload(accessToken);
+          const restored = buildSessionFromPayload(
+            accessToken,
+            refreshToken,
+            payload,
+            storedSession.tenant ?? { id: payload.tenant_id ?? '', name: '', code: '' },
+          );
+          setSession(restored);
+          tokenStore.set(restored.accessToken, restored.refreshToken ?? null);
+          try { localStorage.setItem(SESSION_KEY, JSON.stringify(restored)); } catch { /* ignore */ }
           setStatus('authenticated');
           return;
         }

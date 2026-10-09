@@ -49,7 +49,7 @@ export async function createAssetType(input: { name: string; parent_id?: string 
   return mapped;
 }
 
-export async function updateAssetType(id: string, input: { name?: string }): Promise<AssetTypeNode> {
+export async function updateAssetType(id: string, input: { name?: string; parent_id?: string | null }): Promise<AssetTypeNode> {
   const raw = await http.patch<unknown>(`/categories/${id}`, input);
   const mapped = mapAssetType(raw);
   if (!mapped) throw new Error('Unexpected server response');

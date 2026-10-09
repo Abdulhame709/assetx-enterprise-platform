@@ -9,13 +9,22 @@ const MESSAGES: Record<string, string> = {
   NAME_INVALID: 'Name must be at least 2 characters.',
   COLOR_INVALID: 'Color must be a hex value like #27ae60.',
   DUPLICATE_LOCATION: 'A location with this name already exists in the same parent.',
-  DUPLICATE_CATEGORY: 'An asset type with this name already exists.',
+  DUPLICATE_CATEGORY: 'An asset type with this name already exists under the same parent.',
+  CATEGORY_CYCLE: 'An asset type cannot be moved under itself or one of its descendants.',
   DUPLICATE_STATUS: 'A status with this name already exists.',
   LOCATION_NOT_FOUND: 'Location not found.',
   CATEGORY_NOT_FOUND: 'Asset type not found.',
   STATUS_NOT_FOUND: 'Status not found.',
   PARENT_NOT_FOUND: 'The selected parent no longer exists.',
   LOCATION_HAS_CHILDREN: 'Cannot delete a location that has child locations.',
+  LOCATION_TYPE_NOT_FOUND: 'The selected location type is not available.',
+  DUPLICATE_LOCATION_TYPE_CODE: 'A location type with this code already exists.',
+  DUPLICATE_LOCATION_TYPE_NAME: 'A location type with this name already exists.',
+  LOCATION_TYPE_HAS_LOCATIONS: 'This location type is used by active locations and cannot be deactivated.',
+  LOCATION_TYPE_CODE_INVALID: 'Use lowercase letters, numbers, hyphens, or underscores for the code.',
+  LOCATION_TYPE_NAME_EN_INVALID: 'The English name must be between 2 and 120 characters.',
+  LOCATION_TYPE_ICON_INVALID: 'Choose a supported icon key.',
+  LOCATION_TYPE_SORT_INVALID: 'The order must be a whole number from 0 to 9999.',
   CATEGORY_HAS_CHILDREN: 'This asset type cannot be deactivated because it still has linked records.',
   CATEGORY_HAS_ASSETS: 'This asset type cannot be deactivated because active assets use it.',
   STATUS_HAS_ASSETS: 'This asset status cannot be deactivated because active assets use it.',
@@ -53,7 +62,17 @@ const MESSAGES: Record<string, string> = {
   SESSION_EXPIRED: 'Your session expired. Please sign in again.',
 };
 
-type ErrorDetails = { asset_count?: unknown; child_category_count?: unknown };
+const MESSAGES_AR: Record<string, string> = {
+  LOCATION_TYPE_NOT_FOUND: 'نوع الموقع المحدد غير متاح.',
+  DUPLICATE_LOCATION_TYPE_CODE: 'يوجد نوع موقع بهذا الرمز مسبقاً.',
+  DUPLICATE_LOCATION_TYPE_NAME: 'يوجد نوع موقع بهذا الاسم مسبقاً.',
+  LOCATION_TYPE_CODE_INVALID: 'استخدم أحرفاً إنجليزية صغيرة أو أرقاماً أو شرطات في الرمز.',
+  LOCATION_TYPE_NAME_EN_INVALID: 'يجب أن يتكون الاسم الإنجليزي من حرفين إلى 120 حرفاً.',
+  LOCATION_TYPE_ICON_INVALID: 'اختر رمزاً مدعوماً.',
+  LOCATION_TYPE_SORT_INVALID: 'يجب أن يكون الترتيب رقماً صحيحاً من 0 إلى 9999.',
+};
+
+type ErrorDetails = { asset_count?: unknown; child_category_count?: unknown; location_count?: unknown };
 type SupportedLocale = 'ar' | 'en';
 
 const asPositiveCount = (value: unknown): number => {
@@ -67,6 +86,12 @@ const isArabic = (locale?: SupportedLocale): boolean =>
 function protectedDeactivationMessage(code: string, details: ErrorDetails, locale?: SupportedLocale): string | null {
   const assetCount = asPositiveCount(details.asset_count);
   const childCategoryCount = asPositiveCount(details.child_category_count);
+  const locationCount = asPositiveCount(details.location_count);
+  if (code === 'LOCATION_TYPE_HAS_LOCATIONS' && locationCount) {
+    return isArabic(locale)
+      ? `لا يمكن تعطيل نوع الموقع لأنه مستخدم بواسطة ${locationCount} موقع نشط.`
+      : `This location type cannot be deactivated because ${locationCount} active location${locationCount === 1 ? '' : 's'} use it.`;
+  }
   if (!assetCount && !childCategoryCount) return null;
 
   if (isArabic(locale)) {
@@ -98,5 +123,5 @@ export function humanError(err: unknown, fallback = 'Something went wrong. Pleas
   if (!raw) return fallback;
   const protectedMessage = protectedDeactivationMessage(raw, anyErr?.details ?? {}, locale);
   if (protectedMessage) return protectedMessage;
-  return MESSAGES[raw] ?? raw;
+  return (isArabic(locale) ? MESSAGES_AR[raw] : MESSAGES[raw]) ?? MESSAGES[raw] ?? raw;
 }

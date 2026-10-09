@@ -6,13 +6,13 @@
  * Writes: start / close / count / recount / verify — all real endpoints.
  * Backend guards are mirrored as UX gates only (it remains the security boundary).
  */
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {
   ArrowLeft, Play, Lock, CheckCheck, Undo2, ClipboardCheck,
-  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX,
+  Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw, Download, CloudUpload, FileWarning,
 } from 'lucide-react';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { KpiCard } from '@/components/ui/KpiCard';
@@ -28,8 +28,16 @@ import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
-import { useCycleDetail, CycleDetailData } from '@/features/inventory/use-inventory';
-import { startCycle, closeCycle, verifyRecord, InventoryRecordRow, CycleStatus } from '@/features/inventory/api';
+import { useCycleDetail, CycleDetailData, mergeStoredRecords } from '@/features/inventory/use-inventory';
+import { createMovement } from '@/features/movements/api';
+import { enrichRecords, startCycle, closeCycle, verifyRecord, getMobileSnapshot, InventoryRecordRow, CycleStatus, RecordCountInput } from '@/features/inventory/api';
+import {
+  createPendingMutationFromRecord,
+  getStoredSnapshot,
+  saveStoredSnapshot,
+  listPendingInventoryMutations,
+} from '@/features/inventory/offline-store';
+import { syncPendingInventoryMutations } from '@/features/inventory/sync-inventory';
 import { CountRecordModal, RESULT_TONE } from '@/features/inventory/components/RecordFormModal';
 
 const CYCLE_TONE: Record<CycleStatus, BadgeTone> = {
@@ -51,6 +59,11 @@ export default function InventoryCyclePage() {
   const [resultFilter, setResultFilter] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [movementRequestingId, setMovementRequestingId] = useState<string | null>(null);
+  const [movementRequestedIds, setMovementRequestedIds] = useState<Set<string>>(() => new Set());
+  const [offlineRevision, setOfflineRevision] = useState(0);
+  const pendingMutations = useMemo(() => listPendingInventoryMutations(id), [id, offlineRevision]);
 
   const writable = (data: CycleDetailData) =>
     data.cycle.status === 'in_progress' && can(PERMISSIONS.INVENTORY_EXECUTE);
@@ -98,6 +111,85 @@ export default function InventoryCyclePage() {
     }
   };
 
+  const onDownloadSnapshot = async () => {
+    try {
+      const snapshot = await getMobileSnapshot(id);
+      const stored = saveStoredSnapshot(snapshot);
+      toast.success(t('inventory.snapshotDownloaded'), `${stored.records.length} ${t('inventory.asset')}`);
+    } catch (err) {
+      toast.error(t('inventory.verificationFailed'), humanError(err));
+    }
+  };
+
+  const onOfflineSaved = (record: InventoryRecordRow, payload: RecordCountInput) => {
+    const snapshot = getStoredSnapshot(id);
+    const cached = snapshot?.records.find((item) => item.record_id === record.id);
+    if (!cached) {
+      throw new Error(t('inventory.downloadSnapshot'));
+    }
+    createPendingMutationFromRecord(id, cached, payload);
+    setOfflineRevision((revision) => revision + 1);
+  };
+
+  const onSyncPending = async () => {
+    if (pendingMutations.length === 0) return;
+    setSyncing(true);
+    try {
+      const summary = await syncPendingInventoryMutations(id);
+      const description = t('inventory.syncSummary')
+        .replace('{synced}', String(summary.synced))
+        .replace('{conflicts}', String(summary.conflicts))
+        .replace('{failed}', String(summary.failed));
+      if (summary.conflicts > 0) {
+        toast.warning(t('inventory.syncConflicts'), description);
+      } else if (summary.failed > 0) {
+        toast.warning(t('inventory.syncPending'), description);
+      } else {
+        toast.success(t('inventory.syncComplete'), description);
+      }
+      setOfflineRevision((revision) => revision + 1);
+      if (summary.synced > 0 || summary.conflicts > 0) state.reload();
+    } catch (err) {
+      toast.error(t('inventory.verificationFailed'), humanError(err));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const onCreateMovementRequest = async (record: InventoryRecordRow) => {
+    if (record.result !== 'transferred' && record.result !== 'missing') return;
+    if (record.result === 'transferred' && !record.actual_location_id) return;
+    const movementType = record.result === 'transferred' ? 'transfer' : 'missing' as const;
+    const ok = await confirm({
+      title: t('inventory.createMovementRequest'),
+      message: t('inventory.createMovementRequestMessage').replace('{type}', label(movementType)),
+      tone: 'warning',
+      confirmLabel: t('inventory.createMovementRequest'),
+    });
+    if (!ok) return;
+    setMovementRequestingId(record.id);
+    try {
+      const movement = await createMovement(record.asset_id, {
+        movement_type: movementType,
+        from_location_id: movementType === 'transfer' ? record.expected_location_id ?? undefined : undefined,
+        to_location_id: movementType === 'transfer' ? record.actual_location_id ?? undefined : undefined,
+        from_employee_id: movementType === 'transfer' ? record.expected_employee_id ?? undefined : undefined,
+        to_employee_id: movementType === 'transfer' ? record.actual_employee_id ?? undefined : undefined,
+        reason: t(record.result === 'transferred' ? 'inventory.movementReasonTransferred' : 'inventory.movementReasonMissing'),
+        reference_number: `INV-${id.slice(0, 8)}`,
+        quantity: record.actual_quantity ?? undefined,
+        notes: record.notes ?? undefined,
+      });
+      if (movement.status !== 'pending') throw new Error('MOVEMENT_NOT_PENDING');
+      setMovementRequestedIds((previous) => new Set(previous).add(record.id));
+      toast.success(t('inventory.movementRequestCreated'), t('inventory.movementRequestCreatedMessage'));
+    } catch (err) {
+      toast.error(t('inventory.movementRequestFailed'), humanError(err));
+    } finally {
+      setMovementRequestingId(null);
+    }
+  };
+
   const onVerify = async (record: InventoryRecordRow, verified: boolean) => {
     setVerifyingId(record.id);
     try {
@@ -113,18 +205,29 @@ export default function InventoryCyclePage() {
 
   return (
     <div>
-      <Link href="/inventory" className="mb-3 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink">
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t('inventory.backToCycles')}
-      </Link>
-
       <AsyncBoundary state={state}>
         {(data: CycleDetailData) => {
           const { cycle, summary, records, locationSuggestions } = data;
           const writableNow = writable(data);
-          const filtered = records.filter((r) => !resultFilter || r.result === resultFilter);
+          const displayRecords = enrichRecords(mergeStoredRecords(id, records), data.lookups);
+          const filtered = displayRecords.filter((r) => !resultFilter || r.result === resultFilter);
 
           return (
             <>
+              <CommandToolbar
+                label={t('inventory.commandToolbar')}
+                actions={[
+                  { id: 'back', label: t('inventory.backToCycles'), icon: ArrowLeft, href: '/inventory', separated: true },
+                  { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+                  { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print() },
+                  { id: 'snapshot', label: t('inventory.downloadSnapshot'), icon: Download, onClick: () => void onDownloadSnapshot(), separated: true },
+                  ...(pendingMutations.length > 0 ? [{ id: 'sync', label: t('inventory.syncPending'), icon: CloudUpload, onClick: () => void onSyncPending(), loading: syncing, disabled: syncing, permission: PERMISSIONS.INVENTORY_EXECUTE }] : []),
+                  { id: 'start', label: t('inventory.start'), icon: Play, onClick: () => void onStart(), permission: PERMISSIONS.INVENTORY_EXECUTE, disabled: cycle.status !== 'new', loading: transitioning, variant: 'primary' },
+                  { id: 'close', label: t('inventory.close'), icon: Lock, onClick: () => void onClose(summary), permission: PERMISSIONS.INVENTORY_CLOSE, disabled: cycle.status !== 'in_progress', loading: transitioning },
+                  { id: 'reset', label: t('inventory.resetFilter'), icon: Undo2, onClick: () => setResultFilter(null), disabled: !resultFilter },
+                ]}
+              />
+
               {/* Header */}
               <Card className="mb-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -138,18 +241,6 @@ export default function InventoryCyclePage() {
                       {cycle.end_date ? ` · ${t('inventory.closed')} ${new Date(cycle.end_date).toLocaleDateString(locale)}` : ''}
                       {summary ? ` · ${t('inventory.netVariance')} ${summary.variance}` : ''}
                     </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {cycle.status === 'new' && can(PERMISSIONS.INVENTORY_EXECUTE) && (
-                      <Button variant="primary" size="sm" loading={transitioning} onClick={() => void onStart()}>
-                        <Play className="h-4 w-4" /> {t('inventory.start')}
-                      </Button>
-                    )}
-                    {cycle.status === 'in_progress' && can(PERMISSIONS.INVENTORY_CLOSE) && (
-                      <Button variant="secondary" size="sm" loading={transitioning} onClick={() => void onClose(summary)}>
-                        <Lock className="h-4 w-4" /> {t('inventory.close')}
-                      </Button>
-                    )}
                   </div>
                 </div>
               </Card>
@@ -187,7 +278,7 @@ export default function InventoryCyclePage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge tone={suggestion.riskLevel === 'high' ? 'danger' : 'warning'}>{suggestion.riskLevel === 'high' ? t('inventory.aiRiskHigh') : t('inventory.aiRiskMedium')} {suggestion.riskScore}%</Badge>
-                              {record && writableNow && <Button variant="secondary" size="sm" onClick={() => setCountRecord(record)}>{t('inventory.aiReview')}</Button>}
+                              {record && writableNow && <Button variant="secondary" size="sm" aria-label={t('inventory.aiReview')} title={t('inventory.aiReview')} onClick={() => setCountRecord(record)}><ScanSearch className="h-4 w-4" /></Button>}
                             </div>
                           </div>
                         );
@@ -207,9 +298,13 @@ export default function InventoryCyclePage() {
                     writable={writableNow}
                     verifyingId={verifyingId}
                     canVerifyNow={canVerify()}
+                    canCreateMovement={can(PERMISSIONS.MOVEMENT_CREATE)}
+                    movementRequestingId={movementRequestingId}
+                    movementRequestedIds={movementRequestedIds}
                     closed={cycle.status === 'closed'}
                     onCount={(r) => setCountRecord(r)}
                     onVerify={(r, v) => void onVerify(r, v)}
+                    onCreateMovement={(r) => void onCreateMovementRequest(r)}
                     label={label}
                     t={t}
                   />
@@ -223,10 +318,17 @@ export default function InventoryCyclePage() {
                   record={countRecord}
                   lookups={data.lookups}
                   onClose={() => setCountRecord(null)}
-                  onSaved={() => {
-                    toast.success(t('inventory.countSaved'), t('inventory.countSavedMessage'));
+                  onSaved={(mode) => {
+                    if (mode === 'offline') {
+                      toast.success(t('inventory.offlineCountSaved'), t('inventory.offlineCountSavedMessage'));
+                    } else {
+                      toast.success(t('inventory.countSaved'), t('inventory.countSavedMessage'));
+                      state.reload();
+                    }
                     setCountRecord(null);
-                    state.reload();
+                  }}
+                  onOfflineSaved={(payload) => {
+                    if (countRecord) onOfflineSaved(countRecord, payload);
                   }}
                 />
               )}
@@ -239,8 +341,8 @@ export default function InventoryCyclePage() {
 }
 
 function RecordsTable({
-  records, resultFilter, onResultFilter, writable, verifyingId, canVerifyNow, closed,
-  onCount, onVerify, label, t,
+  records, resultFilter, onResultFilter, writable, verifyingId, canVerifyNow, canCreateMovement, movementRequestingId, movementRequestedIds, closed,
+  onCount, onVerify, onCreateMovement, label, t,
 }: {
   records: InventoryRecordRow[];
   resultFilter: string | null;
@@ -248,9 +350,13 @@ function RecordsTable({
   writable: boolean;
   verifyingId: string | null;
   canVerifyNow: boolean;
+  canCreateMovement: boolean;
+  movementRequestingId: string | null;
+  movementRequestedIds: Set<string>;
   closed: boolean;
   onCount: (r: InventoryRecordRow) => void;
   onVerify: (r: InventoryRecordRow, v: boolean) => void;
+  onCreateMovement: (r: InventoryRecordRow) => void;
   label: (code?: string | null) => string;
   t: (key: string, fallback?: string) => string;
 }) {
@@ -285,7 +391,12 @@ function RecordsTable({
     },
     {
       key: 'result', header: t('inventory.result'), accessor: (r) => r.result,
-      render: (r) => <Badge tone={RESULT_TONE[r.result]}>{label(r.result)}</Badge>,
+      render: (r) => (
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge tone={RESULT_TONE[r.result]}>{label(r.result)}</Badge>
+          {r.sync_state === 'conflict' && <Badge tone="warning">{t('inventory.syncConflicts')}</Badge>}
+        </div>
+      ),
     },
     { key: 'date', header: t('inventory.countedOn'), render: (r) => <span className="text-xs text-ink-faint">{r.inventory_date ? new Date(r.inventory_date).toLocaleDateString() : '—'}</span> },
     {
@@ -295,20 +406,35 @@ function RecordsTable({
     {
       key: 'actions', header: '', width: '210px', align: 'right',
       render: (r) => (
-        <div className="flex justify-end gap-1">
+            <div className="flex justify-end gap-1">
           {writable && (
-            <Button variant="secondary" size="sm" onClick={() => onCount(r)}>
-              <ClipboardCheck className="h-3.5 w-3.5" /> {r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')}
+            <Button variant="secondary" size="sm" aria-label={r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')} title={r.result === 'not_inventoried' ? t('inventory.count') : t('inventory.recount')} onClick={() => onCount(r)}>
+              <ClipboardCheck className="h-3.5 w-3.5" />
             </Button>
           )}
           {canVerifyNow && !closed && r.result !== 'not_inventoried' && !r.is_verified && (
-            <Button variant="ghost" size="sm" loading={verifyingId === r.id} onClick={() => onVerify(r, true)}>
-              <CheckCheck className="h-3.5 w-3.5 text-success" /> {t('inventory.verify')}
+            <Button variant="ghost" size="sm" aria-label={t('inventory.verify')} title={t('inventory.verify')} loading={verifyingId === r.id} onClick={() => onVerify(r, true)}>
+              <CheckCheck className="h-3.5 w-3.5 text-success" />
             </Button>
           )}
           {canVerifyNow && !closed && r.is_verified && (
-            <Button variant="ghost" size="sm" loading={verifyingId === r.id} onClick={() => onVerify(r, false)}>
-              <Undo2 className="h-3.5 w-3.5 text-ink-faint" /> {t('inventory.unverify')}
+            <Button variant="ghost" size="sm" aria-label={t('inventory.unverify')} title={t('inventory.unverify')} loading={verifyingId === r.id} onClick={() => onVerify(r, false)}>
+              <Undo2 className="h-3.5 w-3.5 text-ink-faint" />
+            </Button>
+          )}
+          {canCreateMovement && !movementRequestedIds.has(r.id)
+            && (r.result === 'missing' || (r.result === 'transferred' && Boolean(r.actual_location_id))) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t('inventory.createMovementRequest')}
+              title={t('inventory.createMovementRequest')}
+              loading={movementRequestingId === r.id}
+              onClick={() => onCreateMovement(r)}
+            >
+              {r.result === 'transferred'
+                ? <ArrowLeftRight className="h-3.5 w-3.5 text-info" />
+                : <FileWarning className="h-3.5 w-3.5 text-danger" />}
             </Button>
           )}
         </div>

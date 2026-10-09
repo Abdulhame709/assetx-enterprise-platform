@@ -5,22 +5,22 @@
  * Real workflow: list (GET /locations) → create root/child (POST) → edit (PATCH)
  * → delete (DELETE, guarded by backend when children exist). All via real API.
  */
-import { useState } from 'react';
-import Link from 'next/link';
-import { FileSpreadsheet, Plus, Search } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { FileSpreadsheet, Plus, Printer, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { LoadingState, ErrorState } from '@/components/ui/states';
-import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { humanError } from '@/lib/api/errors';
 import { useLocations, deleteLocation, LocationNode } from '@/features/locations/use-locations';
+import { useLocationTypes } from '@/features/location-types/use-location-types';
 import { LocationTree } from '@/features/locations/components/LocationTree';
 import { LocationFormModal } from '@/features/locations/components/LocationFormModal';
 import { useI18n } from '@/lib/i18n';
+import { useCan } from '@/lib/auth/session-context';
 
 type ModalState =
   | { mode: 'closed' }
@@ -31,10 +31,13 @@ type ModalState =
 export default function LocationsPage() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const state = useLocations();
+  const typeState = useLocationTypes();
   const toast = useToast();
   const { confirm } = useConfirm();
   const { t, locale } = useI18n();
+  const can = useCan();
 
   const total = state.data?.length ?? 0;
   const roots = state.data?.filter((l) => !l.parent_id).length ?? 0;
@@ -61,7 +64,18 @@ export default function LocationsPage() {
       <PageHeader
         title={t('locationPage.title')}
         subtitle={t('locationPage.summary').replace('{total}', total.toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
-        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Link href="/import-data?resource=locations" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.LOCATION_CREATE}><Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create-root' })}><Plus className="h-4 w-4" /> {t('locationPage.newRoot')}</Button></PermissionGate></div>}
+      />
+
+      <CommandToolbar
+        label={t('locationPage.commandToolbar')}
+        actions={[
+          { id: 'search', label: t('locationPage.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=locations', permission: PERMISSIONS.LOCATION_CREATE, separated: true },
+          { id: 'add', label: t('locationPage.newRoot'), icon: Plus, onClick: () => setModal({ mode: 'create-root' }), permission: PERMISSIONS.LOCATION_CREATE, variant: 'primary' },
+          { id: 'reset', label: t('locationPage.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },
+        ]}
       />
 
       <Card className="p-0">
@@ -69,6 +83,7 @@ export default function LocationsPage() {
           <div className="relative max-w-sm">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
             <input
+              ref={searchInputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('locationPage.search')}
@@ -81,11 +96,14 @@ export default function LocationsPage() {
           {state.status === 'error' && (
             <ErrorState message={humanError(state.error)} onRetry={state.reload} />
           )}
+          {typeState.status === 'error' && <p className="border-b border-line bg-danger/5 px-3 py-2 text-sm text-danger" role="alert">{humanError(typeState.error)}</p>}
           {state.status === 'success' && state.data && (
             <LocationTree
               locations={state.data}
               search={search}
-              canCreate={true}
+              canCreate={can(PERMISSIONS.LOCATION_CREATE)}
+              canUpdate={can(PERMISSIONS.LOCATION_UPDATE)}
+              canDelete={can(PERMISSIONS.LOCATION_DELETE)}
               onAddChild={(parent) =>
                 setModal(parent ? { mode: 'create-child', parent } : { mode: 'create-root' })
               }
@@ -102,6 +120,7 @@ export default function LocationsPage() {
           mode={modal.mode}
           parent={modal.mode === 'create-child' ? modal.parent : null}
           node={modal.mode === 'edit' ? modal.node : null}
+          locationTypes={typeState.data ?? []}
           onClose={() => setModal({ mode: 'closed' })}
           onSaved={() => {
             toast.success(
@@ -109,6 +128,7 @@ export default function LocationsPage() {
               t('locationPage.saved'),
             );
             state.reload();
+            typeState.reload();
           }}
         />
       )}

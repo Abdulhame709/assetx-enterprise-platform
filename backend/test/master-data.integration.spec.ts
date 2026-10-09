@@ -39,6 +39,21 @@ describe('Master Data — integration (real PostgreSQL + RLS)', () => {
     ).rejects.toThrow('PARENT_NOT_FOUND');
   });
 
+  it('Location — renaming a node rebuilds descendant paths and levels', async () => {
+    const root = await h.locations.create({ tenant_id: h.tenantA, name: 'Path Root', location_type: 'building' });
+    const child = await h.locations.create({ tenant_id: h.tenantA, name: 'Path Floor', parent_id: root.id });
+    const grandchild = await h.locations.create({ tenant_id: h.tenantA, name: 'Path Room', parent_id: child.id });
+
+    await h.locations.update(root.id, h.tenantA, { name: 'Renamed Path Root' });
+    const locations = await h.locations.list(h.tenantA);
+    const updatedChild = locations.find((item) => item.id === child.id)!;
+    const updatedGrandchild = locations.find((item) => item.id === grandchild.id)!;
+    expect(updatedChild.full_path).toBe('Renamed Path Root / Path Floor');
+    expect(updatedGrandchild.full_path).toBe('Renamed Path Root / Path Floor / Path Room');
+    expect(updatedGrandchild.path).toBe('renamed-path-root.path-floor.path-room');
+    expect(updatedGrandchild.level_number).toBe(2);
+  });
+
   it('Location — soft delete blocked when it has children', async () => {
     const parent = await h.locations.create({ tenant_id: h.tenantA, name: 'BlockedParent' });
     await h.locations.create({ tenant_id: h.tenantA, name: 'ChildRoom', parent_id: parent.id });
@@ -51,12 +66,76 @@ describe('Master Data — integration (real PostgreSQL + RLS)', () => {
     expect(fromB).toBeNull();
   });
 
+  // ---------- Configurable location types ----------
+  it('Location types — creates a tenant-scoped custom type and uses it in locations', async () => {
+    const custom = await h.locationTypes.create({
+      tenant_id: h.tenantA,
+      code: 'campus',
+      name_ar: 'مجمع',
+      name_en: 'Campus',
+      icon_key: 'layers',
+      sort_order: 60,
+    });
+    expect(custom.code).toBe('campus');
+    expect(custom.is_active).toBe(true);
+
+    const location = await h.locations.create({ tenant_id: h.tenantA, name: 'Operations Campus', location_type: custom.code });
+    expect(location.location_type).toBe('campus');
+    const listed = await h.locations.list(h.tenantA);
+    const hydrated = listed.find((item) => item.id === location.id)!;
+    expect(hydrated.location_type_name_ar).toBe('مجمع');
+    expect(hydrated.location_type_icon_key).toBe('layers');
+    expect(await h.locationTypes.getById(custom.id, h.tenantB)).toBeNull();
+    await expect(h.locationTypes.deactivate(custom.id, h.tenantA, null)).rejects.toThrow('LOCATION_TYPE_HAS_LOCATIONS');
+  });
+
+  it('Location types — rejects duplicate code and allows deactivation when unused', async () => {
+    const custom = await h.locationTypes.create({ tenant_id: h.tenantA, code: 'site', name_ar: 'موقع مخصص' });
+    await expect(h.locationTypes.create({ tenant_id: h.tenantA, code: 'SITE', name_ar: 'موقع آخر' })).rejects.toThrow('DUPLICATE_LOCATION_TYPE_CODE');
+    await h.locationTypes.deactivate(custom.id, h.tenantA, null);
+    const all = await h.locationTypes.list(h.tenantA, true);
+    expect(all.find((item) => item.id === custom.id)?.is_active).toBe(false);
+    await expect(h.locations.create({ tenant_id: h.tenantA, name: 'Inactive Type Location', location_type: 'site' })).rejects.toThrow('LOCATION_TYPE_NOT_FOUND');
+  });
+
   // ---------- Category ----------
   it('Category — create + parent + duplicate prevention', async () => {
     const parent = await h.categories.create({ tenant_id: h.tenantA, name: 'IT Equipment' });
     const child = await h.categories.create({ tenant_id: h.tenantA, name: 'Laptops', parent_id: parent.id });
     expect(child.full_path).toContain('IT Equipment');
+    expect(child.level_number).toBe(parent.level_number! + 1);
     await expect(h.categories.create({ tenant_id: h.tenantA, name: 'IT Equipment' })).rejects.toThrow('DUPLICATE_CATEGORY');
+  });
+
+  it('Category — allows the same name under different parents but blocks same-parent siblings', async () => {
+    const parentA = await h.categories.create({ tenant_id: h.tenantA, name: 'Category Parent A' });
+    const parentB = await h.categories.create({ tenant_id: h.tenantA, name: 'Category Parent B' });
+    await h.categories.create({ tenant_id: h.tenantA, name: 'Shared Child', parent_id: parentA.id });
+    await expect(h.categories.create({ tenant_id: h.tenantA, name: 'Shared Child', parent_id: parentA.id })).rejects.toThrow('DUPLICATE_CATEGORY');
+    const sibling = await h.categories.create({ tenant_id: h.tenantA, name: 'Shared Child', parent_id: parentB.id });
+    expect(sibling.full_path).toBe('Category Parent B / Shared Child');
+    expect(sibling.level_number).toBe(1);
+  });
+
+  it('Category — moving and renaming a node rebuilds descendants and rejects cycles', async () => {
+    const source = await h.categories.create({ tenant_id: h.tenantA, name: 'Source Category' });
+    const target = await h.categories.create({ tenant_id: h.tenantA, name: 'Target Category' });
+    const child = await h.categories.create({ tenant_id: h.tenantA, name: 'Nested Category', parent_id: source.id });
+    const grandchild = await h.categories.create({ tenant_id: h.tenantA, name: 'Nested Leaf', parent_id: child.id });
+
+    await h.categories.update(source.id, h.tenantA, { name: 'Renamed Source', parent_id: target.id });
+    const categories = await h.categories.list(h.tenantA);
+    const updatedSource = categories.find((item) => item.id === source.id)!;
+    const updatedChild = categories.find((item) => item.id === child.id)!;
+    const updatedGrandchild = categories.find((item) => item.id === grandchild.id)!;
+    expect(updatedSource.full_path).toBe('Target Category / Renamed Source');
+    expect(updatedSource.level_number).toBe(1);
+    expect(updatedChild.full_path).toBe('Target Category / Renamed Source / Nested Category');
+    expect(updatedChild.level_number).toBe(2);
+    expect(updatedGrandchild.full_path).toBe('Target Category / Renamed Source / Nested Category / Nested Leaf');
+    expect(updatedGrandchild.level_number).toBe(3);
+
+    await expect(h.categories.update(target.id, h.tenantA, { parent_id: grandchild.id })).rejects.toThrow('CATEGORY_CYCLE');
   });
 
   // ---------- Model ----------

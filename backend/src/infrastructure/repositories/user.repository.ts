@@ -41,6 +41,14 @@ export class UserRepository {
     return rows[0] ?? null;
   }
 
+  async findByIdInTenant(id: string, tenantId: string): Promise<User | null> {
+    const { rows } = await this.db.queryAsTenant<User>(tenantId,
+      `SELECT * FROM users WHERE id = $1 AND tenant_id = $2 LIMIT 1`,
+      [id, tenantId],
+    );
+    return rows[0] ?? null;
+  }
+
   async updateProfile(id: string, patch: { email?: string | null }): Promise<User | null> {
     const { rows } = await this.db.query<User>(
       `UPDATE users SET email = COALESCE($2, email), updated_at = now() WHERE id = $1 RETURNING *`,
@@ -66,6 +74,83 @@ export class UserRepository {
   async findRoleNames(userId: string): Promise<string[]> {
     const roles = await this.findRoles(userId);
     return roles.map((r) => r.name);
+  }
+
+  async listTenantUsers(tenantId: string): Promise<Array<{
+    id: string;
+    username: string;
+    email: string | null;
+    employee_id: string | null;
+    is_active: boolean;
+    last_login: Date | null;
+    created_at: Date;
+    roles: Array<{ id: string; name: string }>;
+  }>> {
+    const { rows } = await this.db.queryAsTenant(tenantId,
+      `SELECT u.id, u.username, u.email, u.employee_id, u.is_active, u.last_login, u.created_at,
+              COALESCE(
+                jsonb_agg(jsonb_build_object('id', r.id, 'name', r.name) ORDER BY r.name)
+                FILTER (WHERE r.id IS NOT NULL), '[]'::jsonb
+              ) AS roles
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id AND ur.tenant_id = u.tenant_id
+       LEFT JOIN roles r ON r.id = ur.role_id AND r.tenant_id = u.tenant_id AND r.is_active = true
+       WHERE u.tenant_id = $1
+       GROUP BY u.id
+       ORDER BY u.username ASC`,
+      [tenantId],
+    );
+    return rows as Array<{
+      id: string;
+      username: string;
+      email: string | null;
+      employee_id: string | null;
+      is_active: boolean;
+      last_login: Date | null;
+      created_at: Date;
+      roles: Array<{ id: string; name: string }>;
+    }>;
+  }
+
+  async listTenantRoles(tenantId: string): Promise<Array<{ id: string; name: string; role_type: string | null; description: string | null }>> {
+    const { rows } = await this.db.queryAsTenant<{ id: string; name: string; role_type: string | null; description: string | null }>(tenantId,
+      `SELECT id, name, role_type, description
+       FROM roles
+       WHERE tenant_id = $1 AND is_active = true
+       ORDER BY name ASC`,
+      [tenantId],
+    );
+    return rows;
+  }
+
+  async updateTenantUserStatus(userId: string, tenantId: string, isActive: boolean): Promise<{ id: string; username: string; is_active: boolean } | null> {
+    const { rows } = await this.db.queryAsTenant<{ id: string; username: string; is_active: boolean }>(tenantId,
+      `UPDATE users
+       SET is_active = $3, updated_at = now()
+       WHERE id = $1 AND tenant_id = $2
+       RETURNING id, username, is_active`,
+      [userId, tenantId, isActive],
+    );
+    return rows[0] ?? null;
+  }
+
+  async replaceTenantUserRoles(userId: string, tenantId: string, roleIds: string[]): Promise<void> {
+    const { rows } = await this.db.queryAsTenant<{ id: string }>(tenantId,
+      `SELECT id FROM roles
+       WHERE tenant_id = $1 AND is_active = true AND id = ANY($2::uuid[])`,
+      [tenantId, roleIds],
+    );
+    if (rows.length !== new Set(roleIds).size) throw new Error('ROLE_NOT_FOUND');
+
+    await this.db.queryAsTenant(tenantId, `DELETE FROM user_roles WHERE tenant_id = $1 AND user_id = $2`, [tenantId, userId]);
+    for (const roleId of roleIds) {
+      await this.db.queryAsTenant(tenantId,
+        `INSERT INTO user_roles (tenant_id, user_id, role_id)
+         SELECT $1, $2, id FROM roles WHERE id = $3 AND tenant_id = $1 AND is_active = true
+         ON CONFLICT (user_id, role_id) DO NOTHING`,
+        [tenantId, userId, roleId],
+      );
+    }
   }
 
   async findPermissions(userId: string): Promise<Permission[]> {

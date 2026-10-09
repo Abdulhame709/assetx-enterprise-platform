@@ -130,6 +130,7 @@ export class MasterDataImportService {
 
     const existing = await this.loadExisting(resource, tenantId);
     const fileNames = new Set<string>();
+    const categoryKeys = new Set<string>(existing.categoryKeys);
     const parentNames = new Set<string>(existing.parentNames);
     const locationKeys = new Set<string>(existing.locationKeys);
     const rows: ParsedRow[] = [];
@@ -151,9 +152,11 @@ export class MasterDataImportService {
         if (typeText && !locationType) errors.push({ row: rowNumber, code: 'IMPORT_LOCATION_TYPE_INVALID', message: 'نوع الموقع غير صالح. استخدم building أو room أو warehouse أو workshop أو outdoor.' });
         if (errors.length === before) { locationKeys.add(uniqueKey); parentNames.add(normalizedName); rows.push({ row: rowNumber, name, parent: parent || undefined, location_type: locationType }); }
       } else if (resource === 'categories') {
-        if (parent && !parentNames.has(key(parent))) errors.push({ row: rowNumber, code: 'IMPORT_PARENT_NOT_FOUND', message: `لم يتم العثور على النوع الأب: ${parent}. ضع صف النوع الأب قبل هذا الصف.` });
-        if (existing.names.has(normalizedName) || fileNames.has(normalizedName)) errors.push({ row: rowNumber, code: 'IMPORT_DUPLICATE', message: 'يوجد نوع أصل نشط بالاسم نفسه.' });
-        if (errors.length === before) { fileNames.add(normalizedName); parentNames.add(normalizedName); rows.push({ row: rowNumber, name, parent: parent || undefined }); }
+        const parentKey = key(parent);
+        if (parent && !parentNames.has(parentKey)) errors.push({ row: rowNumber, code: 'IMPORT_PARENT_NOT_FOUND', message: `لم يتم العثور على النوع الأب: ${parent}. ضع صف النوع الأب قبل هذا الصف.` });
+        const uniqueKey = `${normalizedName}|${parentKey}`;
+        if (categoryKeys.has(uniqueKey)) errors.push({ row: rowNumber, code: 'IMPORT_DUPLICATE', message: 'يوجد نوع أصل نشط بالاسم نفسه تحت النوع الأب نفسه.' });
+        if (errors.length === before) { categoryKeys.add(uniqueKey); parentNames.add(normalizedName); rows.push({ row: rowNumber, name, parent: parent || undefined }); }
       } else if (resource === 'statuses') {
         const color = value('color');
         if (color && !/^#[0-9a-fA-F]{6}$/.test(color)) errors.push({ row: rowNumber, code: 'IMPORT_COLOR_INVALID', message: 'لون الحالة يجب أن يكون بصيغة HEX مثل #2563eb.' });
@@ -169,21 +172,24 @@ export class MasterDataImportService {
     return { rows, errors, totalRows };
   }
 
-  private async loadExisting(resource: MasterDataImportResource, tenantId: string): Promise<{ names: Set<string>; parentNames: Set<string>; locationKeys: Set<string> }> {
+  private async loadExisting(resource: MasterDataImportResource, tenantId: string): Promise<{ names: Set<string>; parentNames: Set<string>; locationKeys: Set<string>; categoryKeys: Set<string> }> {
     if (resource === 'categories') {
-      const values = await this.categories.list(tenantId); const names = new Set(values.map((item) => key(item.name)));
-      return { names, parentNames: names, locationKeys: new Set() };
+      const values = await this.categories.list(tenantId);
+      const names = new Set(values.map((item) => key(item.name)));
+      const byId = new Map(values.map((item) => [item.id, item]));
+      const categoryKeys = new Set(values.map((item) => `${key(item.name)}|${key(byId.get(item.parent_id ?? '')?.name ?? '')}`));
+      return { names, parentNames: names, locationKeys: new Set(), categoryKeys };
     }
     if (resource === 'locations') {
       const values = await this.locations.list(tenantId);
       const parentNames = new Set(values.flatMap((item) => [key(item.name), key(item.full_path)]));
       const locationKeys = new Set(values.map((item) => `${key(item.name)}|${key(values.find((candidate) => candidate.id === item.parent_id)?.full_path ?? '')}`));
-      return { names: new Set(values.map((item) => key(item.name))), parentNames, locationKeys };
+      return { names: new Set(values.map((item) => key(item.name))), parentNames, locationKeys, categoryKeys: new Set() };
     }
     if (resource === 'statuses') {
-      const values = await this.statuses.list(tenantId); return { names: new Set(values.map((item) => key(item.name))), parentNames: new Set(), locationKeys: new Set() };
+      const values = await this.statuses.list(tenantId); return { names: new Set(values.map((item) => key(item.name))), parentNames: new Set(), locationKeys: new Set(), categoryKeys: new Set() };
     }
-    const values = await this.employees.list(tenantId); return { names: new Set(values.map((item) => key(item.name))), parentNames: new Set(), locationKeys: new Set() };
+    const values = await this.employees.list(tenantId); return { names: new Set(values.map((item) => key(item.name))), parentNames: new Set(), locationKeys: new Set(), categoryKeys: new Set() };
   }
 
   private toPreview(resource: MasterDataImportResource, rows: ParsedRow[], errors: MasterDataImportIssue[], totalRows: number): MasterDataImportPreview {

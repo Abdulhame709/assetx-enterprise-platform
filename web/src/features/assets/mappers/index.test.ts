@@ -6,6 +6,7 @@ import {
   mapAssetMovements,
   mapLifecycleTransitions,
   mapAnalytics,
+  mapDashboardTotalValue,
   buildNameLookup,
   resolveName,
 } from './index';
@@ -89,6 +90,12 @@ describe('mapLifecycleTransitions', () => {
 });
 
 describe('mapAnalytics', () => {
+  it('maps the optional dashboard total value without assuming a currency', () => {
+    expect(mapDashboardTotalValue({ total_value: '12500.50' })).toBe(12500.5);
+    expect(mapDashboardTotalValue({ total_assets: 10 })).toBeUndefined();
+    expect(mapAnalytics({ total_value: '12500.50' }).total_value).toBe(12500.5);
+  });
+
   it('maps buckets and counts', () => {
     const a = mapAnalytics({ total_assets: '10', active_assets: 8, by_category: [{ name: 'IT', count: '5' }], by_location: [], lifecycle_distribution: [{ state: 'active', count: 8 }] });
     expect(a.total_assets).toBe(10);

@@ -1,0 +1,223 @@
+﻿<Window x:Class="AssetManagement.Views.UsersForm"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="إدارة المستخدمين"
+        Width="950" Height="650"
+        WindowStartupLocation="CenterScreen"
+        FlowDirection="RightToLeft"
+        Loaded="Window_Loaded">
+
+    <Window.Resources>
+        <Style x:Key="FormLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#424242"/>
+            <Setter Property="Margin" Value="0,0,0,5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="FormTextBox" TargetType="TextBox">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="BorderBrush" Value="#E0E0E0"/>
+        </Style>
+        <Style x:Key="FormCombo" TargetType="ComboBox">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="Margin" Value="5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="5" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="350"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- ═══ القسم الأيسر: نموذج الإدخال ═══ -->
+        <Border Grid.Column="0" Background="White" CornerRadius="8"
+               BorderBrush="#E0E0E0" BorderThickness="1"
+               Padding="20" Margin="0,0,10,0">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="5" ShadowDepth="1" Opacity="0.1"/>
+            </Border.Effect>
+
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="👤  بيانات المستخدم" FontSize="18"
+                              FontWeight="Bold" Foreground="#1565C0"
+                              Margin="0,0,0,20"/>
+
+                    <!-- اسم المستخدم -->
+                    <TextBlock Text="اسم المستخدم *" Style="{StaticResource FormLabel}"/>
+                    <TextBox x:Name="txtUsername" Style="{StaticResource FormTextBox}"
+                            FlowDirection="LeftToRight"/>
+
+                    <!-- كلمة المرور -->
+                    <TextBlock Text="كلمة المرور *" Style="{StaticResource FormLabel}"/>
+                    <PasswordBox x:Name="txtPassword" FontSize="14" Padding="8,6"
+                                Margin="0,0,0,10" FlowDirection="LeftToRight"/>
+
+                    <!-- تأكيد كلمة المرور -->
+                    <TextBlock Text="تأكيد كلمة المرور *" Style="{StaticResource FormLabel}"/>
+                    <PasswordBox x:Name="txtConfirmPassword" FontSize="14" Padding="8,6"
+                                Margin="0,0,0,10" FlowDirection="LeftToRight"/>
+
+                    <!-- الاسم الكامل -->
+                    <TextBlock Text="الاسم الكامل *" Style="{StaticResource FormLabel}"/>
+                    <TextBox x:Name="txtFullName" Style="{StaticResource FormTextBox}"/>
+
+                    <!-- الدور -->
+                    <TextBlock Text="الدور *" Style="{StaticResource FormLabel}"/>
+                    <ComboBox x:Name="cmbRole" Style="{StaticResource FormCombo}">
+                        <ComboBoxItem Content="مدير النظام"/>
+                        <ComboBoxItem Content="مشرف"/>
+                        <ComboBoxItem Content="مستخدم"/>
+                        <ComboBoxItem Content="جارد"/>
+                    </ComboBox>
+
+                    <!-- الموظف -->
+                    <TextBlock Text="الموظف المرتبط" Style="{StaticResource FormLabel}"/>
+                    <ComboBox x:Name="cmbEmployee" Style="{StaticResource FormCombo}"
+                             DisplayMemberPath="EmployeeName"
+                             SelectedValuePath="EmployeeID"/>
+
+                    <!-- القسم -->
+                    <TextBlock Text="القسم" Style="{StaticResource FormLabel}"/>
+                    <TextBox x:Name="txtDepartment" Style="{StaticResource FormTextBox}"/>
+
+                    <!-- البريد -->
+                    <TextBlock Text="البريد الإلكتروني" Style="{StaticResource FormLabel}"/>
+                    <TextBox x:Name="txtEmail" Style="{StaticResource FormTextBox}"
+                            FlowDirection="LeftToRight"/>
+
+                    <!-- الهاتف -->
+                    <TextBlock Text="الهاتف" Style="{StaticResource FormLabel}"/>
+                    <TextBox x:Name="txtPhone" Style="{StaticResource FormTextBox}"
+                            FlowDirection="LeftToRight"/>
+
+                    <!-- نشط -->
+                    <CheckBox x:Name="chkIsActive" Content="  الحساب نشط"
+                             FontSize="14" IsChecked="True" Margin="0,5,0,15"/>
+
+                    <!-- أزرار الحفظ -->
+                    <WrapPanel HorizontalAlignment="Center" Margin="0,10,0,0">
+                        <Button Content="➕ جديد" Background="#4CAF50"
+                               Style="{StaticResource ActionButton}"
+                               Click="BtnNew_Click"/>
+                        <Button Content="💾 حفظ" Background="#2196F3"
+                               Style="{StaticResource ActionButton}"
+                               Click="BtnSave_Click"/>
+                        <Button Content="🗑️ حذف" Background="#F44336"
+                               Style="{StaticResource ActionButton}"
+                               Click="BtnDelete_Click"/>
+                        <Button Content="🔐 صلاحيات" Background="#9C27B0"
+                               Style="{StaticResource ActionButton}"
+                               Click="BtnPermissions_Click"/>
+                    </WrapPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- ═══ القسم الأيمن: قائمة المستخدمين ═══ -->
+        <Border Grid.Column="1" Background="White" CornerRadius="8"
+               BorderBrush="#E0E0E0" BorderThickness="1"
+               Padding="15">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="5" ShadowDepth="1" Opacity="0.1"/>
+            </Border.Effect>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="📋  قائمة المستخدمين" FontSize="18"
+                          FontWeight="Bold" Foreground="#1565C0"
+                          Margin="0,0,0,10"/>
+
+                <!-- بحث -->
+                <Grid Grid.Row="1" Margin="0,0,0,10">
+                    <TextBox x:Name="txtSearch" FontSize="14" Padding="8,6"
+                            TextChanged="TxtSearch_TextChanged">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                    <TextBlock Text="🔍 بحث..." FontSize="13" Foreground="#BDBDBD"
+                              Margin="12,8,0,0" IsHitTestVisible="False">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=txtSearch}"
+                                               Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <!-- الجدول -->
+                <DataGrid Grid.Row="2" x:Name="dgUsers"
+                         AutoGenerateColumns="False"
+                         IsReadOnly="True"
+                         SelectionMode="Single"
+                         SelectionChanged="DgUsers_SelectionChanged"
+                         CanUserAddRows="False"
+                         GridLinesVisibility="Horizontal"
+                         HeadersVisibility="Column"
+                         FontSize="13"
+                         BorderThickness="1"
+                         BorderBrush="#E0E0E0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding UserID}" Width="40"/>
+                        <DataGridTextColumn Header="اسم المستخدم" Binding="{Binding Username}" Width="120"/>
+                        <DataGridTextColumn Header="الاسم الكامل" Binding="{Binding FullName}" Width="*"/>
+                        <DataGridTextColumn Header="الدور" Binding="{Binding UserRole}" Width="100"/>
+                        <DataGridTextColumn Header="القسم" Binding="{Binding Department}" Width="100"/>
+                        <DataGridTextColumn Header="آخر دخول"
+                            Binding="{Binding LastLogin, StringFormat={}{0:yyyy/MM/dd HH:mm}}"
+                            Width="130"/>
+                        <DataGridCheckBoxColumn Header="نشط" Binding="{Binding IsActive}" Width="50"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- عدد السجلات -->
+                <TextBlock Grid.Row="3" x:Name="txtRecordCount"
+                          FontSize="12" Foreground="#9E9E9E"
+                          Margin="0,8,0,0"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

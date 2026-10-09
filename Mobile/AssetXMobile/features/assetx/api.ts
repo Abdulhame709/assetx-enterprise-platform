@@ -1,0 +1,65 @@
+import { AssetXApiError, type AssetStatusOption, type AssetXUser, type AuthTokens, type EmployeeOption, type InventoryCycle, type InventorySyncResult, type LocationOption, type MobileInventorySnapshot, type PendingInventoryMutation } from "./domain";
+import { clearAuth, getBackendUrl, getStoredUser, getTokens, saveAuth } from "./secure-storage";
+import { toInventorySyncRequest } from "./contracts";
+
+type JsonRecord = Record<string, unknown>;
+let refreshInFlight: Promise<AuthTokens | null> | null = null;
+const asRecord = (value: unknown): JsonRecord => typeof value === "object" && value !== null ? value as JsonRecord : {};
+const asArray = (value: unknown): unknown[] => Array.isArray(value) ? value : (Array.isArray(asRecord(value).items) ? asRecord(value).items as unknown[] : Array.isArray(asRecord(value).data) ? asRecord(value).data as unknown[] : []);
+const stringOrNull = (value: unknown): string | null => value === null || value === undefined ? null : String(value);
+const numberOrNull = (value: unknown): number | null => value === null || value === undefined || value === "" || !Number.isFinite(Number(value)) ? null : Number(value);
+function mapCycle(value: unknown): InventoryCycle | null { const row = asRecord(value); if (!row.id) return null; return { id: String(row.id), year: Number(row.year ?? 0), status: row.status === "in_progress" || row.status === "closed" ? row.status : "new", start_date: stringOrNull(row.start_date), end_date: stringOrNull(row.end_date), created_at: String(row.created_at ?? "") }; }
+function mapLocation(value: unknown): LocationOption | null { const row = asRecord(value); if (!row.id || !row.name) return null; return { id: String(row.id), name: String(row.name), full_path: String(row.full_path ?? row.name), parent_id: stringOrNull(row.parent_id), level_number: Number(row.level_number ?? 0), is_active: row.is_active !== false }; }
+function mapStatus(value: unknown): AssetStatusOption | null { const row = asRecord(value); if (!row.id || !row.name) return null; return { id: String(row.id), name: String(row.name), color: stringOrNull(row.color) }; }
+function mapEmployee(value: unknown): EmployeeOption | null { const row = asRecord(value); if (!row.id || !row.name) return null; return { id: String(row.id), name: String(row.name), department: stringOrNull(row.department), is_active: row.is_active !== false }; }
+function mapSnapshot(value: unknown): MobileInventorySnapshot {
+  const payload = asRecord(value); const cycle = mapCycle(payload.cycle); if (!cycle) throw new AssetXApiError("UNEXPECTED_RESPONSE");
+  const records = asArray(payload.records).map((value) => { const row = asRecord(value); if (!row.record_id) return null; return {
+    record_id: String(row.record_id), asset_id: String(row.asset_id ?? ""), asset_code: String(row.asset_code ?? ""), asset_name: String(row.asset_name ?? ""),
+    expected_location_id: stringOrNull(row.expected_location_id), expected_location: stringOrNull(row.expected_location), expected_location_path: stringOrNull(row.expected_location_path),
+    actual_location_id: stringOrNull(row.actual_location_id), actual_location: stringOrNull(row.actual_location), expected_quantity: numberOrNull(row.expected_quantity), actual_quantity: numberOrNull(row.actual_quantity),
+    expected_status_id: stringOrNull(row.expected_status_id), actual_status_id: stringOrNull(row.actual_status_id), expected_employee_id: stringOrNull(row.expected_employee_id), actual_employee_id: stringOrNull(row.actual_employee_id),
+    result: String(row.result ?? "not_inventoried") as MobileInventorySnapshot["records"][number]["result"], inventory_date: stringOrNull(row.inventory_date), notes: stringOrNull(row.notes), is_verified: row.is_verified === true, updated_at: stringOrNull(row.updated_at),
+  }; }).filter((record): record is MobileInventorySnapshot["records"][number] => record !== null);
+  return { cycle, records };
+}
+async function readResponse(response: Response): Promise<unknown> { const text = await response.text(); try { return text ? JSON.parse(text) : null; } catch { return { message: text }; } }
+async function request(baseUrl: string, path: string, init: RequestInit): Promise<Response> { try { return await fetch(`${baseUrl}${path}`, { ...init, headers: { Accept: "application/json", "Content-Type": "application/json", ...init.headers } }); } catch { throw new AssetXApiError("NETWORK_REQUEST_FAILED"); } }
+function errorFrom(status: number, payload: unknown) {
+  const row = asRecord(payload);
+  const nestedError = asRecord(row.error);
+  const code = typeof nestedError.code === "string" ? nestedError.code : undefined;
+  const message = typeof nestedError.message === "string" ? nestedError.message : typeof row.message === "string" ? row.message : typeof row.error === "string" ? row.error : undefined;
+  // Backend may expose the domain code (e.g. DUPLICATE_PENDING) as message while
+  // `code` is a generic HTTP class (CONFLICT/NOT_FOUND/...). Prefer the precise
+  // domain message so the Arabic UI can explain the real reason.
+  const genericCodes = new Set(["HTTP_ERROR", "CONFLICT", "NOT_FOUND", "INTERNAL_ERROR", "BAD_REQUEST", "FORBIDDEN", "UNAUTHORIZED"]);
+  const precise = code && !genericCodes.has(code) ? code : message && !genericCodes.has(message) ? message : code ?? message;
+  return new AssetXApiError(precise ?? "REQUEST_FAILED", status);
+}
+async function requestTokenRefresh(baseUrl: string): Promise<AuthTokens | null> { const tokens = await getTokens(); if (!tokens) return null; const response = await request(baseUrl, "/auth/refresh", { method: "POST", body: JSON.stringify({ refreshToken: tokens.refreshToken }) }); const payload = await readResponse(response); if (!response.ok) { await clearAuth(); return null; } const row = asRecord(payload); const accessToken = typeof row.accessToken === "string" ? row.accessToken : null; const refreshToken = typeof row.refreshToken === "string" ? row.refreshToken : null; const user = await getStoredUser(); if (!accessToken || !refreshToken || !user) { await clearAuth(); return null; } await saveAuth({ accessToken, refreshToken }, user); return { accessToken, refreshToken }; }
+async function refreshAccessToken(baseUrl: string): Promise<AuthTokens | null> { if (!refreshInFlight) { refreshInFlight = requestTokenRefresh(baseUrl).finally(() => { refreshInFlight = null; }); } return refreshInFlight; }
+async function authenticatedJson<T>(path: string, method: "GET" | "POST" | "PATCH", body?: unknown): Promise<T> { const baseUrl = await getBackendUrl(); if (!baseUrl) throw new AssetXApiError("BACKEND_URL_REQUIRED"); let tokens = await getTokens(); if (!tokens) throw new AssetXApiError("SESSION_REVOKED"); const invoke = (accessToken: string) => request(baseUrl, path, { method, body: body === undefined ? undefined : JSON.stringify(body), headers: { Authorization: `Bearer ${accessToken}` } }); let response = await invoke(tokens.accessToken); if (response.status === 401) { tokens = await refreshAccessToken(baseUrl); if (!tokens) throw new AssetXApiError("SESSION_REVOKED", 401); response = await invoke(tokens.accessToken); } const payload = await readResponse(response); if (!response.ok) throw errorFrom(response.status, payload); return payload as T; }
+export async function login(username: string, password: string): Promise<AssetXUser> { const baseUrl = await getBackendUrl(); if (!baseUrl) throw new AssetXApiError("BACKEND_URL_REQUIRED"); const response = await request(baseUrl, "/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }); const payload = await readResponse(response); if (!response.ok) throw errorFrom(response.status, payload); const row = asRecord(payload); const user = asRecord(row.user); const accessToken = typeof row.accessToken === "string" ? row.accessToken : null; const refreshToken = typeof row.refreshToken === "string" ? row.refreshToken : null; if (!accessToken || !refreshToken || !user.id || !user.username || !user.tenant_id) throw new AssetXApiError("UNEXPECTED_RESPONSE"); const account = { id: String(user.id), username: String(user.username), tenant_id: String(user.tenant_id) }; await saveAuth({ accessToken, refreshToken }, account); return account; }
+export async function logout(): Promise<void> { try { await authenticatedJson("/auth/logout", "POST"); } finally { await clearAuth(); } }
+export async function getCycles(): Promise<InventoryCycle[]> { const payload = await authenticatedJson<unknown>("/inventory/cycles", "GET"); return asArray(payload).map(mapCycle).filter((cycle): cycle is InventoryCycle => cycle !== null).sort((a, b) => b.year - a.year); }
+export async function downloadMobileSnapshot(cycleId: string) { return mapSnapshot(await authenticatedJson<unknown>(`/inventory/cycles/${cycleId}/mobile-snapshot`, "GET")); }
+export async function getLocations(): Promise<LocationOption[]> { return asArray(await authenticatedJson<unknown>("/locations", "GET")).map(mapLocation).filter((location): location is LocationOption => location !== null && location.is_active).sort((a, b) => a.full_path.localeCompare(b.full_path)); }
+let cachedStatuses: AssetStatusOption[] | null = null;
+/** جلب الحالات من الخادم مع تخزين محلي مؤقت (آخر نتيجة) كي يعمل التفصيل دون اتصال. */
+export async function getStatuses(): Promise<AssetStatusOption[]> {
+  try {
+    const remote = asArray(await authenticatedJson<unknown>("/statuses", "GET")).map(mapStatus).filter((status): status is AssetStatusOption => status !== null).sort((a, b) => a.name.localeCompare(b.name));
+    cachedStatuses = remote;
+    return remote;
+  } catch (error) {
+    if (cachedStatuses) return cachedStatuses;
+    throw error;
+  }
+}
+/** جلب الموظفين النشطين (الاسم/القسم فقط) لاختيار المستلم عند اقتراح النقل. */
+export async function getEmployees(): Promise<EmployeeOption[]> {
+  return asArray(await authenticatedJson<unknown>("/employees", "GET")).map(mapEmployee).filter((employee): employee is EmployeeOption => employee !== null && employee.is_active).sort((a, b) => a.name.localeCompare(b.name));
+}
+export async function createPendingTransferRequest(input: { asset_id: string; from_location_id: string | null; to_location_id: string; quantity: number | null; reason: string; notes?: string | null; to_employee_id?: string | null; to_status_id?: string | null }) { const payload = await authenticatedJson<unknown>(`/assets/${input.asset_id}/movements`, "POST", { movement_type: "transfer", from_location_id: input.from_location_id ?? undefined, to_location_id: input.to_location_id, quantity: input.quantity ?? undefined, reason: input.reason, notes: input.notes ?? undefined, to_employee_id: input.to_employee_id ?? undefined, to_status_id: input.to_status_id ?? undefined }); const row = asRecord(payload); return { id: String(row.id ?? ""), status: String(row.status ?? "pending") }; }
+export async function syncCycle(cycleId: string, mutations: PendingInventoryMutation[]): Promise<InventorySyncResult[]> { const payload = await authenticatedJson<unknown>(`/inventory/cycles/${cycleId}/sync`, "POST", toInventorySyncRequest(mutations)); return asArray(asRecord(payload).results).map((value) => { const row = asRecord(value); return { mutation_id: String(row.mutation_id ?? ""), record_id: String(row.record_id ?? ""), status: row.status === "synced" || row.status === "conflict" ? row.status : "error", updated_at: typeof row.updated_at === "string" ? row.updated_at : undefined, code: typeof row.code === "string" ? row.code : undefined }; }).filter((result) => result.mutation_id !== "") as InventorySyncResult[]; }

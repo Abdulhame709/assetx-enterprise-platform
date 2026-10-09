@@ -50,6 +50,22 @@ describe('Asset module — integration (real PostgreSQL + RLS)', () => {
     expect(res.total).toBeGreaterThanOrEqual(5);
   });
 
+  it('search — list items carry category_id so the UI can show the asset type', async () => {
+    // Regression (UX): the summary projection dropped category_id, so every asset
+    // row rendered "—" in the Type column while the detail page showed the type.
+    const created = await h.assets.create({
+      tenant_id: h.tenantA,
+      name: 'TypedAsset',
+      category_id: h.refA.category,
+      location_id: h.refA.location,
+      status_id: h.refA.status,
+    });
+    const res = await h.assets.search({ tenant_id: h.tenantA, q: 'TypedAsset', page: 1, limit: 10 });
+    const item = res.items.find((a) => a.id === created.id);
+    expect(item).toBeDefined();
+    expect(item?.category_id).toBe(h.refA.category);
+  });
+
   it('tenant isolation — asset in tenant A is not visible/updatable from tenant B', async () => {
     const created = await h.assets.create({
       tenant_id: h.tenantA,

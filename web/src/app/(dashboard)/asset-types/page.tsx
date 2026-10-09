@@ -2,13 +2,13 @@
 
 /**
  * Asset Types — hierarchical classification management (backend: /categories).
- * Create root/child + rename only — the backend exposes no delete for categories,
- * so no delete action is offered (contract parity, no fake buttons).
+ * Create root/child + rename/reparent — the backend exposes soft deactivation
+ * rather than hard delete, so no hard-delete action is offered (contract parity).
  */
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import Link from 'next/link';
-import { ChevronRight, FileSpreadsheet, Pencil, Plus, Search, Tag, Trash2 } from 'lucide-react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronRight, FileSpreadsheet, Pencil, Plus, Power, Printer, RefreshCw, Search, Tag, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -31,6 +31,7 @@ type ModalState =
 export default function AssetTypesPage() {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<ModalState>({ mode: 'closed' });
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const state = useAssetTypes();
   const toast = useToast();
   const { confirm } = useConfirm();
@@ -83,6 +84,30 @@ export default function AssetTypesPage() {
 
   const roots = state.data?.filter((t) => !t.parent_id).length ?? 0;
 
+  const parentOptions = useMemo(() => {
+    if (modal.mode !== 'edit') return [];
+    const all = state.data ?? [];
+    const children = new Map<string, string[]>();
+    for (const item of all) {
+      if (!item.parent_id) continue;
+      const siblings = children.get(item.parent_id) ?? [];
+      siblings.push(item.id);
+      children.set(item.parent_id, siblings);
+    }
+    const descendants = new Set<string>();
+    const visit = (id: string) => {
+      for (const childId of children.get(id) ?? []) {
+        if (descendants.has(childId)) continue;
+        descendants.add(childId);
+        visit(childId);
+      }
+    };
+    visit(modal.node.id);
+    return all
+      .filter((item) => item.id !== modal.node.id && !descendants.has(item.id))
+      .sort((a, b) => a.full_path.localeCompare(b.full_path));
+  }, [state.data, modal]);
+
   const deactivate = async (node: AssetTypeNode) => {
     const accepted = await confirm({
       title: t('assetTypes.deactivateTitle').replace('{name}', node.name),
@@ -108,7 +133,18 @@ export default function AssetTypesPage() {
       <PageHeader
         title={t('assetTypes.title')}
         subtitle={t('assetTypes.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
-        actions={<div className="flex flex-wrap gap-2"><PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}><Link href="/import-data?resource=categories" className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-line bg-surface-raised px-3 text-xs font-medium text-ink transition-colors hover:bg-surface-muted"><FileSpreadsheet className="h-4 w-4" /> {t('assets.importExcel')}</Link></PermissionGate><PermissionGate permission={PERMISSIONS.CATEGORY_CREATE}><Button variant="primary" size="sm" onClick={() => setModal({ mode: 'create', parent: null })}><Plus className="h-4 w-4" /> {t('assetTypes.new')}</Button></PermissionGate></div>}
+      />
+
+      <CommandToolbar
+        label={t('assetTypes.commandToolbar')}
+        actions={[
+          { id: 'search', label: t('assetTypes.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), variant: 'primary' },
+          { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data?resource=categories', permission: PERMISSIONS.CATEGORY_CREATE, separated: true },
+          { id: 'add', label: t('assetTypes.new'), icon: Plus, onClick: () => setModal({ mode: 'create', parent: null }), permission: PERMISSIONS.CATEGORY_CREATE, variant: 'primary' },
+          { id: 'reset', label: t('assetTypes.resetSearch'), icon: Undo2, onClick: () => setSearch(''), disabled: !search },
+        ]}
       />
 
       <Card className="p-0">
@@ -116,6 +152,7 @@ export default function AssetTypesPage() {
           <div className="relative max-w-sm">
             <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
             <input
+              ref={searchInputRef}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('assetTypes.search')}
@@ -159,7 +196,8 @@ export default function AssetTypesPage() {
                       <button
                         type="button"
                         title={t('assetTypes.addChild')}
-                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
+                        aria-label={t('assetTypes.addChild')}
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                         onClick={() => setModal({ mode: 'create', parent: node })}
                       >
                         <Plus className="h-4 w-4" />
@@ -169,7 +207,8 @@ export default function AssetTypesPage() {
                       <button
                         type="button"
                         title={t('assetTypes.rename')}
-                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand"
+                        aria-label={t('assetTypes.rename')}
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                         onClick={() => setModal({ mode: 'edit', node })}
                       >
                         <Pencil className="h-4 w-4" />
@@ -179,11 +218,12 @@ export default function AssetTypesPage() {
                       <button
                         type="button"
                         title={t('assetTypes.deactivate')}
+                        aria-label={t('assetTypes.deactivate')}
                         disabled={deactivatingId === node.id}
-                        className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-md p-1.5 text-ink-faint hover:bg-danger/10 hover:text-danger disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                         onClick={() => deactivate(node)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Power className="h-4 w-4" />
                       </button>
                     </PermissionGate>
                   </div>
@@ -199,6 +239,7 @@ export default function AssetTypesPage() {
           mode={modal.mode}
           parent={modal.mode === 'create' ? modal.parent : null}
           node={modal.mode === 'edit' ? modal.node : null}
+          parentOptions={parentOptions}
           onClose={() => setModal({ mode: 'closed' })}
           onSaved={(verb) => {
             toast.success(verb === 'edit' ? t('assetTypes.updated') : t('assetTypes.created'), t('assetTypes.saved'));
@@ -212,20 +253,26 @@ export default function AssetTypesPage() {
 }
 
 function AssetTypeModal({
-  mode, parent, node, onClose, onSaved,
+  mode, parent, node, parentOptions, onClose, onSaved,
 }: {
   mode: 'create' | 'edit';
   parent: AssetTypeNode | null;
   node: AssetTypeNode | null;
+  parentOptions: AssetTypeNode[];
   onClose: () => void;
   onSaved: (verb: 'create' | 'edit') => void;
 }) {
   const { t } = useI18n();
   const [name, setName] = useState(mode === 'edit' ? node?.name ?? '' : '');
+  const [parentId, setParentId] = useState(mode === 'edit' ? node?.parent_id ?? '' : '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { setName(mode === 'edit' ? node?.name ?? '' : ''); setError(null); }, [mode, node]);
+  useEffect(() => {
+    setName(mode === 'edit' ? node?.name ?? '' : '');
+    setParentId(mode === 'edit' ? node?.parent_id ?? '' : '');
+    setError(null);
+  }, [mode, node]);
 
   const title = mode === 'edit'
     ? t('assetTypes.renameTitle').replace('{name}', node?.name ?? t('assetTypes.title'))
@@ -237,7 +284,7 @@ function AssetTypeModal({
     if (name.trim().length < 2) { setError(t('assetTypes.nameTooShort')); return; }
     setSaving(true);
     try {
-      if (mode === 'edit' && node) await updateAssetType(node.id, { name: name.trim() });
+      if (mode === 'edit' && node) await updateAssetType(node.id, { name: name.trim(), parent_id: parentId || null });
       else await createAssetType({ name: name.trim(), parent_id: parent?.id ?? null });
       onSaved(mode);
     } catch (err) {
@@ -253,6 +300,16 @@ function AssetTypeModal({
         <Field label={t('assetTypes.name')} hint={t('assetTypes.nameHint')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus required minLength={2} />
         </Field>
+        {mode === 'edit' && (
+          <Field label={t('assetTypes.parent')} hint={t('assetTypes.parentHint')}>
+            <select value={parentId} onChange={(e) => setParentId(e.target.value)} className="ax-input">
+              <option value="">{t('assetTypes.rootParent')}</option>
+              {parentOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.full_path}</option>
+              ))}
+            </select>
+          </Field>
+        )}
         {error && <p className="text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetTypes.cancel')}</Button>

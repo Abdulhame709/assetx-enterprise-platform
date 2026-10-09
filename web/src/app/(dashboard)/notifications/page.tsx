@@ -5,7 +5,7 @@ import { useI18n, formatDateTime } from '@/lib/i18n';
 import { http } from '@/lib/api/client';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/states';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 
 type NotificationItem = {
   id: string;
@@ -61,13 +61,8 @@ export default function NotificationsPage() {
       />
       <Card>
         <CardBody>
-          {status === 'loading' && <p className="py-8 text-center text-sm text-ink-muted">{t('common.loading')}</p>}
-          {status === 'error' && (
-            <div className="py-8 text-center">
-              <p className="text-sm text-danger">{error ?? t('common.noData')}</p>
-              <button className="mt-3 rounded-lg border border-line px-3 py-2 text-sm" onClick={reload}>{t('common.refresh')}</button>
-            </div>
-          )}
+          {status === 'loading' && <LoadingState rows={4} />}
+          {status === 'error' && <ErrorState message={error ?? t('common.genericError')} onRetry={reload} />}
           {status === 'empty' && <EmptyState title={t('nav.notifications')} description={t('common.noData')} />}
           {status === 'success' && data && (
             <div className="space-y-2">

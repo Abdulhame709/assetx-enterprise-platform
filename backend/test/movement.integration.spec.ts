@@ -3,6 +3,8 @@
  * Reference: FRS FR-MOV-* · BR-MOV-001..005 · ADR-007
  */
 import { createHarness, Harness } from './support/db.harness';
+import { StatusService } from '../src/application/status.service';
+import { StatusRepository } from '../src/infrastructure/repositories/status.repository';
 
 describe('Movement — integration (real PostgreSQL + RLS)', () => {
   let h: Harness;
@@ -34,6 +36,32 @@ describe('Movement — integration (real PostgreSQL + RLS)', () => {
     expect(asset!.location_id).toBe(h.refA.location);
   });
 
+  it('missing inventory discrepancy creates a pending review movement without deactivating the asset', async () => {
+    const assetId = await freshAsset('Missing');
+    const mv = await h.movements.create(h.tenantA, {
+      tenant_id: h.tenantA,
+      asset_id: assetId,
+      movement_type: 'missing',
+      reason: 'Inventory count marked the asset missing',
+      quantity: 0,
+      performed_by: userA,
+    });
+    expect(mv.status).toBe('pending');
+    expect(mv.movement_type).toBe('missing');
+    await expect(h.movements.create(h.tenantA, {
+      tenant_id: h.tenantA,
+      asset_id: assetId,
+      movement_type: 'missing',
+      performed_by: userA,
+    })).rejects.toThrow('DUPLICATE_PENDING');
+
+    const approved = await h.movements.approve(mv.id, h.tenantA, userA);
+    expect(approved.status).toBe('approved');
+    const asset = await h.assets.getById(assetId, h.tenantA);
+    expect(asset).not.toBeNull();
+    expect(asset!.is_active).toBe(true);
+  });
+
   it('approving a transfer updates the asset location (BR-MOV-002)', async () => {
     const assetId = await freshAsset();
     const mv = await h.movements.create(h.tenantA, { tenant_id: h.tenantA, asset_id: assetId, movement_type: 'transfer', to_location_id: loc2, performed_by: userA });
@@ -43,6 +71,22 @@ describe('Movement — integration (real PostgreSQL + RLS)', () => {
     expect(approved.approved_at).not.toBeNull();
     const asset = await h.assets.getById(assetId, h.tenantA);
     expect(asset!.location_id).toBe(loc2);
+  });
+
+  it('approving a transfer applies recipient employee and target status to the asset', async () => {
+    const statuses = new StatusService(new StatusRepository(h.db), h.db, h.audit);
+    const targetStatus = await statuses.create({ tenant_id: h.tenantA, name: 'Target State', color: '#16a34a' });
+    const assetId = await freshAsset('FieldTransfer');
+    const mv = await h.movements.create(h.tenantA, {
+      tenant_id: h.tenantA, asset_id: assetId, movement_type: 'transfer',
+      to_location_id: loc2, to_employee_id: empId, to_status_id: targetStatus.id, performed_by: userA,
+    });
+    expect(mv.status).toBe('pending');
+    await h.movements.approve(mv.id, h.tenantA, userA);
+    const asset = await h.assets.getById(assetId, h.tenantA);
+    expect(asset!.location_id).toBe(loc2);
+    expect(asset!.employee_id).toBe(empId);
+    expect(asset!.status_id).toBe(targetStatus.id);
   });
 
   it('rejecting a movement does not change the asset', async () => {

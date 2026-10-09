@@ -123,6 +123,7 @@ export class AssetService {
     await this.db.setTenant(tenantId);
     const existing = await this.assets.findById(id, tenantId);
     if (!existing) throw new Error('ASSET_NOT_FOUND');
+    if (input.name !== undefined && input.name.trim().length < 2) throw new Error('ASSET_NAME_INVALID');
     if (this.hasProtectedChanges(input) && await this.hasReferences(id, tenantId)) {
       throw new Error('ASSET_HAS_REFERENCES');
     }
@@ -275,6 +276,7 @@ export class AssetService {
       full_asset_code: a.full_asset_code,
       base_asset_code: a.base_asset_code,
       quantity: a.quantity,
+      category_id: a.category_id,
       status_id: a.status_id,
       location_id: a.location_id,
       employee_id: a.employee_id,

@@ -32,6 +32,7 @@ export class MovementController {
     assertOptionalUuid(dto.to_employee_id);
     assertOptionalUuid(dto.from_location_id);
     assertOptionalUuid(dto.from_employee_id);
+    assertOptionalUuid(dto.to_status_id);
     return this.movements.create(user.tenant_id, {
       tenant_id: user.tenant_id,
       asset_id: assetId,
@@ -40,6 +41,7 @@ export class MovementController {
       to_employee_id: dto.to_employee_id,
       from_location_id: dto.from_location_id,
       from_employee_id: dto.from_employee_id,
+      to_status_id: dto.to_status_id,
       reason: dto.reason,
       reference_number: dto.reference_number,
       quantity: dto.quantity,

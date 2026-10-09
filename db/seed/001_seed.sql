@@ -64,7 +64,7 @@ INSERT INTO asset_categories (tenant_id, name, full_path, level_number) VALUES
   (current_tenant_id(), 'IT Equipment','IT Equipment', 0),
   (current_tenant_id(), 'Vehicles',   'Vehicles',   0),
   (current_tenant_id(), 'Office Equipment', 'Office Equipment', 0)
-ON CONFLICT (tenant_id, name) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------------
 -- 6. Default location root (tenant-scoped)
@@ -72,8 +72,15 @@ ON CONFLICT (tenant_id, name) DO NOTHING;
 -- ---------------------------------------------------------------------------
 INSERT INTO locations (tenant_id, name, location_type, path, full_path, level_number)
 SELECT id, 'Headquarters', 'building', 'hq', 'Headquarters', 0
-FROM tenants WHERE id = current_tenant_id()
-ON CONFLICT DO NOTHING;
+FROM tenants
+WHERE id = current_tenant_id()
+  AND NOT EXISTS (
+    SELECT 1
+    FROM locations existing
+    WHERE existing.tenant_id = current_tenant_id()
+      AND existing.parent_id IS NULL
+      AND lower(existing.name) = lower('Headquarters')
+  );
 
 -- ---------------------------------------------------------------------------
 -- 7. Default settings (tenant-scoped)

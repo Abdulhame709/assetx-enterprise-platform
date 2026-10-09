@@ -16,7 +16,7 @@ import { RequirePermission } from '../../common/decorators/require-permission.de
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
 import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
 import {
-  CreateCycleDto, RecordResultDto, UpdateRecordDto, VerifyRecordDto,
+  CreateCycleDto, RecordResultDto, UpdateRecordDto, VerifyRecordDto, InventorySyncDto,
 } from '../dto/inventory.dto';
 
 @Controller('inventory')
@@ -97,6 +97,44 @@ export class InventoryController {
   locationSuggestions(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     assertUuid(id);
     return this.results.getLocationSuggestions(id, user.tenant_id);
+  }
+
+  // ---- Offline field synchronization ----
+  @Post('cycles/:id/sync')
+  @RequirePermission('inventory.execute')
+  async sync(@Param('id') id: string, @Body() dto: InventorySyncDto, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    const mutations = Array.isArray(dto?.mutations) ? dto.mutations.slice(0, 100) : [];
+    const results = await Promise.all(mutations.map(async (mutation) => {
+      try {
+        assertUuid(mutation.record_id);
+        assertUuid(mutation.asset_id);
+        const updated = await this.records.sync(
+          id,
+          mutation.record_id,
+          user.tenant_id,
+          mutation.asset_id,
+          mutation.base_updated_at,
+          mutation.payload,
+          user.sub,
+        );
+        return {
+          mutation_id: mutation.mutation_id,
+          record_id: mutation.record_id,
+          status: 'synced' as const,
+          updated_at: updated.updated_at,
+        };
+      } catch (error) {
+        const code = error instanceof Error ? error.message : 'SYNC_FAILED';
+        return {
+          mutation_id: mutation.mutation_id,
+          record_id: mutation.record_id,
+          status: code === 'SYNC_CONFLICT' ? 'conflict' as const : 'error' as const,
+          code,
+        };
+      }
+    }));
+    return { cycle_id: id, results };
   }
 
   // ---- Records ----

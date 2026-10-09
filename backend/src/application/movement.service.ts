@@ -58,6 +58,7 @@ export class MovementService {
       from_employee_id: input.from_employee_id ?? asset.employee_id,
       to_employee_id: input.to_employee_id ?? null,
       from_status_id: asset.status_id ?? null,
+      to_status_id: input.to_status_id ?? null,
       reason: input.reason,
       reference_number: input.reference_number,
       quantity: input.quantity,
@@ -156,10 +157,15 @@ export class MovementService {
     if (!asset) throw new Error('ASSET_NOT_FOUND');
 
     switch (mv.movement_type) {
-      case 'transfer':
-        // BR-MOV-002: location change updates current asset location
-        await this.assets.update(mv.asset_id, { location_id: mv.to_location_id ?? undefined });
+      case 'transfer': {
+        // BR-MOV-002: approval applies location, recipient employee and status.
+        await this.assets.update(mv.asset_id, {
+          ...(mv.to_location_id ? { location_id: mv.to_location_id } : {}),
+          ...(mv.to_employee_id ? { employee_id: mv.to_employee_id } : {}),
+        });
+        if (mv.to_status_id) await this.assets.updateStatus(mv.asset_id, tenantId, mv.to_status_id);
         break;
+      }
       case 'assignment':
         await this.assets.update(mv.asset_id, { employee_id: mv.to_employee_id ?? undefined });
         break;
@@ -175,6 +181,11 @@ export class MovementService {
         break;
       case 'retirement':
         await this.db.query(`UPDATE assets SET is_active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2`, [mv.asset_id, tenantId]);
+        break;
+      case 'missing':
+        // A missing-inventory request is a review/audit action. Approval does not
+        // silently dispose or deactivate the asset; a separate lifecycle decision
+        // remains available to an authorized operator.
         break;
     }
   }

@@ -30,6 +30,18 @@ export class PGliteDatabase implements DatabasePort {
     await this.client.exec(sql);
   }
 
+  async queryAsTenant<T = Record<string, unknown>>(
+    tenantId: string,
+    sql: string,
+    params?: unknown[],
+  ): Promise<QueryResult<T>> {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId)) {
+      throw new Error('INVALID_UUID');
+    }
+    await this.client.query(`SELECT set_config('app.tenant_id', $1, false);`, [tenantId]);
+    return this.query<T>(sql, params);
+  }
+
   async setTenant(tenantId: string | null): Promise<void> {
     if (tenantId !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(tenantId)) {
       throw new Error('INVALID_UUID');

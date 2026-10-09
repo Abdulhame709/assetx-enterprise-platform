@@ -20,6 +20,7 @@ import {
 } from './types';
 import {
   mapAnalytics,
+  mapDashboardTotalValue,
   mapAssetDetail,
   mapAssetMovements,
   mapAuditEvents,
@@ -65,8 +66,16 @@ function mockCategories(): CategoryOption[] {
 
 export async function getAnalyticsSummary(token?: string | null): Promise<AssetAnalyticsSummary> {
   if (AUTH_MODE !== 'real') return mockAnalytics();
-  const raw = await http.get<unknown>('/assets/analytics/summary', token);
-  return mapAnalytics(raw);
+
+  const [raw, dashboardRaw] = await Promise.all([
+    http.get<unknown>('/assets/analytics/summary', token),
+    // The richer read model is optional for graceful compatibility with older
+    // backend previews; the existing analytics contract remains authoritative.
+    http.get<unknown>('/dashboard/assets', token).catch(() => undefined),
+  ]);
+  const summary = mapAnalytics(raw);
+  const totalValue = mapDashboardTotalValue(dashboardRaw);
+  return totalValue === undefined ? summary : { ...summary, total_value: totalValue };
 }
 
 export async function searchAssets(
@@ -288,6 +297,7 @@ function rnd(n: number) { return Math.floor(Math.random() * n); }
 
 export function mockAnalytics(): AssetAnalyticsSummary {
   return {
+    total_value: 18500000,
     total_assets: 12480,
     active_assets: 10420,
     assigned_assets: 7320,

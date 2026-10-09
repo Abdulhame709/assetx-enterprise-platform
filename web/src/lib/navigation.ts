@@ -6,6 +6,7 @@
 import {
   LayoutDashboard,
   Boxes,
+  Box,
   ClipboardList,
   Wrench,
   ArrowLeftRight,
@@ -63,6 +64,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: 'nav.locations', href: '/locations', icon: MapPin, permission: PERMISSIONS.LOCATION_VIEW },
       { label: 'nav.assetTypes', href: '/asset-types', icon: Tags, permission: PERMISSIONS.CATEGORY_VIEW },
+      { label: 'nav.models', href: '/models', icon: Box, permission: PERMISSIONS.MODEL_VIEW },
       { label: 'nav.statuses', href: '/statuses', icon: CircleDot, permission: PERMISSIONS.STATUS_VIEW },
       { label: 'nav.employees', href: '/employees', icon: Users, permission: PERMISSIONS.EMPLOYEE_VIEW },
     ],
@@ -80,7 +82,7 @@ export const NAV_SECTIONS: NavSection[] = [
     title: 'nav.administration',
     items: [
       { label: 'nav.administrationPage', href: '/administration', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
-      { label: 'nav.settings', href: '/settings', icon: Settings, permission: PERMISSIONS.ADMIN_ROLE },
+      { label: 'nav.settings', href: '/settings', icon: Settings, permission: PERMISSIONS.SETTINGS_VIEW },
     ],
   },
 ];

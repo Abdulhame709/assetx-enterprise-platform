@@ -4,6 +4,7 @@ import { SessionProvider } from '@/lib/auth/session-context';
 import { I18nProvider } from '@/lib/i18n';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
+import { ThemeProvider } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: 'AssetX — Enterprise Asset Management',
@@ -14,13 +15,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
       <body className="min-h-screen">
-        <SessionProvider>
-          <I18nProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <I18nProvider>
             <ToastProvider>
               <ConfirmProvider>{children}</ConfirmProvider>
             </ToastProvider>
-          </I18nProvider>
-        </SessionProvider>
+            </I18nProvider>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -15,13 +15,15 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.verify', 'inventory.close',
     'dashboard.view',
     'export.assets', 'export.movements', 'export.inventory', 'export.audit', 'export.dashboard',
-    'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
+    'report.view', 'report.create', 'report.delete', 'report.export', 'ai.use', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
     'notification.view', 'notification.manage',
     'maintenance.view', 'maintenance.create', 'maintenance.manage',
     'search.global', 'search.save',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
+    'location_type.view', 'location_type.create', 'location_type.update', 'location_type.delete',
+    'settings.view', 'settings.update',
     'category.view', 'category.create', 'category.update', 'category.delete',
     'model.view', 'model.create', 'model.update', 'model.delete',
     'employee.view', 'employee.create', 'employee.update', 'employee.delete',
@@ -32,10 +34,13 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'movement.view', 'movement.create', 'movement.approve', 'movement.reject',
     'inventory.view', 'inventory.create', 'inventory.execute', 'inventory.close', 'dashboard.view',
     'export.assets', 'export.movements', 'export.inventory', 'export.dashboard',
+    'report.view', 'report.create', 'report.delete', 'ai.use',
     'notification.view', 'search.global', 'search.save',
     'maintenance.view', 'maintenance.create', 'maintenance.manage',
     // Master Data
     'location.view', 'location.create', 'location.update', 'location.delete',
+    'location_type.view', 'location_type.create', 'location_type.update', 'location_type.delete',
+    'settings.view', 'settings.update',
     'category.view', 'category.create', 'category.update', 'category.delete',
     'model.view', 'model.create', 'model.update', 'model.delete',
     'employee.view', 'employee.create', 'employee.update', 'employee.delete',
@@ -45,20 +50,21 @@ export const PERMISSION_CATALOG: Record<string, string[]> = {
     'asset.view', 'movement.view', 'inventory.view', 'inventory.verify',
     'dashboard.view',
     'export.assets', 'export.movements', 'export.inventory', 'export.audit', 'export.dashboard',
-    'report.export', 'audit.export', // deprecated aliases (kept for backward-compat)
+    'report.view', 'report.export', 'ai.use', 'audit.export', // deprecated aliases (kept for backward-compat)
     'audit.view', 'compliance.view',
     'notification.view', 'search.global', 'search.save',
     // Master Data (read only)
-    'location.view', 'category.view', 'model.view', 'employee.view', 'status.view',
+    'location.view', 'location_type.view', 'category.view', 'model.view', 'employee.view', 'status.view',
   ],
   'Department Manager': [
     'asset.view', 'movement.view', 'inventory.view', 'dashboard.view',
+    'report.view', 'ai.use',
     'notification.view', 'search.global', 'search.save',
-    'location.view', 'category.view', 'model.view', 'employee.view', 'status.view',
+    'location.view', 'location_type.view', 'category.view', 'model.view', 'employee.view', 'status.view',
   ],
-  'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view', 'status.view', 'notification.view'],
-  Maintenance: ['asset.view', 'movement.view', 'location.view', 'status.view', 'notification.view', 'maintenance.view', 'maintenance.create', 'maintenance.manage'],
-  Employee: ['asset.view', 'location.view', 'status.view', 'notification.view'],
+  'Inventory Team': ['inventory.view', 'inventory.execute', 'asset.view', 'location.view', 'location_type.view', 'status.view', 'notification.view', 'report.view', 'ai.use'],
+  Maintenance: ['asset.view', 'movement.view', 'location.view', 'location_type.view', 'status.view', 'notification.view', 'maintenance.view', 'maintenance.create', 'maintenance.manage'],
+  Employee: ['asset.view', 'location.view', 'location_type.view', 'status.view', 'notification.view'],
 };
 
 /** Idempotently seed permission rows + role_permissions for a tenant. */

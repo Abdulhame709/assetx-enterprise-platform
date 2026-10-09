@@ -40,6 +40,21 @@ describe('Master-data Excel import — integration', () => {
     expect(duplicate.errors.some((issue) => issue.code === 'IMPORT_DUPLICATE')).toBe(true);
   });
 
+  it('allows the same imported category name under different parents but blocks same-parent duplicates', async () => {
+    const rows = [
+      ['استيراد أب أول', ''],
+      ['استيراد أب ثان', ''],
+      ['اسم مشترك مستورد', 'استيراد أب أول'],
+      ['اسم مشترك مستورد', 'استيراد أب ثان'],
+    ];
+    const inspected = await preview('categories', ['اسم النوع', 'النوع الأب'], rows);
+    expect(inspected.valid_rows).toBe(4);
+    expect(inspected.invalid_rows).toBe(0);
+    expect((await execute('categories', ['اسم النوع', 'النوع الأب'], rows)).imported).toBe(4);
+    const duplicate = await preview('categories', ['اسم النوع', 'النوع الأب'], [['اسم مشترك مستورد', 'استيراد أب أول']]);
+    expect(duplicate.errors.some((issue) => issue.code === 'IMPORT_DUPLICATE')).toBe(true);
+  });
+
   it('imports parent-first locations with localized types and blocks an invalid location type', async () => {
     const rows = [['مبنى اختبار Excel', '', 'مبنى'], ['غرفة اختبار Excel', 'مبنى اختبار Excel', 'غرفة']];
     const inspected = await preview('locations', ['اسم الموقع', 'الموقع الأب', 'نوع الموقع'], rows);

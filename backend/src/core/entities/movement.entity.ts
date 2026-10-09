@@ -10,7 +10,8 @@ export type MovementType =
   | 'return'              // إرجاع من الموظف
   | 'maintenance_return'  // عودة الأصل من الصيانة
   | 'disposal'            // استبعاد الأصل
-  | 'retirement';         // إحالة للتقاعد
+  | 'retirement'          // إحالة للتقاعد
+  | 'missing';             // بلاغ أصل مفقود من الجرد، لا يعطّل الأصل تلقائياً
 
 export type MovementStatus = 'pending' | 'approved' | 'rejected';
 

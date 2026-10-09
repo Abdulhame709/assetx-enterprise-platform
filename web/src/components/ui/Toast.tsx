@@ -8,6 +8,7 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, ReactNode } from 'react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 export type ToastTone = 'success' | 'warning' | 'error' | 'info';
 export interface Toast {
@@ -44,6 +45,7 @@ const TONE_BORDER: Record<ToastTone, string> = {
 let nextId = 1;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const { t: translate } = useI18n();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
@@ -98,7 +100,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <p className="text-sm font-medium text-ink">{t.title}</p>
               {t.description && <p className="text-xs text-ink-muted">{t.description}</p>}
             </div>
-            <button onClick={() => dismiss(t.id)} aria-label="Dismiss notification" className="shrink-0 rounded p-0.5 text-ink-faint hover:text-ink">
+            <button onClick={() => dismiss(t.id)} aria-label={translate('common.dismiss')} className="shrink-0 rounded p-0.5 text-ink-faint hover:text-ink">
               <X className="h-4 w-4" />
             </button>
           </div>
