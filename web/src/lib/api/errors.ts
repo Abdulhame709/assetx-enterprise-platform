@@ -48,7 +48,8 @@ const MESSAGES: Record<string, string> = {
   INVALID_TRANSITION: 'This action is not allowed in the asset current state.',
   // Inventory
   INVALID_YEAR: 'Year must be between 2000 and 2100.',
-  CYCLE_YEAR_EXISTS: 'An inventory cycle already exists for this year.',
+  CYCLE_YEAR_EXISTS: 'An inventory cycle already exists for this year. Open it, or delete it first if it was created by mistake.',
+  CYCLE_CLOSED_CANNOT_DELETE: 'A closed cycle is a permanent record and cannot be deleted.',
   CYCLE_NOT_FOUND: 'Inventory cycle not found.',
   CYCLE_CLOSED: 'This cycle is closed — records are locked.',
   INVALID_CYCLE_TRANSITION: 'This action is not allowed in the current cycle state.',

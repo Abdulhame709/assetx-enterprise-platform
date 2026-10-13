@@ -55,6 +55,21 @@ export class CycleService {
     return this.cycles.list(tenantId);
   }
 
+  /** Delete a cycle that has not been closed (e.g. created with wrong data). Closed cycles are permanent records. */
+  async delete(id: string, tenantId: string, userId: string | null): Promise<{ deleted: true }> {
+    await this.db.setTenant(tenantId);
+    const cycle = await this.cycles.findById(id, tenantId);
+    if (!cycle) throw new Error('CYCLE_NOT_FOUND');
+    if (cycle.status === 'closed') throw new Error('CYCLE_CLOSED_CANNOT_DELETE');
+    if (!(await this.cycles.deleteOpen(id, tenantId))) throw new Error('CYCLE_CLOSED_CANNOT_DELETE');
+    await this.audit.log({
+      tenant_id: tenantId, userId,
+      action: AUDIT_EVENTS.INVENTORY_DELETED, entity: 'inventory', entityId: id,
+      metadata: { year: cycle.year, status: cycle.status },
+    }).catch(() => undefined);
+    return { deleted: true };
+  }
+
   /** Start (new → in_progress). */
   async start(id: string, tenantId: string): Promise<InventoryCycle> {
     await this.db.setTenant(tenantId);

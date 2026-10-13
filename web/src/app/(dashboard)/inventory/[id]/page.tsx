@@ -7,9 +7,9 @@
  * Backend guards are mirrored as UX gates only (it remains the security boundary).
  */
 import { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Play, Lock, CheckCheck, Undo2, ClipboardCheck,
+  ArrowLeft, Play, Lock, Trash2, CheckCheck, Undo2, ClipboardCheck,
   Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw, Download, CloudUpload, FileWarning,
 } from 'lucide-react';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
@@ -30,7 +30,7 @@ import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
 import { useCycleDetail, CycleDetailData, mergeStoredRecords } from '@/features/inventory/use-inventory';
 import { createMovement } from '@/features/movements/api';
-import { enrichRecords, startCycle, closeCycle, verifyRecord, getMobileSnapshot, InventoryRecordRow, CycleStatus, RecordCountInput } from '@/features/inventory/api';
+import { enrichRecords, startCycle, closeCycle, deleteCycle, verifyRecord, getMobileSnapshot, InventoryRecordRow, CycleStatus, RecordCountInput } from '@/features/inventory/api';
 import {
   createPendingMutationFromRecord,
   getStoredSnapshot,
@@ -39,6 +39,7 @@ import {
 } from '@/features/inventory/offline-store';
 import { syncPendingInventoryMutations } from '@/features/inventory/sync-inventory';
 import { CountRecordModal, RESULT_TONE } from '@/features/inventory/components/RecordFormModal';
+import { conditionLabelKey, parseConditionNotes } from '@/features/inventory/condition-breakdown';
 
 const CYCLE_TONE: Record<CycleStatus, BadgeTone> = {
   new: 'neutral',
@@ -48,6 +49,7 @@ const CYCLE_TONE: Record<CycleStatus, BadgeTone> = {
 
 export default function InventoryCyclePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const state = useCycleDetail(id);
   usePublishCrumbTitle(state.data ? `Cycle ${state.data.cycle.year}` : null);
   const { label, t, locale } = useI18n();
@@ -107,6 +109,25 @@ export default function InventoryCyclePage() {
     } catch (err) {
       toast.error(t('inventory.verificationFailed', 'Could not close'), humanError(err));
     } finally {
+      setTransitioning(false);
+    }
+  };
+
+  const onDelete = async (cycle: CycleDetailData['cycle']) => {
+    const ok = await confirm({
+      title: t('inventory.deleteConfirm'),
+      message: `${t('inventory.deleteMessage')}${cycle.status === 'in_progress' ? ` ${t('inventory.deleteRunningWarning')}` : ''}`,
+      tone: 'danger',
+      confirmLabel: t('inventory.deleteAction'),
+    });
+    if (!ok) return;
+    setTransitioning(true);
+    try {
+      await deleteCycle(id);
+      toast.success(t('inventory.deletedToast'), `${t('inventory.cycle')} ${cycle.year}`);
+      router.push('/inventory');
+    } catch (err) {
+      toast.error(t('inventory.deleteFailed'), humanError(err));
       setTransitioning(false);
     }
   };
@@ -224,6 +245,7 @@ export default function InventoryCyclePage() {
                   ...(pendingMutations.length > 0 ? [{ id: 'sync', label: t('inventory.syncPending'), icon: CloudUpload, onClick: () => void onSyncPending(), loading: syncing, disabled: syncing, permission: PERMISSIONS.INVENTORY_EXECUTE }] : []),
                   { id: 'start', label: t('inventory.start'), icon: Play, onClick: () => void onStart(), permission: PERMISSIONS.INVENTORY_EXECUTE, disabled: cycle.status !== 'new', loading: transitioning, variant: 'primary' },
                   { id: 'close', label: t('inventory.close'), icon: Lock, onClick: () => void onClose(summary), permission: PERMISSIONS.INVENTORY_CLOSE, disabled: cycle.status !== 'in_progress', loading: transitioning },
+                  { id: 'delete', label: t('inventory.deleteAction'), icon: Trash2, onClick: () => void onDelete(cycle), permission: PERMISSIONS.INVENTORY_CREATE, disabled: cycle.status === 'closed' || transitioning, variant: 'danger', separated: true },
                   { id: 'reset', label: t('inventory.resetFilter'), icon: Undo2, onClick: () => setResultFilter(null), disabled: !resultFilter },
                 ]}
               />
@@ -385,9 +407,30 @@ function RecordsTable({
     { key: 'expected', header: t('inventory.expected'), render: (r) => <span className="text-ink-muted">{`${t('common.quantity')} ${r.expected_quantity ?? '—'} · ${r._expectedLocation ?? '—'}`}</span> },
     {
       key: 'actual', header: t('inventory.counted'),
-      render: (r) => r.actual_quantity == null
-        ? <span className="text-ink-faint">—</span>
-        : <span className="text-ink">{`${t('common.quantity')} ${r.actual_quantity} · ${r._actualLocation ?? '—'}`}</span>,
+      render: (r) => {
+        if (r.actual_quantity == null) return <span className="text-ink-faint">—</span>;
+        // The condition breakdown (good / needs maintenance / damaged) travels inside the notes text.
+        const breakdown = parseConditionNotes(r.notes).counts;
+        return (
+          <div className="space-y-1">
+            <span className="text-ink">{`${t('common.quantity')} ${r.actual_quantity} · ${r._actualLocation ?? '—'}`}</span>
+            {breakdown.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {breakdown.map((c) => {
+                  const key = conditionLabelKey(c.name);
+                  return <Badge key={c.name} tone={c.name.toLowerCase() === 'damaged' ? 'danger' : c.name.toLowerCase() === 'new' ? 'success' : 'warning'}>{`${key ? t(key, c.name) : c.name}: ${c.quantity}`}</Badge>;
+                })}
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'recipient', header: t('inventory.recipient'),
+      render: (r) => r._actualEmployee
+        ? <span className="text-ink">{r._actualEmployee}</span>
+        : <span className="text-ink-faint">—</span>,
     },
     {
       key: 'result', header: t('inventory.result'), accessor: (r) => r.result,

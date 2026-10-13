@@ -222,6 +222,11 @@ export async function startCycle(id: string): Promise<InventoryCycle> {
   return cycle;
 }
 
+/** Delete a cycle that is not closed (records and sync log go with it). */
+export async function deleteCycle(id: string): Promise<void> {
+  await http.del(`/inventory/cycles/${id}`);
+}
+
 export async function closeCycle(id: string): Promise<InventoryCycle> {
   const raw = await http.patch<unknown>(`/inventory/cycles/${id}/close`, {});
   const cycle = mapCycle(raw);
@@ -393,15 +398,30 @@ export interface InventoryLookups {
   employees: Map<string, ReferenceEmployee>;
 }
 
+/** A cycle snapshots every active asset, so the name lookup must page through all of them (not just the first page). */
+async function getAllAssetRows(): Promise<Record<string, unknown>[]> {
+  const pageSize = 500;
+  const maxPages = 40;
+  const rows: Record<string, unknown>[] = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const raw = await http.get<unknown>(`/assets?limit=${pageSize}&page=${page}`);
+    const items = asArray(raw);
+    rows.push(...items);
+    const total = Number((raw as { total?: unknown } | null)?.total);
+    if (items.length < pageSize || (Number.isFinite(total) && rows.length >= total)) break;
+  }
+  return rows;
+}
+
 export async function getInventoryLookups(): Promise<InventoryLookups> {
-  const [assetsRaw, locations, statuses, employees] = await Promise.all([
-    http.get<unknown>('/assets?limit=500&page=1'),
+  const [assetRows, locations, statuses, employees] = await Promise.all([
+    getAllAssetRows(),
     getLocations(),
     getStatuses(),
     getEmployees(),
   ]);
   const assets = new Map<string, { name: string; code: string }>();
-  for (const a of asArray(assetsRaw)) {
+  for (const a of assetRows) {
     assets.set(String(a.id), { name: String(a.name ?? ''), code: String(a.full_asset_code ?? '') });
   }
   return {
