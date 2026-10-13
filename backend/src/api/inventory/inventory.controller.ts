@@ -4,7 +4,7 @@
  * RBAC: Administrator (full) · Asset Manager (create/manage) · Auditor (read+verify)
  */
 import {
-  Body, Controller, Get, Param, Patch, Post, UseGuards,
+  Body, Controller, Delete, Get, Param, Patch, Post, UseGuards,
 } from '@nestjs/common';
 import { CycleService } from '../../application/cycle.service';
 import { RecordService } from '../../application/record.service';
@@ -55,6 +55,14 @@ export class InventoryController {
   getById(@Param('id') id: string, @CurrentUser() user: RequestUser) {
     assertUuid(id);
     return this.cycles.getById(id, user.tenant_id);
+  }
+
+  /** Delete a not-yet-closed cycle (wrong data / created by mistake). */
+  @Delete('cycles/:id')
+  @RequirePermission('inventory.create')
+  remove(@Param('id') id: string, @CurrentUser() user: RequestUser) {
+    assertUuid(id);
+    return this.cycles.delete(id, user.tenant_id, user.sub);
   }
 
   @Patch('cycles/:id/start')

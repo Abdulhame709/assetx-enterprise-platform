@@ -48,6 +48,28 @@ describe('Inventory Core — integration (real PostgreSQL + RLS)', () => {
     await expect(h.cycles.start(cycle.id, h.tenantA)).rejects.toThrow('INVALID_CYCLE_TRANSITION');
   });
 
+  it('Cycle — an unfinished cycle can be deleted with its records and sync log; a closed one cannot', async () => {
+    const { cycle } = await h.cycles.create(h.tenantA, 2041, { all: true });
+    await h.cycles.start(cycle.id, h.tenantA);
+    const rows = await h.records.listByCycle(cycle.id, h.tenantA);
+    const row = rows.find((r) => r.asset_id === assetsInCycle[0])!;
+    await h.records.sync(cycle.id, row.id, h.tenantA, row.asset_id, 'delete-test-mutation', new Date(row.updated_at).toISOString(), { actual_quantity: 1 }, userId);
+
+    await expect(h.cycles.delete(cycle.id, h.tenantA, userId)).resolves.toEqual({ deleted: true });
+    expect(await h.cycles.getById(cycle.id, h.tenantA)).toBeNull();
+    await expect(h.records.listByCycle(cycle.id, h.tenantA)).rejects.toThrow('CYCLE_NOT_FOUND');
+    const leftover = await h.db.query('SELECT 1 FROM inventory_records WHERE cycle_id = $1', [cycle.id]);
+    expect(leftover.rows).toHaveLength(0);
+    await expect(h.cycles.delete(cycle.id, h.tenantA, userId)).rejects.toThrow('CYCLE_NOT_FOUND');
+    // the freed year can be used again
+    const again = await h.cycles.create(h.tenantA, 2041, { all: true });
+    expect(again.cycle.status).toBe('new');
+
+    await h.cycles.start(again.cycle.id, h.tenantA);
+    await h.cycles.close(again.cycle.id, h.tenantA);
+    await expect(h.cycles.delete(again.cycle.id, h.tenantA, userId)).rejects.toThrow('CYCLE_CLOSED_CANNOT_DELETE');
+  });
+
   it('Record — recording a result computes missing (actual 0)', async () => {
     const { cycle } = await h.cycles.create(h.tenantA, 2028, { all: true });
     await h.cycles.start(cycle.id, h.tenantA);

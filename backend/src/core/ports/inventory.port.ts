@@ -16,6 +16,8 @@ export interface CyclePort {
   list(tenantId: string): Promise<InventoryCycle[]>;
   updateStatus(id: string, tenantId: string, status: InventoryCycle['status'], endDate?: boolean): Promise<InventoryCycle | null>;
   existsYear(tenantId: string, year: number, excludeId?: string): Promise<boolean>;
+  /** Delete a cycle that is not closed (records / team / sync log cascade). Returns false if nothing was deleted. */
+  deleteOpen(id: string, tenantId: string): Promise<boolean>;
 }
 
 // ---- Records ----

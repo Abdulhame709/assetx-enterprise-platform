@@ -51,6 +51,14 @@ export class CycleRepository implements CyclePort {
     return rows[0] ?? null;
   }
 
+  async deleteOpen(id: string, tenantId: string): Promise<boolean> {
+    const { rows } = await this.db.query(
+      `DELETE FROM inventory_cycles WHERE id = $1 AND tenant_id = $2 AND status <> 'closed' RETURNING id`,
+      [id, tenantId],
+    );
+    return rows.length > 0;
+  }
+
   async existsYear(tenantId: string, year: number, excludeId?: string): Promise<boolean> {
     const { rows } = await this.db.query<{ c: string }>(
       `SELECT count(*) AS c FROM inventory_cycles

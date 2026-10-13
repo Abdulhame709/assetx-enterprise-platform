@@ -189,6 +189,9 @@ export async function createHarness(): Promise<Harness> {
   `);
   const migration012 = fs.readFileSync(path.join(migrationsDir, '012_location_types_catalog.sql'), 'utf8');
   await db.exec(migration012);
+  for (const file of ['013_sync_mutations.sql', '015_sync_mutations_cascade.sql']) {
+    await db.exec(fs.readFileSync(path.join(migrationsDir, file), 'utf8'));
+  }
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,
@@ -196,6 +199,7 @@ export async function createHarness(): Promise<Harness> {
       locations, assets, asset_movements, maintenance_orders, inventory_cycles,
       inventory_team, inventory_records, audit_events, notification_templates,
       notifications, report_templates, location_types TO authenticated;
+    GRANT SELECT, INSERT ON sync_mutations TO authenticated;
     GRANT EXECUTE ON FUNCTION authenticate_user(text) TO authenticated;
     GRANT SELECT, INSERT, UPDATE, DELETE ON auth_sessions TO authenticated;
     GRANT USAGE ON SCHEMA public TO authenticated;

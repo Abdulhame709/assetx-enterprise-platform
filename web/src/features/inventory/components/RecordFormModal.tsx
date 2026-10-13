@@ -15,6 +15,9 @@ import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
 import { recordCount, updateRecord, InventoryRecordRow, InventoryLookups, InventoryResult, RecordCountInput } from '../api';
+import {
+  CONDITION_NAMES, composeNotes, conditionLabelKey, dominantCondition, parseConditionNotes, totalCondition, ConditionCount,
+} from '../condition-breakdown';
 
 export const RESULT_TONE: Record<InventoryResult, BadgeTone> = {
   matched: 'success',
@@ -43,6 +46,9 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
   const [statusId, setStatusId] = useState<string | null>(null);
   const [employeeId, setEmployeeId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
+  // Breakdown of the counted quantity by condition (kept inside the notes text, see condition-breakdown.ts).
+  const [condition, setCondition] = useState<Record<string, string>>({});
+  const [extraCounts, setExtraCounts] = useState<ConditionCount[]>([]); // custom status names written by other clients: kept untouched
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -53,8 +59,17 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
     setLocationId(record.actual_location_id ?? record.expected_location_id);
     setStatusId(record.actual_status_id ?? record.expected_status_id);
     setEmployeeId(record.actual_employee_id ?? record.expected_employee_id);
-    setNotes(record.notes ?? '');
+    const parsed = parseConditionNotes(record.notes);
+    const known = new Set<string>(CONDITION_NAMES.map((name) => name.toLowerCase()));
+    setNotes(parsed.restNotes);
+    setCondition(Object.fromEntries(CONDITION_NAMES.map((name) => [name, String(parsed.counts.find((count) => count.name.toLowerCase() === name.toLowerCase())?.quantity ?? '')])));
+    setExtraCounts(parsed.counts.filter((count) => !known.has(count.name.toLowerCase())));
   }, [open, record, isRecount]);
+
+  const conditionCounts: ConditionCount[] = useMemo(() => [
+    ...CONDITION_NAMES.map((name) => ({ name: name as string, quantity: Number(condition[name] || 0) })).filter((count) => count.quantity > 0),
+    ...extraCounts,
+  ], [condition, extraCounts]);
 
   /** Live preview mirrors v_inventory_result exactly (informational only). */
   const preview: InventoryResult | null = useMemo(() => {
@@ -74,14 +89,25 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
     setError(null);
     const q = Number(qty);
     if (qty === '' || Number.isNaN(q) || q < 0) { setError(t('inventoryRecord.quantityInvalid')); return; }
+    const invalidPart = CONDITION_NAMES.some((name) => { const n = Number(condition[name] || 0); return !Number.isInteger(n) || n < 0; });
+    if (invalidPart) { setError(t('inventoryRecord.quantityInvalid')); return; }
+    const breakdownTotal = totalCondition(conditionCounts);
+    if (breakdownTotal > 0 && breakdownTotal !== q) {
+      setError(t('inventoryRecord.breakdownMismatch').replace('{sum}', String(breakdownTotal)).replace('{qty}', String(q)));
+      return;
+    }
+    // With a breakdown, the record's main status follows the largest part (same rule as the mobile app).
+    const dominant = breakdownTotal > 0 ? dominantCondition(conditionCounts) : null;
+    const dominantStatus = dominant ? [...lookups.statuses.values()].find((s) => s.name.trim().toLowerCase() === dominant.toLowerCase()) : undefined;
     setSaving(true);
     try {
       const payload: RecordCountInput = {
         actual_quantity: q,
         actual_location_id: locationId,
-        actual_status_id: statusId,
+        actual_status_id: dominantStatus?.id ?? statusId,
         actual_employee_id: employeeId,
-        notes: notes.trim() || undefined,
+        // Sent as an explicit empty string when cleared so the old text is really removed (undefined would keep it).
+        notes: composeNotes(notes, breakdownTotal > 0 ? conditionCounts : []) ?? '',
       };
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
       if (offline && onOfflineSaved) {
@@ -130,6 +156,16 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
             <SearchableSelect options={employeeOptions} value={employeeId} onChange={setEmployeeId} placeholder={t('inventoryRecord.holder')} />
           </Field>
         </div>
+        <Field label={t('inventoryRecord.breakdown')} hint={t('inventoryRecord.breakdownHint')}>
+          <div className="grid grid-cols-3 gap-2">
+            {CONDITION_NAMES.map((name) => (
+              <label key={name} className="space-y-1 text-xs text-ink-muted">
+                <span>{t(conditionLabelKey(name) ?? name, name)}</span>
+                <Input type="number" min={0} step={1} value={condition[name] ?? ''} onChange={(e) => setCondition((prev) => ({ ...prev, [name]: e.target.value }))} />
+              </label>
+            ))}
+          </div>
+        </Field>
         <Field label={t('inventoryRecord.notes')}>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('inventoryRecord.notesPlaceholder')} />
         </Field>
