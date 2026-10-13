@@ -298,10 +298,10 @@ export async function createHarness(): Promise<Harness> {
     audit,
     bus,
     [
-      new AssetsExportProvider(assetRepo),
-      new MovementsExportProvider(new MovementRepository(db)),
+      new AssetsExportProvider(assetRepo, db),
+      new MovementsExportProvider(new MovementRepository(db), db),
       new InventoryExportProvider(inventoryResult),
-      new AuditExportProvider(new AuditRepository(db)),
+      new AuditExportProvider(new AuditRepository(db), db),
       new DashboardExportProvider(reporting),
     ],
   );

@@ -24,7 +24,7 @@ export class ReportingRepository implements ReportingPort {
          count(*) AS total_assets,
          count(*) FILTER (WHERE is_active = true) AS active_assets,
          count(*) FILTER (WHERE is_active = false) AS inactive_assets,
-         COALESCE(SUM(purchase_price * quantity), 0) AS total_value
+         COALESCE(SUM(purchase_price * quantity) FILTER (WHERE is_active = true), 0) AS total_value
        FROM assets WHERE tenant_id = $1`,
       [tenantId],
     );
@@ -113,8 +113,8 @@ export class ReportingRepository implements ReportingPort {
          count(*) FILTER (WHERE result = 'deficit') AS deficit,
          count(*) FILTER (WHERE result = 'transferred') AS transferred,
          count(*) FILTER (WHERE result = 'not_inventoried') AS not_inventoried
-       FROM v_inventory_result WHERE cycle_id IN (
-         SELECT id FROM inventory_cycles WHERE tenant_id = $1
+       FROM v_inventory_result WHERE cycle_id = (
+         SELECT id FROM inventory_cycles WHERE tenant_id = $1 ORDER BY year DESC, created_at DESC LIMIT 1
        )`,
       [tenantId],
     );

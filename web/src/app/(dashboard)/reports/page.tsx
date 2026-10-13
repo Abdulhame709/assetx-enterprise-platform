@@ -46,25 +46,33 @@ const REPORT_COLUMN_CATALOG: Record<ReportResource, ReportColumnOption[]> = {
   assets: [
     { key: 'name', label: '', labelKey: 'module.reportsColumnName', order: 1 },
     { key: 'full_asset_code', label: '', labelKey: 'module.reportsColumnCode', order: 2 },
-    { key: 'quantity', label: '', labelKey: 'module.reportsColumnQuantity', order: 3 },
-    { key: 'purchase_price', label: '', labelKey: 'module.reportsColumnPurchasePrice', order: 4 },
-    { key: 'status_id', label: '', labelKey: 'module.reportsColumnStatus', order: 5 },
-    { key: 'location_id', label: '', labelKey: 'module.reportsColumnLocation', order: 6 },
-    { key: 'employee_id', label: '', labelKey: 'module.reportsColumnEmployee', order: 7 },
-    { key: 'serial_number', label: '', labelKey: 'module.reportsColumnSerial', order: 8 },
-    { key: 'barcode', label: '', labelKey: 'module.reportsColumnBarcode', order: 9 },
-    { key: 'purchase_date', label: '', labelKey: 'module.reportsColumnPurchaseDate', order: 10 },
-    { key: 'is_active', label: '', labelKey: 'module.reportsColumnActive', order: 11 },
+    { key: 'category_name', label: '', labelKey: 'module.reportsColumnCategory', order: 3 },
+    { key: 'quantity', label: '', labelKey: 'module.reportsColumnQuantity', order: 4 },
+    { key: 'purchase_price', label: '', labelKey: 'module.reportsColumnPurchasePrice', order: 5 },
+    { key: 'status_name', label: '', labelKey: 'module.reportsColumnStatus', order: 6 },
+    { key: 'location_name', label: '', labelKey: 'module.reportsColumnLocation', order: 7 },
+    { key: 'employee_name', label: '', labelKey: 'module.reportsColumnEmployee', order: 8 },
+    { key: 'serial_number', label: '', labelKey: 'module.reportsColumnSerial', order: 9 },
+    { key: 'barcode', label: '', labelKey: 'module.reportsColumnBarcode', order: 10 },
+    { key: 'reference_number', label: '', labelKey: 'module.reportsColumnReference', order: 11 },
+    { key: 'purchase_date', label: '', labelKey: 'module.reportsColumnPurchaseDate', order: 12 },
+    { key: 'depreciation_rate', label: '', labelKey: 'module.reportsColumnDepreciationRate', order: 13 },
+    { key: 'useful_life', label: '', labelKey: 'module.reportsColumnUsefulLife', order: 14 },
+    { key: 'is_active', label: '', labelKey: 'module.reportsColumnActive', order: 15 },
+    { key: 'notes', label: '', labelKey: 'module.reportsColumnNotes', order: 16 },
   ],
   movements: [
-    { key: 'id', label: '', labelKey: 'module.reportsColumnId', order: 1 },
-    { key: 'asset_id', label: '', labelKey: 'module.reportsColumnAssetId', order: 2 },
+    { key: 'asset_name', label: '', labelKey: 'module.reportsColumnAssetName', order: 1 },
+    { key: 'asset_code', label: '', labelKey: 'module.reportsColumnCode', order: 2 },
     { key: 'movement_type', label: '', labelKey: 'module.reportsColumnMovementType', order: 3 },
     { key: 'status', label: '', labelKey: 'module.reportsColumnStatus', order: 4 },
-    { key: 'from_location_id', label: '', labelKey: 'module.reportsColumnFromLocation', order: 5 },
-    { key: 'to_location_id', label: '', labelKey: 'module.reportsColumnToLocation', order: 6 },
-    { key: 'created_at', label: '', labelKey: 'module.reportsColumnCreatedAt', order: 7 },
-    { key: 'reason', label: '', labelKey: 'module.reportsColumnReason', order: 8 },
+    { key: 'from_location_name', label: '', labelKey: 'module.reportsColumnFromLocation', order: 5 },
+    { key: 'to_location_name', label: '', labelKey: 'module.reportsColumnToLocation', order: 6 },
+    { key: 'from_employee_name', label: '', labelKey: 'module.reportsColumnFromEmployee', order: 7 },
+    { key: 'to_employee_name', label: '', labelKey: 'module.reportsColumnToEmployee', order: 8 },
+    { key: 'performed_by_name', label: '', labelKey: 'module.reportsColumnPerformedBy', order: 9 },
+    { key: 'created_at', label: '', labelKey: 'module.reportsColumnCreatedAt', order: 10 },
+    { key: 'reason', label: '', labelKey: 'module.reportsColumnReason', order: 11 },
   ],
   inventory: [
     { key: 'record_id', label: '', labelKey: 'module.reportsColumnRecordId', order: 1 },
@@ -88,13 +96,15 @@ const REPORT_COLUMN_CATALOG: Record<ReportResource, ReportColumnOption[]> = {
     { key: 'action_type', label: '', labelKey: 'module.reportsColumnAction', order: 2 },
     { key: 'entity', label: '', labelKey: 'module.reportsColumnEntity', order: 3 },
     { key: 'entity_id', label: '', labelKey: 'module.reportsColumnEntityId', order: 4 },
-    { key: 'user_id', label: '', labelKey: 'module.reportsColumnUserId', order: 5 },
+    { key: 'user_name', label: '', labelKey: 'module.reportsColumnUserName', order: 5 },
     { key: 'created_at', label: '', labelKey: 'module.reportsColumnCreatedAt', order: 6 },
     { key: 'metadata', label: '', labelKey: 'module.reportsColumnMetadata', order: 7 },
+    { key: 'ip_address', label: '', labelKey: 'module.reportsColumnIpAddress', order: 8 },
   ],
   dashboard: [
-    { key: 'metric', label: '', labelKey: 'module.reportsColumnMetric', order: 1 },
-    { key: 'value', label: '', labelKey: 'module.reportsColumnValue', order: 2 },
+    { key: 'section', label: '', labelKey: 'module.reportsColumnSection', order: 1 },
+    { key: 'metric', label: '', labelKey: 'module.reportsColumnMetric', order: 2 },
+    { key: 'value', label: '', labelKey: 'module.reportsColumnValue', order: 3 },
   ],
 };
 
@@ -103,15 +113,37 @@ const REPORT_LAYOUT_STORAGE_KEY = 'assetx.report.layout.v1';
 const PROFILE_COLUMN_KEYS: Record<ReportProfileId, string[]> = {
   executive: ['name', 'full_asset_code', 'quantity', 'purchase_price', 'is_active'],
   finance: ['name', 'full_asset_code', 'purchase_price', 'purchase_date'],
-  auditor: ['full_asset_code', 'name', 'status_id', 'location_id', 'employee_id', 'serial_number', 'barcode'],
+  auditor: ['full_asset_code', 'name', 'status_name', 'location_name', 'employee_name', 'serial_number', 'barcode'],
   inventory: ['asset_code', 'asset_name', 'expected_quantity', 'actual_quantity', 'expected_location_path', 'actual_location_path', 'expected_employee_name', 'actual_employee_name', 'expected_status_name', 'actual_status_name', 'result', 'notes'],
-  compliance: ['full_asset_code', 'name', 'barcode', 'status_id', 'employee_id', 'location_id'],
+  compliance: ['full_asset_code', 'name', 'barcode', 'status_name', 'employee_name', 'location_name'],
 };
+
+/** Reports saved before names replaced raw ids still carry the old keys. */
+const LEGACY_COLUMN_KEYS: Record<string, string> = {
+  status_id: 'status_name',
+  location_id: 'location_name',
+  employee_id: 'employee_name',
+  category_id: 'category_name',
+  from_location_id: 'from_location_name',
+  to_location_id: 'to_location_name',
+  asset_id: 'asset_name',
+  user_id: 'user_name',
+};
+
+function migrateKey(key: string): string {
+  return LEGACY_COLUMN_KEYS[key] ?? key;
+}
 
 function humanize(value: string): string {
   return value
     .replace(/[_-]+/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+/** Translated label for a lifecycle code; unknown codes fall back to readable English. */
+function stateLabel(state: string, label: (code?: string | null) => string): string {
+  const translated = label(state);
+  return translated === state ? humanize(state) : translated;
 }
 
 interface DistributionPanelProps {
@@ -123,6 +155,7 @@ interface DistributionPanelProps {
 }
 
 function DistributionPanel({ title, subtitle, buckets, icon: Icon, emptyLabel }: DistributionPanelProps) {
+  const { t } = useI18n();
   const max = Math.max(...buckets.map((bucket) => bucket.count), 0);
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
 
@@ -151,7 +184,7 @@ function DistributionPanel({ title, subtitle, buckets, icon: Icon, emptyLabel }:
                 </div>
               );
             })}
-            {buckets.length > 6 && <p className="pt-1 text-xs text-ink-faint">+{buckets.length - 6} more groups</p>}
+            {buckets.length > 6 && <p className="pt-1 text-xs text-ink-faint">+{buckets.length - 6} {t('module.reportsMoreGroups')}</p>}
           </div>
         )}
       </CardBody>
@@ -167,6 +200,7 @@ interface LifecyclePanelProps {
 }
 
 function LifecyclePanel({ title, subtitle, buckets, emptyLabel }: LifecyclePanelProps) {
+  const { t, label } = useI18n();
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
   return (
     <Card className="min-w-0">
@@ -183,10 +217,10 @@ function LifecyclePanel({ title, subtitle, buckets, emptyLabel }: LifecyclePanel
               return (
                 <div key={bucket.state} className="rounded-xl border border-border bg-surface-muted/30 p-3">
                   <div className="flex items-start justify-between gap-2">
-                    <span className="text-sm font-medium text-ink">{humanize(bucket.state)}</span>
+                    <span className="text-sm font-medium text-ink">{stateLabel(bucket.state, label)}</span>
                     <span className="text-lg font-semibold tabular-nums text-ink">{bucket.count.toLocaleString()}</span>
                   </div>
-                  <p className="mt-1 text-xs text-ink-muted">{percentage}% of assets</p>
+                  <p className="mt-1 text-xs text-ink-muted">{percentage}% {t('module.reportsPercentOfAssets')}</p>
                 </div>
               );
             })}
@@ -303,14 +337,21 @@ export default function ReportsPage() {
       const parsed = JSON.parse(raw) as { profile?: ReportProfileId; columns?: ReportColumn[]; format?: ReportFormat; limit?: string; sorting?: ReportSort[]; grouping?: ReportGroup[] };
       const allowed = new Set(columnCatalog.map((column) => column.key));
       const restored = Array.isArray(parsed.columns)
-        ? parsed.columns.filter((column) => column && allowed.has(column.key)).map((column, index) => ({ key: column.key, label: t(columnCatalog.find((item) => item.key === column.key)?.labelKey ?? '', column.label), order: index + 1 }))
+        ? parsed.columns
+          .filter((column) => column && allowed.has(migrateKey(column.key)))
+          .map((column, index) => {
+            const key = migrateKey(column.key);
+            return { key, label: t(columnCatalog.find((item) => item.key === key)?.labelKey ?? '', column.label), order: index + 1 };
+          })
+          .filter((column, index, all) => all.findIndex((other) => other.key === column.key) === index)
+          .map((column, index) => ({ ...column, order: index + 1 }))
         : [];
       if (restored.length > 0) setSelectedColumns(restored);
       setProfile(parsed.profile && REPORT_PROFILES.some((item) => item.value === parsed.profile) ? parsed.profile : '');
       if (parsed.format && REPORT_FORMATS.includes(parsed.format)) setFormat(parsed.format);
       if (parsed.limit) setLimit(parsed.limit);
-      if (Array.isArray(parsed.sorting)) setSorting(parsed.sorting.filter((item) => item && typeof item.field === 'string' && (item.dir === 'asc' || item.dir === 'desc')));
-      if (Array.isArray(parsed.grouping)) setGrouping(parsed.grouping.filter((item) => item && typeof item.field === 'string' && REPORT_AGGREGATIONS.includes(item.aggregate ?? 'count')));
+      if (Array.isArray(parsed.sorting)) setSorting(parsed.sorting.filter((item) => item && typeof item.field === 'string' && (item.dir === 'asc' || item.dir === 'desc')).map((item) => ({ ...item, field: migrateKey(item.field) })));
+      if (Array.isArray(parsed.grouping)) setGrouping(parsed.grouping.filter((item) => item && typeof item.field === 'string' && REPORT_AGGREGATIONS.includes(item.aggregate ?? 'count')).map((item) => ({ ...item, field: migrateKey(item.field), ...(item.valueField ? { valueField: migrateKey(item.valueField) } : {}) })));
       toast.success(t('module.reportsLayoutLoaded'), t('module.reportsLayoutLoadedMessage'));
     } catch (error) {
       toast.error(t('module.reportsLayoutFailed'), humanError(error));
@@ -361,14 +402,15 @@ export default function ReportsPage() {
     const definition = template.definition;
     const catalog = REPORT_COLUMN_CATALOG[definition.resource];
     const restoredColumns = definition.columns
-      .filter((column) => catalog.some((option) => option.key === column.field))
+      .map((column) => ({ ...column, field: migrateKey(column.field) }))
+      .filter((column, index, all) => catalog.some((option) => option.key === column.field) && all.findIndex((other) => other.field === column.field) === index)
       .map((column, index) => ({ key: column.field, label: t(catalog.find((option) => option.key === column.field)?.labelKey ?? '', column.label ?? column.field), order: index + 1 }));
     setResource(definition.resource);
     setFormat(definition.format);
     setProfile('');
     setSelectedColumns(restoredColumns.length > 0 ? restoredColumns : catalog.slice(0, 8).map((column, index) => ({ key: column.key, label: t(column.labelKey), order: index + 1 })));
-    setSorting(definition.sorting ?? []);
-    setGrouping(definition.grouping ?? []);
+    setSorting((definition.sorting ?? []).map((item) => ({ ...item, field: migrateKey(item.field) })));
+    setGrouping((definition.grouping ?? []).map((item) => ({ ...item, field: migrateKey(item.field), ...(item.valueField ? { valueField: migrateKey(item.valueField) } : {}) })));
     toast.success(t('module.reportsTemplateLoaded'), t('module.reportsTemplateLoadedMessage'));
   };
 

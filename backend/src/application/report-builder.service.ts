@@ -178,10 +178,13 @@ export class ReportBuilderService {
       if (g.valueField) group[agg] = group[key];
       return;
     }
+    // avg / min / max ignore empty cells: a missing value is not a zero
+    const numericVal = val === null || val === undefined || val === '' ? NaN : Number(val);
     if (agg === 'avg') {
+      if (Number.isNaN(numericVal)) return;
       const totalKey = `__sum_${key}`;
       const countKey = `__count_${key}`;
-      const total = (group[totalKey] as number ?? 0) + (Number(val) || 0);
+      const total = (group[totalKey] as number ?? 0) + numericVal;
       const count = (group[countKey] as number ?? 0) + 1;
       group[totalKey] = total;
       group[countKey] = count;
@@ -189,7 +192,8 @@ export class ReportBuilderService {
       if (g.valueField) group[agg] = group[key];
       return;
     }
-    const numeric = Number(val) || 0;
+    if (Number.isNaN(numericVal)) return;
+    const numeric = numericVal;
     group[key] = agg === 'min'
       ? Math.min(group[key] as number ?? Infinity, numeric)
       : Math.max(group[key] as number ?? -Infinity, numeric);
@@ -199,6 +203,8 @@ export class ReportBuilderService {
   private cleanAggregationInternals(row: Record<string, unknown>): Record<string, unknown> {
     for (const key of Object.keys(row)) {
       if (key.startsWith('__')) delete row[key];
+      // min/max over a group with no numeric value: show 0, not Infinity
+      else if (row[key] === Infinity || row[key] === -Infinity) row[key] = 0;
     }
     return row;
   }

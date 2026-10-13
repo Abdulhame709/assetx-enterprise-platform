@@ -96,6 +96,29 @@ describe('Report Builder — integration (Task T5)', () => {
     expect(s1!.sum).toBe(3000);
   });
 
+  it('avg and min ignore empty cells instead of treating them as zero', () => {
+    const rows = [
+      { status_id: 's1', purchase_price: 1000 },
+      { status_id: 's1', purchase_price: null },
+      { status_id: 's1', purchase_price: 3000 },
+      { status_id: 's2', purchase_price: null },
+    ];
+    const avg = h.reportBuilder.transformRows(rows, {
+      ...baseReport,
+      grouping: [{ field: 'status_id', aggregate: 'avg', valueField: 'purchase_price' }],
+      columns: [{ field: 'status_id' }],
+    }) as Record<string, unknown>[];
+    expect(avg.find((r) => r.status_id === 's1')!.avg).toBe(2000);
+    const min = h.reportBuilder.transformRows(rows, {
+      ...baseReport,
+      grouping: [{ field: 'status_id', aggregate: 'min', valueField: 'purchase_price' }],
+      columns: [{ field: 'status_id' }],
+    }) as Record<string, unknown>[];
+    expect(min.find((r) => r.status_id === 's1')!.min).toBe(1000);
+    // a group with no numeric value never leaks Infinity
+    expect(min.find((r) => r.status_id === 's2')!.min).toBe(0);
+  });
+
   it('built ExportRequest is compatible with ExportService', async () => {
     const req = h.reportBuilder.buildExportRequest(baseReport, h.tenantA, userA);
     const result = await h.exportService.generate(req);

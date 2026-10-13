@@ -72,6 +72,7 @@ export class ExportPipelineService {
     const { rows } = await ctx.provider.getData(ctx.tenant, ctx.options);
     const adapted: ExportRow[] = this.adapter.toRows(rows);
     const reportRows = this.applyReportDefinition(adapted, ctx);
+    this.dropColumnsMissingFromRows(reportRows, ctx.options);
     const transformed: ExportRow[] = ctx.strategy.transform(reportRows, ctx.options);
     const outputRows = transformed.length;
     this.publishProgress(ctx, { phase: 'transform', rows: outputRows, bytes: 0, percent: 0 });
@@ -125,6 +126,20 @@ export class ExportPipelineService {
     };
 
     return { stream: pass, rows: outputRows, bytes, strategy: ctx.strategy, metadata };
+  }
+
+  /**
+   * A profile is shared across resources (e.g. the finance profile lists asset
+   * columns), so keep only the columns the rows actually carry. If none match,
+   * fall back to the rows' natural columns instead of exporting empty ones.
+   */
+  private dropColumnsMissingFromRows(rows: ExportRow[], options: ExportOptions): void {
+    if (!options.columns || options.columns.length === 0 || rows.length === 0) return;
+    const present = new Set(Object.keys(rows[0]));
+    const kept = options.columns.filter((c) => present.has(c.key));
+    if (kept.length === options.columns.length) return;
+    if (kept.length === 0) delete options.columns;
+    else options.columns = kept;
   }
 
   private applyReportDefinition(rows: ExportRow[], ctx: ExportPipelineContext): ExportRow[] {
