@@ -58,6 +58,9 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   CATEGORY_HAS_CHILDREN:     { http: 409, code: 'CONFLICT' },
   CATEGORY_HAS_ASSETS:       { http: 409, code: 'CONFLICT' },
   STATUS_HAS_ASSETS:         { http: 409, code: 'CONFLICT' },
+  ORGANIZATION_NAME_INVALID: { http: 400, code: 'VALIDATION_ERROR' },
+  SETTING_VALUE_INVALID:     { http: 400, code: 'VALIDATION_ERROR' },
+  LOGO_INVALID:              { http: 400, code: 'VALIDATION_ERROR' },
   // Inventory
   INVALID_YEAR:              { http: 400, code: 'VALIDATION_ERROR' },
   CYCLE_YEAR_EXISTS:         { http: 409, code: 'CONFLICT' },

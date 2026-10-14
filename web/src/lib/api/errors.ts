@@ -5,6 +5,9 @@
  */
 
 const MESSAGES: Record<string, string> = {
+  ORGANIZATION_NAME_INVALID: 'The organization name must be between 2 and 120 characters.',
+  SETTING_VALUE_INVALID: 'One of the setting values is not valid.',
+  LOGO_INVALID: 'The logo must be a PNG or JPEG image no larger than 300 KB.',
   // Master data
   NAME_INVALID: 'Name must be at least 2 characters.',
   COLOR_INVALID: 'Color must be a hex value like #27ae60.',
@@ -64,6 +67,9 @@ const MESSAGES: Record<string, string> = {
 };
 
 const MESSAGES_AR: Record<string, string> = {
+  ORGANIZATION_NAME_INVALID: 'يجب أن يتكون اسم الجهة من حرفين إلى 120 حرفاً.',
+  SETTING_VALUE_INVALID: 'إحدى قيم الإعدادات غير صحيحة.',
+  LOGO_INVALID: 'يجب أن يكون الشعار صورة PNG أو JPEG لا يزيد حجمها عن 300 كيلوبايت.',
   LOCATION_TYPE_NOT_FOUND: 'نوع الموقع المحدد غير متاح.',
   DUPLICATE_LOCATION_TYPE_CODE: 'يوجد نوع موقع بهذا الرمز مسبقاً.',
   DUPLICATE_LOCATION_TYPE_NAME: 'يوجد نوع موقع بهذا الاسم مسبقاً.',

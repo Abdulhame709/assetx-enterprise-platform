@@ -5,6 +5,7 @@
  */
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
@@ -44,12 +45,14 @@ function assertProductionConfig(): void {
 async function bootstrap() {
   loadLocalEnvironment();
   assertProductionConfig();
-  const app = await NestFactory.create(AppModule, { logger: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { logger: false });
   // The web app proxies API calls (Next.js rewrite), so the socket address is the
   // proxy. Trust one hop so rate limits and lockout logs use the real client IP.
   // Set TRUST_PROXY_HOPS=0 if the backend is exposed directly to the internet.
   const proxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
   if (proxyHops > 0) app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
+  // Logo uploads arrive as base64 JSON (max 300 KB image), above express's 100 KB default.
+  app.useBodyParser('json', { limit: '600kb' });
   app.use(helmet());
 
   const origins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
