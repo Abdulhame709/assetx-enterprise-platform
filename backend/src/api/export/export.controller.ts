@@ -126,7 +126,7 @@ export class ExportController {
       const detailShown = rows.filter((row) => !isGroupRow(row)).length;
       return {
         resource: res,
-        title: RESOURCE_TITLES[res]?.[lang] ?? res,
+        title: meta.title ?? RESOURCE_TITLES[res]?.[lang] ?? res,
         organizationName: meta.organizationName ?? '',
         filtersText: meta.filtersText ?? '',
         columns: shown.map((c) => ({ key: c.key, label: columnLabel(c.key, c.label, lang) })),
@@ -200,6 +200,11 @@ export class ExportController {
     if (!columns && !profile && !(grouping && grouping.length > 0)) {
       columns = await this.reportMeta.defaultColumns(u.tenant_id, resource);
     }
+    if (resource === 'assets') {
+      columns = this.withFilterColumns(columns, grouping, filters);
+      // Filtering by type/status/employee: list the assets location by location unless told otherwise.
+      if (!filters.sort_by && !(sorting && sorting.length > 0) && this.filtersByOtherThanLocation(filters)) filters.sort_by = 'location';
+    }
     const report = this.buildReportMetadata(columns, sorting, grouping, filters.group_by === 'location');
     const options: ExportOptions = {
       limit,
@@ -212,6 +217,27 @@ export class ExportController {
         : {}),
     };
     return { meta, options };
+  }
+
+  private filtersByOtherThanLocation(f: ReportFilterInput): boolean {
+    return Boolean(f.category_id || f.status_id || f.employee_id || f.no_employee);
+  }
+
+  /**
+   * A report filtered by type, status or custodian always shows the location name
+   * (and the column it is filtered on), so the page explains where each asset is.
+   */
+  private withFilterColumns(columns: ExportColumn[] | undefined, grouping: ReportGroup[] | undefined, f: ReportFilterInput): ExportColumn[] | undefined {
+    if (!columns || (grouping && grouping.length > 0) || !this.filtersByOtherThanLocation(f)) return columns;
+    const wanted = ['location_name'];
+    if (f.category_id) wanted.push('category_name');
+    if (f.status_id) wanted.push('status_name');
+    if (f.employee_id || f.no_employee) wanted.push('employee_name');
+    const out = [...columns];
+    for (const key of wanted) {
+      if (!out.some((c) => c.key === key)) out.push({ key, order: Math.max(0, ...out.map((c) => c.order ?? 0)) + 1 });
+    }
+    return out;
   }
 
   /** Only the filters the report understands; a malformed id is rejected, not silently ignored. */
