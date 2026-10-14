@@ -7,6 +7,7 @@
  */
 import { ExportColumn, ExportOptions } from '../../core/entities/export.entity';
 import { columnLabel } from '../../core/constants/export-labels';
+import { isGroupRow } from '../../core/constants/report-groups';
 
 export interface ColumnPlan {
   /** ordered keys to extract from each row */
@@ -24,7 +25,9 @@ export function resolveColumnPlan(data: unknown[], options?: ExportOptions): Col
     const labels = ordered.map((c) => (lang ? columnLabel(c.key, c.label, lang) : c.label ?? c.key));
     return { keys, labels };
   }
-  const keys = data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
+  // Location bands are not data: the columns come from the first real row.
+  const first = data.find((row) => !isGroupRow(row));
+  const keys = first ? Object.keys(first as Record<string, unknown>) : [];
   const lang = options?.meta?.lang;
   return { keys, labels: lang ? keys.map((k) => columnLabel(k, undefined, lang)) : keys };
 }

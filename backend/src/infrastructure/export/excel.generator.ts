@@ -16,6 +16,7 @@ import { ADDITIVE_KEYS, MONEY_KEYS, NUMERIC_KEYS, REPORT_TEXT } from '../../core
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
 import { cellText, numericValue } from './cell-format';
+import { bandText, isGroupRow } from '../../core/constants/report-groups';
 
 const NAVY = 'FF1F3A5F';
 const BORDER = { style: 'thin' as const, color: { argb: 'FFDBE2EA' } };
@@ -133,7 +134,22 @@ export class ExcelGenerator implements FileGenerator {
     const widths: number[] = labels.map((l) => Math.min(Math.max(String(l).length + 4, 10), 40));
     const firstData = sheet.rowCount + 1;
     const numericColumn: boolean[] = keys.map(() => false);
-    data.forEach((raw, rowIndex) => {
+    let detailIndex = -1;
+    data.forEach((raw) => {
+      if (isGroupRow(raw)) {
+        // Location band: one merged, bold, shaded line; deeper levels are indented.
+        const band = sheet.addRow([bandText({ ...raw, __level: 0 })]);
+        if (columnCount > 1) sheet.mergeCells(band.number, 1, band.number, columnCount);
+        const cell = band.getCell(1);
+        cell.font = { bold: true, color: { argb: NAVY } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: raw.__level === 0 ? 'FFD9E3F0' : 'FFE9EFF7' } };
+        cell.alignment = { horizontal: textAlign, vertical: 'middle', indent: raw.__level * 2 };
+        cell.border = { top: BORDER, bottom: BORDER, left: BORDER, right: BORDER };
+        band.height = 20;
+        return;
+      }
+      detailIndex += 1;
+      const rowIndex = detailIndex;
       const rec = (raw ?? {}) as Record<string, unknown>;
       const prepared = keys.map((k) => {
         const c = prepare(k, rec[k]);
@@ -185,7 +201,11 @@ export class ExcelGenerator implements FileGenerator {
       }
     }
 
-    for (let i = 0; i < columnCount; i += 1) sheet.getColumn(i + 1).width = widths[i];
+    // Report designer: a column with a chosen share of the table keeps it (100% of the table = 160 characters).
+    for (let i = 0; i < columnCount; i += 1) {
+      const share = meta?.columnWidths?.[keys[i]];
+      sheet.getColumn(i + 1).width = share && share > 0 ? Math.max(4, Math.round(share * 1.6)) : widths[i];
+    }
 
     if (meta && columnCount > 0) {
       if (headerRowNumber > 0) {

@@ -57,6 +57,7 @@ export class SettingsController {
       show_totals: body?.show_totals,
       row_numbers: body?.row_numbers,
       columns: body?.columns,
+      widths: body?.widths,
     });
   }
 

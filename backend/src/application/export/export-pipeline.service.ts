@@ -25,6 +25,10 @@ import { ExportDataAdapter, ExportRow } from './adapters/export-data.adapter';
 import { ExportMetricsService } from './export-metrics.service';
 import { ReportBuilderService } from '../report-builder.service';
 import { ReportDefinition } from '../../core/entities/report.entity';
+import { insertLocationBands, isGroupRow, sortByLocation } from '../../core/constants/report-groups';
+
+/** Row key holding the location's full path ("Main / Sub"). */
+const LOCATION_KEY = 'location_name';
 
 /** Byte threshold between incremental EXPORT_PROGRESS emissions. */
 const PROGRESS_INTERVAL_BYTES = 64 * 1024; // 64 KB
@@ -69,10 +73,13 @@ export class ExportPipelineService {
     const state: ExportStrategyState = await ctx.strategy.prepare(ctx.options);
 
     // 2 · TRANSFORM — fetch raw data and normalize into uniform rows.
-    const { rows } = await ctx.provider.getData(ctx.tenant, ctx.options);
-    const adapted: ExportRow[] = this.adapter.toRows(rows);
-    const reportRows = this.addRowNumbers(this.applyReportDefinition(adapted, ctx), ctx.options);
-    this.dropColumnsMissingFromRows(reportRows, ctx.options);
+    const { rows: reportRows } = await this.buildRows({
+      tenant: ctx.tenant,
+      resource: ctx.resource,
+      format: ctx.strategy.format,
+      provider: ctx.provider,
+      options: ctx.options,
+    });
     const transformed: ExportRow[] = ctx.strategy.transform(reportRows, ctx.options);
     const outputRows = transformed.length;
     this.publishProgress(ctx, { phase: 'transform', rows: outputRows, bytes: 0, percent: 0 });
@@ -129,6 +136,56 @@ export class ExportPipelineService {
   }
 
   /**
+   * The rows a report prints: provider data → report definition (columns, sorting,
+   * aggregates) → location order → row numbers → location bands. The on-screen
+   * preview calls this too, so it always shows what the file will contain.
+   * `options.columns` is adjusted in place to match the rows.
+   */
+  async buildRows(args: {
+    tenant: string;
+    resource: string;
+    format: ExportPipelineContext['strategy']['format'];
+    provider: ExportProvider;
+    options: ExportOptions;
+  }): Promise<{ rows: ExportRow[]; total: number }> {
+    const { options } = args;
+    const { rows, total } = await args.provider.getData(args.tenant, options);
+    const adapted: ExportRow[] = this.adapter.toRows(rows);
+    let reportRows = this.applyReportDefinition(adapted, args.resource, args.format, options);
+    const byLocation = this.wantsLocationGroups(reportRows, options);
+    if (byLocation) reportRows = sortByLocation(reportRows);
+    reportRows = this.addRowNumbers(reportRows, options);
+    this.dropColumnsMissingFromRows(reportRows, options);
+    if (byLocation) reportRows = this.groupByLocation(reportRows, options);
+    return { rows: reportRows, total: Math.max(total, reportRows.filter((row) => !isGroupRow(row)).length) };
+  }
+
+  /** `group_by=location` only applies to detail rows that carry their location. */
+  private wantsLocationGrouping(options: ExportOptions): boolean {
+    return options.filters?.group_by === 'location';
+  }
+
+  private wantsLocationGroups(rows: ExportRow[], options: ExportOptions): boolean {
+    const report = options.filters?.__report as { grouping?: unknown[] } | undefined;
+    if (Array.isArray(report?.grouping) && report.grouping.length > 0) return false;
+    return this.wantsLocationGrouping(options) && rows.length > 0 && LOCATION_KEY in rows[0];
+  }
+
+  /**
+   * Adds the location bands and takes the location column out of the table (the
+   * band says it). Without an explicit column list the rows' own columns are used,
+   * so the band rows never decide the columns.
+   */
+  private groupByLocation(rows: ExportRow[], options: ExportOptions): ExportRow[] {
+    const grouped = insertLocationBands(rows, LOCATION_KEY) as ExportRow[];
+    const columns = options.columns && options.columns.length > 0
+      ? options.columns
+      : Object.keys(rows[0] ?? {}).map((key, order) => ({ key, order }));
+    options.columns = columns.filter((column) => column.key !== LOCATION_KEY);
+    return grouped;
+  }
+
+  /**
    * A profile is shared across resources (e.g. the finance profile lists asset
    * columns), so keep only the columns the rows actually carry. If none match,
    * fall back to the rows' natural columns instead of exporting empty ones.
@@ -156,8 +213,13 @@ export class ExportPipelineService {
     return rows.map((row, index) => ({ row_no: index + 1, ...row }));
   }
 
-  private applyReportDefinition(rows: ExportRow[], ctx: ExportPipelineContext): ExportRow[] {
-    const metadata = ctx.options.filters?.__report;
+  private applyReportDefinition(
+    rows: ExportRow[],
+    resource: string,
+    format: ExportPipelineContext['strategy']['format'],
+    options: ExportOptions,
+  ): ExportRow[] {
+    const metadata = options.filters?.__report;
     if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return rows;
     const raw = metadata as Record<string, unknown>;
     const columns = Array.isArray(raw.columns)
@@ -173,10 +235,10 @@ export class ExportPipelineService {
         .filter((column) => column.field.length > 0)
       : Object.keys(rows[0] ?? {}).map((field) => ({ field }));
     const report: ReportDefinition = {
-      id: `export-${ctx.resource}`,
-      name: `Export ${ctx.resource}`,
-      resource: ctx.resource as ReportDefinition['resource'],
-      format: ctx.strategy.format,
+      id: `export-${resource}`,
+      name: `Export ${resource}`,
+      resource: resource as ReportDefinition['resource'],
+      format,
       columns,
       sorting: Array.isArray(raw.sorting) ? raw.sorting as ReportDefinition['sorting'] : [],
       grouping: Array.isArray(raw.grouping) ? raw.grouping as ReportDefinition['grouping'] : [],
@@ -193,7 +255,7 @@ export class ExportPipelineService {
       for (const key of present) {
         if (!outputKeys.includes(key) && !aliasesToSkip.has(key)) outputKeys.push(key);
       }
-      ctx.options.columns = outputKeys.map((key, order) => {
+      options.columns = outputKeys.map((key, order) => {
         const source = report.columns.find((column) => column.field === key);
         return { key, order, ...(source?.label ? { label: source.label } : {}) };
       });

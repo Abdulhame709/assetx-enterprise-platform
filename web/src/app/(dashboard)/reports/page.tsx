@@ -1,9 +1,9 @@
 
 'use client';
 
-import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, BrainCircuit, Check, CircleCheckBig, Columns3, Download, Eye, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
+import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, BrainCircuit, Check, CircleCheckBig, Columns3, Download, Eye, FileSearch, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, RotateCcw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -12,8 +12,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
-import { ReportCenter } from '@/features/reports/components/ReportCenter';
-import { downloadReportExport, generateReportAiSummary, printReportExport, ReportAggregation, ReportAiSummary, ReportColumn, ReportDefinition, ReportFormat, ReportGroup, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
+import { AnyReportResource, AssetSortKey, downloadReportExport, generateReportAiSummary, getReportPreview, isBandRow, printReportExport, ReportAggregation, ReportAiSummary, ReportCenterResource, ReportColumn, ReportDefinition, ReportFilters, ReportFormat, ReportGroup, ReportPreview, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
+import { getCategories, getLocationsTree } from '@/features/assets/components/reference-selects';
+import { getEmployees, getStatuses } from '@/features/reference/api';
+import { SearchableSelect, SelectOption } from '@/components/ui/SearchableSelect';
 import { createReportTemplate, deleteReportTemplate, listReportTemplates, ReportTemplateRecord } from '@/features/reports/templates-api';
 import { Field, Input, Select } from '@/components/ui/form';
 import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
@@ -22,13 +24,64 @@ import type { AnalyticsBucket, LifecycleDistributionBucket } from '@/features/as
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
 
-const REPORT_RESOURCES: Array<{ resource: ReportResource; permission: PermissionKey; labelKey: string; descriptionKey: string }> = [
+const REPORT_RESOURCES: Array<{ resource: AnyReportResource; permission: PermissionKey; labelKey: string; descriptionKey: string }> = [
   { resource: 'assets', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'module.reportsResourceAssets', descriptionKey: 'module.reportsResourceAssetsDesc' },
   { resource: 'movements', permission: PERMISSIONS.EXPORT_MOVEMENTS, labelKey: 'module.reportsResourceMovements', descriptionKey: 'module.reportsResourceMovementsDesc' },
   { resource: 'inventory', permission: PERMISSIONS.EXPORT_INVENTORY, labelKey: 'module.reportsResourceInventory', descriptionKey: 'module.reportsResourceInventoryDesc' },
   { resource: 'audit', permission: PERMISSIONS.EXPORT_AUDIT, labelKey: 'module.reportsResourceAudit', descriptionKey: 'module.reportsResourceAuditDesc' },
   { resource: 'dashboard', permission: PERMISSIONS.EXPORT_DASHBOARD, labelKey: 'module.reportsResourceDashboard', descriptionKey: 'module.reportsResourceDashboardDesc' },
+  { resource: 'asset-locations', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.asset-locations', descriptionKey: 'rc.type.asset-locationsDesc' },
+  { resource: 'asset-types', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.asset-types', descriptionKey: 'rc.type.asset-typesDesc' },
+  { resource: 'duplicates', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.duplicates', descriptionKey: 'rc.type.duplicatesDesc' },
+  { resource: 'inventory-form', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.inventory-form', descriptionKey: 'rc.type.inventory-formDesc' },
 ];
+
+/** Reports with their own column list, profiles, sorting, grouping and saved templates. */
+const DESIGNER_RESOURCES: ReportResource[] = ['assets', 'movements', 'inventory', 'audit', 'dashboard'];
+
+/** Reports that can be viewed on screen before printing (the server previews these). */
+const PREVIEW_RESOURCES: ReportCenterResource[] = ['assets', 'asset-locations', 'asset-types', 'duplicates', 'inventory-form'];
+
+type FilterKey = 'location' | 'scope' | 'category' | 'status' | 'employee' | 'search' | 'sort' | 'blank' | 'group';
+
+/** Which filters each report understands (mirrors the server's allow-list). */
+const RESOURCE_FILTERS: Partial<Record<AnyReportResource, FilterKey[]>> = {
+  assets: ['location', 'category', 'status', 'employee', 'search', 'group'],
+  'inventory-form': ['location', 'category', 'status', 'employee', 'search', 'sort', 'blank', 'group'],
+  'asset-locations': ['location', 'scope'],
+  'asset-types': ['location', 'status'],
+  duplicates: ['category'],
+};
+const NO_FILTERS: FilterKey[] = [];
+const NO_COLUMNS: ReportColumnOption[] = [];
+const SORT_KEYS: AssetSortKey[] = ['location', 'category', 'name', 'status', 'employee', 'code', 'price'];
+const NO_EMPLOYEE = 'none';
+const MAX_BLANK_ROWS = 500;
+
+/** What the filter lists hold; an empty value always means "All". */
+interface FilterForm {
+  location_id: string;
+  location_scope: '' | 'main' | 'sub';
+  category_id: string;
+  status_id: string;
+  employee_id: string;
+  q: string;
+  sort_by: '' | AssetSortKey;
+  sort_dir: 'asc' | 'desc';
+  blank_rows: string;
+  group: boolean;
+}
+
+const EMPTY_FILTERS: FilterForm = {
+  location_id: '', location_scope: '', category_id: '', status_id: '', employee_id: '',
+  q: '', sort_by: '', sort_dir: 'asc', blank_rows: '0', group: false,
+};
+
+type PreviewState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; data: ReportPreview }
+  | { status: 'error'; message: string };
 
 const REPORT_FORMATS: ReportFormat[] = ['csv', 'xlsx', 'pdf'];
 const REPORT_AGGREGATIONS: ReportAggregation[] = ['count', 'sum', 'avg', 'min', 'max'];
@@ -232,13 +285,74 @@ function LifecyclePanel({ title, subtitle, buckets, emptyLabel }: LifecyclePanel
   );
 }
 
+/** On-screen view of a report: the same columns, filters and location bands as the printed file. */
+function ReportPreviewCard({ state, onRetry }: { state: PreviewState; onRetry: () => void }) {
+  const { t } = useI18n();
+  return (
+    <Card aria-live="polite">
+      <CardHeader title={state.status === 'ready' ? state.data.title : t('rc.previewTitle')} subtitle={state.status === 'ready' ? state.data.filtersText || undefined : undefined} actions={<FileSearch className="h-4 w-4 text-brand" aria-hidden="true" />} />
+      <CardBody className="space-y-2">
+        {state.status === 'loading' && <p className="rounded-lg bg-surface-muted/50 px-3 py-4 text-sm text-ink-muted">{t('common.loading')}</p>}
+        {state.status === 'error' && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-danger/30 bg-danger/5 px-3 py-3 text-sm">
+            <div>
+              <p className="font-semibold text-danger">{t('rc.loadFailed')}</p>
+              <p className="text-ink-muted">{state.message}</p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={onRetry}><RefreshCw className="h-4 w-4" /> {t('common.refresh')}</Button>
+          </div>
+        )}
+        {state.status === 'ready' && <PreviewTable data={state.data} />}
+      </CardBody>
+    </Card>
+  );
+}
+
+function PreviewTable({ data }: { data: ReportPreview }) {
+  const { t } = useI18n();
+  const detail = data.rows.filter((row) => !isBandRow(row)).length;
+  if (data.rows.length === 0) return <p className="rounded-lg bg-surface-muted/50 px-3 py-4 text-sm text-ink-muted">{t('rc.empty')}</p>;
+  return (
+    <>
+      <p className="text-xs text-ink-faint">{detail} {t('rc.of')} {data.total} {t('rc.rows')}</p>
+      <div className="max-h-[32rem] overflow-auto rounded-lg border border-line">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-surface-muted text-xs text-ink-muted">
+            <tr>{data.columns.map((column) => <th key={column.key} className="whitespace-nowrap px-3 py-2 text-start font-semibold">{column.label}</th>)}</tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {data.rows.map((row, index) => isBandRow(row) ? (
+              <tr key={index} className={row.__level === 0 ? 'bg-brand/10' : 'bg-surface-muted/60'}>
+                <td colSpan={Math.max(data.columns.length, 1)} className="py-1.5 pe-3 font-semibold text-ink" style={{ paddingInlineStart: `${0.75 + row.__level * 1.25}rem` }}>
+                  {row.__group === '' ? '-' : row.__group} <span className="font-normal text-ink-muted">({row.__count})</span>
+                </td>
+              </tr>
+            ) : (
+              <tr key={index}>
+                {data.columns.map((column) => <td key={column.key} className="whitespace-nowrap px-3 py-1.5 text-ink">{cellText(row[column.key])}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {data.truncated && <p className="text-xs text-warning">{t('rc.truncated')}</p>}
+    </>
+  );
+}
+
+/** Empty values show "-" so a blank never looks like a missing cell. */
+function cellText(value: unknown): string {
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
+}
+
 export default function ReportsPage() {
   const state = useAnalytics();
   const toast = useToast();
   const { t, locale } = useI18n();
   const can = useCan();
   const { session } = useSession();
-  const [resource, setResource] = useState<ReportResource>('assets');
+  const [resource, setResource] = useState<AnyReportResource>('assets');
   const [format, setFormat] = useState<ReportFormat>('csv');
   const [limit, setLimit] = useState('10000');
   const [profile, setProfile] = useState<ReportProfileId | ''>('');
@@ -256,9 +370,21 @@ export default function ReportsPage() {
   const [exporting, setExporting] = useState(false);
   const [aiSummary, setAiSummary] = useState<ReportAiSummary | null>(null);
   const [aiGenerating, setAiGenerating] = useState(false);
+  const [filterForm, setFilterForm] = useState<FilterForm>(EMPTY_FILTERS);
+  const [preview, setPreview] = useState<PreviewState>({ status: 'idle' });
+  const previewRef = useRef<HTMLDivElement>(null);
+  const [locations, setLocations] = useState<SelectOption[]>([]);
+  const [categories, setCategories] = useState<SelectOption[]>([]);
+  const [statuses, setStatuses] = useState<SelectOption[]>([]);
+  const [employees, setEmployees] = useState<SelectOption[]>([]);
   const availableResources = useMemo(() => REPORT_RESOURCES.filter((item) => can(item.permission)), [can]);
   const selectedResource = availableResources.find((item) => item.resource === resource) ?? availableResources[0] ?? null;
-  const columnCatalog = REPORT_COLUMN_CATALOG[resource];
+  const designerResource = (DESIGNER_RESOURCES as string[]).includes(resource) ? (resource as ReportResource) : null;
+  const columnCatalog = designerResource ? REPORT_COLUMN_CATALOG[designerResource] : NO_COLUMNS;
+  const filterKeys = RESOURCE_FILTERS[resource] ?? NO_FILTERS;
+  const has = (key: FilterKey) => filterKeys.includes(key);
+  const canPreview = (PREVIEW_RESOURCES as string[]).includes(resource);
+  const setFilter = <K extends keyof FilterForm>(key: K, value: FilterForm[K]) => setFilterForm((current) => ({ ...current, [key]: value }));
   const selectedProfile = REPORT_PROFILES.find((item) => item.value === profile) ?? null;
   const canCreateTemplates = can(PERMISSIONS.REPORT_CREATE);
   const canDeleteTemplates = can(PERMISSIONS.REPORT_DELETE);
@@ -275,17 +401,32 @@ export default function ReportsPage() {
 
   useEffect(() => {
     setAiSummary(null);
+    setPreview({ status: 'idle' });
   }, [resource]);
+
+  // The filter lists are loaded once, the first time a report that uses them is opened.
+  const needsReferences = filterKeys.length > 0 && can(PERMISSIONS.EXPORT_ASSETS);
+  useEffect(() => {
+    if (!needsReferences) return;
+    getLocationsTree().then(setLocations).catch(() => undefined);
+    getCategories().then(setCategories).catch(() => undefined);
+    getStatuses().then((list) => setStatuses(list.filter((item) => item.is_active).map((item) => ({ value: item.id, label: item.name })))).catch(() => undefined);
+    getEmployees().then((list) => setEmployees(list.map((item) => ({ value: item.id, label: item.name })))).catch(() => undefined);
+  }, [needsReferences]);
 
   useEffect(() => {
     let active = true;
+    if (!designerResource) {
+      setTemplates([]);
+      return undefined;
+    }
     setTemplatesLoading(true);
-    void listReportTemplates(resource)
+    void listReportTemplates(designerResource)
       .then((items) => { if (active) setTemplates(items); })
       .catch(() => { if (active) setTemplates([]); })
       .finally(() => { if (active) setTemplatesLoading(false); });
     return () => { active = false; };
-  }, [resource]);
+  }, [designerResource]);
 
   useEffect(() => {
     const defaults = columnCatalog.slice(0, Math.min(columnCatalog.length, 8)).map((column) => ({ key: column.key, label: t(column.labelKey), order: column.order }));
@@ -389,10 +530,10 @@ export default function ReportsPage() {
     setGrouping((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
   };
 
-  const currentDefinition = (name: string): ReportDefinition => ({
-    id: `designer-${resource}-${Date.now()}`,
+  const currentDefinition = (name: string, source: ReportResource): ReportDefinition => ({
+    id: `designer-${source}-${Date.now()}`,
     name,
-    resource,
+    resource: source,
     format,
     columns: selectedColumns.map((column) => ({ field: column.key, label: column.label })),
     sorting,
@@ -417,7 +558,7 @@ export default function ReportsPage() {
 
   const saveTemplate = async () => {
     const name = templateName.trim();
-    if (!canCreateTemplates) return;
+    if (!canCreateTemplates || !designerResource) return;
     if (!name) {
       toast.error(t('module.reportsTemplateSaveFailed'), t('module.reportsTemplateNameInvalid'));
       return;
@@ -427,9 +568,9 @@ export default function ReportsPage() {
       const created = await createReportTemplate({
         name,
         description: templateDescription.trim() || undefined,
-        resource,
+        resource: designerResource,
         format,
-        definition: currentDefinition(name),
+        definition: currentDefinition(name, designerResource),
         is_shared: templateShared,
       });
       setTemplates((current) => [created, ...current.filter((item) => item.id !== created.id)]);
@@ -473,12 +614,58 @@ export default function ReportsPage() {
     }
   };
 
+  /** The filters this report understands; nothing chosen = all (nothing is sent). */
+  const buildFilters = (): ReportFilters => {
+    const out: ReportFilters = {};
+    if (has('location') && filterForm.location_id) out.location_id = filterForm.location_id;
+    if (has('scope') && filterForm.location_scope) out.location_scope = filterForm.location_scope;
+    if (has('category') && filterForm.category_id) out.category_id = filterForm.category_id;
+    if (has('status') && filterForm.status_id) out.status_id = filterForm.status_id;
+    if (has('employee') && filterForm.employee_id) out.employee_id = filterForm.employee_id;
+    if (has('search') && filterForm.q.trim()) out.q = filterForm.q.trim();
+    if (has('sort') && filterForm.sort_by) { out.sort_by = filterForm.sort_by; out.sort_dir = filterForm.sort_dir; }
+    const blank = Math.min(Math.max(parseInt(filterForm.blank_rows, 10) || 0, 0), MAX_BLANK_ROWS);
+    if (has('blank') && blank > 0) out.blank_rows = blank;
+    if (has('group') && groupByLocation) out.group_by = 'location';
+    return out;
+  };
+
+  /** Totals (grouping rules) and the location tree cannot be combined, so the totals win. */
+  const groupByLocation = filterForm.group && grouping.length === 0;
+
+  /** The designer's columns, sorting and grouping; reports without a designer use their fixed layout. */
+  const buildDefinition = () => {
+    if (!designerResource) return {};
+    const columns = groupByLocation && !selectedColumns.some((column) => column.key === 'location_name') && columnCatalog.some((column) => column.key === 'location_name')
+      ? [...selectedColumns, { key: 'location_name', label: t('module.reportsColumnLocation'), order: selectedColumns.length + 1 }]
+      : selectedColumns;
+    return { profile: profile || undefined, columns, sorting, grouping };
+  };
+
+  const resetFilters = () => {
+    setFilterForm(EMPTY_FILTERS);
+    setPreview({ status: 'idle' });
+  };
+
+  const viewReport = async () => {
+    if (!canPreview) return;
+    setPreview({ status: 'loading' });
+    window.requestAnimationFrame(() => previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    try {
+      const data = await getReportPreview(resource as ReportCenterResource, { filters: buildFilters(), ...buildDefinition() });
+      setPreview({ status: 'ready', data });
+    } catch (error) {
+      setPreview({ status: 'error', message: humanError(error, undefined, locale) });
+    }
+  };
+
   const printServerPdf = async () => {
     if (!selectedResource) return;
     const parsedLimit = Number(limit);
     const safeLimit = Number.isInteger(parsedLimit) && parsedLimit >= 1 && parsedLimit <= 100000 ? parsedLimit : 10000;
     try {
-      await printReportExport(selectedResource.resource, safeLimit, { summary: aiSummary ? aiSummary.summary.slice(0, 2000) : undefined });
+      toast.info(t('rc.printing'));
+      await printReportExport(selectedResource.resource, safeLimit, { filters: buildFilters(), ...buildDefinition(), summary: aiSummary ? aiSummary.summary.slice(0, 2000) : undefined });
     } catch (error) {
       toast.error(t('module.reportsExportFailed'), humanError(error));
     }
@@ -493,7 +680,7 @@ export default function ReportsPage() {
     }
     setExporting(true);
     try {
-      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit, profile: profile || undefined, columns: selectedColumns, sorting, grouping, summary: format === 'pdf' && aiSummary ? aiSummary.summary.slice(0, 2000) : undefined });
+      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit, filters: buildFilters(), ...buildDefinition(), summary: format === 'pdf' && aiSummary ? aiSummary.summary.slice(0, 2000) : undefined });
       toast.success(t('module.reportsExportReady'), t('module.reportsExportMessage'));
     } catch (error) {
       toast.error(t('module.reportsExportFailed'), humanError(error));
@@ -505,15 +692,15 @@ export default function ReportsPage() {
   return (
     <div className="reports-page space-y-6">
       <PageHeader title={t('nav.reports')} subtitle={t('module.reportsSubtitle')} />
-      <ReportCenter />
       <CommandToolbar
         label={t('module.reportsToolbar')}
         actions={[
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
-          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, disabled: !selectedResource, variant: 'primary' },
+          { id: 'view', label: t('rc.view'), icon: FileSearch, onClick: () => void viewReport(), loading: preview.status === 'loading', disabled: !selectedResource || !canPreview, variant: 'primary' },
+          { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, disabled: !selectedResource },
           { id: 'ai-summary', label: t('module.reportsAiGenerate'), icon: BrainCircuit, onClick: () => void generateAiSummary(), loading: aiGenerating, disabled: !canUseAi || !aiResourceSupported, separated: true },
           { id: 'print', label: t('common.print'), icon: Printer, onClick: () => void printServerPdf(), disabled: !selectedResource, separated: true },
-          { id: 'designer', label: showDesigner ? t('module.reportsDesignerHide') : t('module.reportsDesignerShow'), icon: Columns3, onClick: () => setShowDesigner((visible) => !visible), separated: true },
+          { id: 'designer', label: showDesigner ? t('module.reportsDesignerHide') : t('module.reportsDesignerShow'), icon: Columns3, onClick: () => setShowDesigner((visible) => !visible), disabled: !designerResource, separated: true },
           { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
         ]}
       />
@@ -571,7 +758,7 @@ export default function ReportsPage() {
                   ) : (
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <Field label={t('module.reportsResource')}>
-                        <Select value={selectedResource?.resource ?? ''} onChange={(event) => setResource(event.target.value as ReportResource)} aria-label={t('module.reportsResource')}>
+                        <Select value={selectedResource?.resource ?? ''} onChange={(event) => setResource(event.target.value as AnyReportResource)} aria-label={t('module.reportsResource')}>
                           {availableResources.map((item) => <option key={item.resource} value={item.resource}>{t(item.labelKey)}</option>)}
                         </Select>
                         {selectedResource && <p className="mt-1 text-xs text-ink-faint">{t(selectedResource.descriptionKey)}</p>}
@@ -586,8 +773,109 @@ export default function ReportsPage() {
                       </Field>
                     </div>
                   )}
+                  {availableResources.length > 0 && filterKeys.length > 0 && (
+                    <div className="space-y-3 border-t border-line pt-4">
+                      <div>
+                        <p className="ax-label">{t('rc.filters')}</p>
+                        <p className="text-xs text-ink-faint">{t('rc.filtersHint')}</p>
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        {has('location') && (
+                          <Field label={t('rc.f.location')} hint={t('rc.f.locationHint')}>
+                            <SearchableSelect options={locations} value={filterForm.location_id || null} placeholder={t('rc.all')} onChange={(value) => setFilterForm((current) => ({ ...current, location_id: value ?? '', group: value && !current.location_id ? true : current.group }))} />
+                          </Field>
+                        )}
+                        {has('scope') && (
+                          <Field label={t('rc.f.scope')}>
+                            <Select value={filterForm.location_scope} onChange={(event) => setFilter('location_scope', event.target.value as FilterForm['location_scope'])}>
+                              <option value="">{t('rc.scope.all')}</option>
+                              <option value="main">{t('rc.scope.main')}</option>
+                              <option value="sub">{t('rc.scope.sub')}</option>
+                            </Select>
+                          </Field>
+                        )}
+                        {has('category') && (
+                          <Field label={t('rc.f.category')}>
+                            <SearchableSelect options={categories} value={filterForm.category_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('category_id', value ?? '')} />
+                          </Field>
+                        )}
+                        {has('status') && (
+                          <Field label={t('rc.f.status')}>
+                            <SearchableSelect options={statuses} value={filterForm.status_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('status_id', value ?? '')} />
+                          </Field>
+                        )}
+                        {has('employee') && (
+                          <Field label={t('rc.f.employee')}>
+                            <SearchableSelect options={[{ value: NO_EMPLOYEE, label: t('rc.employee.none') }, ...employees]} value={filterForm.employee_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('employee_id', value ?? '')} />
+                          </Field>
+                        )}
+                        {has('search') && (
+                          <Field label={t('rc.f.search')}>
+                            <Input value={filterForm.q} maxLength={100} onChange={(event) => setFilter('q', event.target.value)} aria-label={t('rc.f.search')} />
+                          </Field>
+                        )}
+                        {has('sort') && (
+                          <>
+                            <Field label={t('rc.f.sortBy')}>
+                              <Select value={filterForm.sort_by} onChange={(event) => setFilter('sort_by', event.target.value as FilterForm['sort_by'])}>
+                                <option value="">{t('rc.sort.none')}</option>
+                                {SORT_KEYS.map((key) => <option key={key} value={key}>{t('rc.sort.' + key)}</option>)}
+                              </Select>
+                            </Field>
+                            <Field label={t('rc.f.sortDir')}>
+                              <Select value={filterForm.sort_dir} disabled={!filterForm.sort_by} onChange={(event) => setFilter('sort_dir', event.target.value as 'asc' | 'desc')}>
+                                <option value="asc">{t('rc.dir.asc')}</option>
+                                <option value="desc">{t('rc.dir.desc')}</option>
+                              </Select>
+                            </Field>
+                          </>
+                        )}
+                        {has('blank') && (
+                          <Field label={t('rc.f.blankRows')} hint={t('rc.f.blankRowsHint')}>
+                            <Input inputMode="numeric" value={filterForm.blank_rows} onChange={(event) => setFilter('blank_rows', event.target.value.replace(/[^0-9]/g, '').slice(0, 3))} aria-label={t('rc.f.blankRows')} />
+                          </Field>
+                        )}
+                      </div>
+                      {has('group') && (
+                        <label className="flex items-start gap-2 text-sm text-ink">
+                          <input type="checkbox" className="mt-1" checked={groupByLocation} disabled={grouping.length > 0} onChange={(event) => setFilter('group', event.target.checked)} />
+                          <span>
+                            {t('rc.f.groupByLocation')}
+                            <span className="block text-xs text-ink-faint">{grouping.length > 0 ? t('rc.f.groupDisabled') : t('rc.f.groupByLocationHint')}</span>
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                  )}
+                  {availableResources.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
+                      {canPreview && (
+                        <Button variant="primary" loading={preview.status === 'loading'} onClick={() => void viewReport()}>
+                          <FileSearch className="h-4 w-4" /> {t('rc.view')}
+                        </Button>
+                      )}
+                      <Button variant="secondary" onClick={() => void printServerPdf()} disabled={!selectedResource}>
+                        <Printer className="h-4 w-4" /> {t('rc.print')}
+                      </Button>
+                      <Button variant="secondary" loading={exporting} onClick={() => void download()} disabled={!selectedResource}>
+                        <Download className="h-4 w-4" /> {t('rc.download')}
+                      </Button>
+                      {filterKeys.length > 0 && (
+                        <Button variant="ghost" onClick={resetFilters}>
+                          <RotateCcw className="h-4 w-4" /> {t('rc.reset')}
+                        </Button>
+                      )}
+                      {!designerResource && <p className="basis-full text-xs text-ink-faint">{t('rc.fixedLayout')}</p>}
+                    </div>
+                  )}
                 </CardBody>
               </Card>
+
+              {preview.status !== 'idle' && (
+                <div ref={previewRef} className="scroll-mt-4 print-hide">
+                  <ReportPreviewCard state={preview} onRetry={() => void viewReport()} />
+                </div>
+              )}
 
               <Card className="border-brand/20 bg-gradient-to-br from-violet-500/10 via-surface to-surface print-hide" aria-live="polite">
                 <CardBody className="space-y-4">
@@ -629,7 +917,7 @@ export default function ReportsPage() {
                 </CardBody>
               </Card>
 
-              {showDesigner && availableResources.length > 0 && (
+              {showDesigner && designerResource && availableResources.length > 0 && (
                 <Card className="border-brand/15 bg-surface print-hide">
                   <CardHeader
                     title={t('module.reportsDesignerTitle')}

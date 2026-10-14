@@ -50,20 +50,22 @@ export async function clearLogo(): Promise<OrganizationSettings> {
   return mapSettings(await http.del<unknown>('/settings/logo'));
 }
 
-/** Report Designer — which columns each report prints, rows per page, totals and numbering. */
+/** Report Designer — column widths of each report, rows per page, totals and numbering. */
 export interface ReportDesigner {
   rows_per_page: number;
   show_totals: boolean;
   row_numbers: boolean;
   /** columns chosen per report; a missing or empty list means "use the defaults" */
   columns: Record<string, string[]>;
+  /** width of a column as a percent of the page, per report; a column that is not listed is sized automatically */
+  widths: Record<string, Record<string, number>>;
   /** every column a report can offer, and the ones shown by default */
   catalog: Record<string, { columns: string[]; defaults: string[] }>;
   labels: Record<string, { ar: string; en: string }>;
   titles: Record<string, { ar: string; en: string }>;
 }
 
-export type ReportDesignerPatch = Partial<Pick<ReportDesigner, 'rows_per_page' | 'show_totals' | 'row_numbers' | 'columns'>>;
+export type ReportDesignerPatch = Partial<Pick<ReportDesigner, 'rows_per_page' | 'show_totals' | 'row_numbers' | 'columns' | 'widths'>>;
 
 const strings = (value: unknown): string[] => (Array.isArray(value) ? value.map((v) => String(v)) : []);
 
@@ -88,12 +90,21 @@ export function mapReportDesigner(raw: unknown): ReportDesigner {
     const keys = strings(list);
     if (keys.length > 0) columns[resource] = keys;
   }
+  const widths: Record<string, Record<string, number>> = {};
+  for (const [resource, map] of Object.entries((value.widths ?? {}) as Record<string, unknown>)) {
+    const clean: Record<string, number> = {};
+    for (const [key, width] of Object.entries((map ?? {}) as Record<string, unknown>)) {
+      if (typeof width === 'number' && Number.isFinite(width)) clean[key] = width;
+    }
+    if (Object.keys(clean).length > 0) widths[resource] = clean;
+  }
   const rows = Number(value.rows_per_page ?? 0);
   return {
     rows_per_page: Number.isInteger(rows) && rows > 0 ? rows : 0,
     show_totals: value.show_totals !== false,
     row_numbers: value.row_numbers === true,
     columns,
+    widths,
     catalog,
     labels: pairs(value.labels),
     titles: pairs(value.titles),

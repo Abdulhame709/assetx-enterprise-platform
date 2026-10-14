@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/form';
@@ -31,10 +30,36 @@ export function ReportDesignerCard() {
   );
 }
 
-/** The columns a report prints now: the saved choice, else its defaults. */
-function currentColumns(designer: ReportDesigner, resource: string): string[] {
-  const saved = designer.columns[resource];
-  return saved && saved.length > 0 ? saved : designer.catalog[resource]?.defaults ?? [];
+const MIN_WIDTH = 3;
+const MAX_WIDTH = 60;
+
+type WidthText = Record<string, Record<string, string>>;
+
+/** What the boxes show for the saved widths ("" = automatic). */
+function widthText(designer: ReportDesigner): WidthText {
+  const out: WidthText = {};
+  for (const resource of Object.keys(designer.catalog)) {
+    out[resource] = {};
+    for (const key of designer.catalog[resource].columns) {
+      const width = designer.widths[resource]?.[key];
+      out[resource][key] = width === undefined ? '' : String(width);
+    }
+  }
+  return out;
+}
+
+const widthValid = (text: string) => text === '' || (/^[0-9]{1,2}$/.test(text) && Number(text) >= MIN_WIDTH && Number(text) <= MAX_WIDTH);
+
+/** Only the typed widths of one report, as numbers. */
+function widthMap(texts: Record<string, string> | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [key, text] of Object.entries(texts ?? {})) if (text !== '') out[key] = Number(text);
+  return out;
+}
+
+function sameMap(a: Record<string, number>, b: Record<string, number>): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
 }
 
 function DesignerForm({ initial }: { initial: ReportDesigner }) {
@@ -47,12 +72,8 @@ function DesignerForm({ initial }: { initial: ReportDesigner }) {
   const [rows, setRows] = useState(String(initial.rows_per_page));
   const [totals, setTotals] = useState(initial.show_totals);
   const [numbers, setNumbers] = useState(initial.row_numbers);
-  // chosen columns per report, edited locally until saved
-  const [columns, setColumns] = useState<Record<string, string[]>>(() => {
-    const out: Record<string, string[]> = {};
-    for (const r of Object.keys(initial.catalog)) out[r] = currentColumns(initial, r);
-    return out;
-  });
+  // widths typed per report, edited locally until saved
+  const [widths, setWidths] = useState<WidthText>(() => widthText(initial));
   const [busy, setBusy] = useState(false);
 
   const label = (key: string) => initial.labels[key]?.[locale === 'ar' ? 'ar' : 'en'] ?? key;
@@ -62,59 +83,44 @@ function DesignerForm({ initial }: { initial: ReportDesigner }) {
   const rowsValid = rows.trim() !== '' && Number.isInteger(rowsNumber) && (rowsNumber === 0 || (rowsNumber >= MIN_ROWS && rowsNumber <= MAX_ROWS));
 
   const entry = initial.catalog[resource];
-  const chosen = columns[resource] ?? [];
-  const isDefault = !!entry && chosen.length === entry.defaults.length && chosen.every((key, i) => key === entry.defaults[i]);
-  const unchosen = (entry?.columns ?? []).filter((key) => !chosen.includes(key));
+  const current = widths[resource] ?? {};
+  const allValid = Object.values(widths).every((report) => Object.values(report).every(widthValid));
+  const total = Object.values(widthMap(current)).reduce((sum, width) => sum + width, 0);
+  const overflow = Object.values(widths).some((report) => Object.values(widthMap(report)).reduce((sum, width) => sum + width, 0) > 100);
 
-  const setChosen = (next: string[]) => setColumns((c) => ({ ...c, [resource]: next }));
-  const toggle = (key: string, on: boolean) => {
-    if (on) setChosen([...chosen, key]);
-    else if (chosen.length > 1) setChosen(chosen.filter((k) => k !== key));
-  };
-  const move = (index: number, by: -1 | 1) => {
-    const target = index + by;
-    if (target < 0 || target >= chosen.length) return;
-    const next = [...chosen];
-    [next[index], next[target]] = [next[target], next[index]];
-    setChosen(next);
-  };
+  const setWidth = (key: string, text: string) => setWidths((all) => ({ ...all, [resource]: { ...all[resource], [key]: text.replace(/[^0-9]/g, '').slice(0, 2) } }));
+  const resetWidths = () => setWidths((all) => ({ ...all, [resource]: Object.fromEntries(Object.keys(all[resource] ?? {}).map((key) => [key, ''])) }));
 
-  // Only what differs from what is saved is sent; defaults are sent as [] so the server resets them.
-  const changedColumns = (): Record<string, string[]> => {
-    const out: Record<string, string[]> = {};
+  // Only the reports that changed are sent; an empty map tells the server to go back to automatic.
+  const changedWidths = (): Record<string, Record<string, number>> => {
+    const out: Record<string, Record<string, number>> = {};
     for (const r of resources) {
-      const now = columns[r] ?? [];
-      const before = currentColumns(saved, r);
-      if (now.length === before.length && now.every((key, i) => key === before[i])) continue;
-      const defaults = saved.catalog[r]?.defaults ?? [];
-      const sameAsDefaults = now.length === defaults.length && now.every((key, i) => key === defaults[i]);
-      out[r] = sameAsDefaults ? [] : now;
+      const now = widthMap(widths[r]);
+      if (!sameMap(now, saved.widths[r] ?? {})) out[r] = now;
     }
     return out;
   };
 
-  const dirty = rowsValid && (
+  const dirty = rowsValid && allValid && !overflow && (
     rowsNumber !== saved.rows_per_page || totals !== saved.show_totals || numbers !== saved.row_numbers
-    || Object.keys(changedColumns()).length > 0
+    || Object.keys(changedWidths()).length > 0
   );
 
   async function save() {
     setBusy(true);
     try {
-      const changes = changedColumns();
+      const changes = changedWidths();
       const next = await updateReportDesigner({
         rows_per_page: rowsNumber,
         show_totals: totals,
         row_numbers: numbers,
-        ...(Object.keys(changes).length > 0 ? { columns: changes } : {}),
+        ...(Object.keys(changes).length > 0 ? { widths: changes } : {}),
       });
       setSaved(next);
       setRows(String(next.rows_per_page));
       setTotals(next.show_totals);
       setNumbers(next.row_numbers);
-      const fresh: Record<string, string[]> = {};
-      for (const r of Object.keys(next.catalog)) fresh[r] = currentColumns(next, r);
-      setColumns(fresh);
+      setWidths(widthText(next));
       toast.success(t('rd.saved'), t('rd.savedDesc'));
     } catch (err) {
       toast.error(t('common.error'), humanError(err, undefined, locale));
@@ -160,46 +166,39 @@ function DesignerForm({ initial }: { initial: ReportDesigner }) {
         </Field>
 
         <div>
-          <p className="ax-label">{t('rd.columns')}</p>
-          <p className="text-xs text-ink-faint">{t('rd.columnsHint')}</p>
-          <p className="mt-1 text-xs text-ink-muted">{isDefault ? t('rd.usingDefaults') : t('rd.customised')}</p>
+          <p className="ax-label">{t('rd.widthsTitle')}</p>
+          <p className="text-xs text-ink-faint">{t('rd.widthsHint')}</p>
         </div>
 
-        <ul className="divide-y divide-line rounded-lg border border-line" aria-label={t('rd.columns')}>
-          {chosen.map((key, index) => (
-            <li key={key} className="flex items-center gap-2 px-3 py-1.5 text-sm">
-              <input
-                type="checkbox"
-                checked
-                disabled={!canEdit || busy || chosen.length === 1}
-                aria-label={label(key)}
-                onChange={(e) => toggle(key, e.target.checked)}
-              />
-              <span className="flex-1 text-ink">{label(key)}</span>
-              {canEdit && (
-                <span className="flex gap-1">
-                  <Button variant="ghost" size="sm" aria-label={t('rd.moveUp')} disabled={busy || index === 0} onClick={() => move(index, -1)}>
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" aria-label={t('rd.moveDown')} disabled={busy || index === chosen.length - 1} onClick={() => move(index, 1)}>
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                </span>
-              )}
-            </li>
-          ))}
-          {unchosen.map((key) => (
-            <li key={key} className="flex items-center gap-2 bg-surface-muted/40 px-3 py-1.5 text-sm">
-              <input type="checkbox" checked={false} disabled={!canEdit || busy} aria-label={label(key)} onChange={(e) => toggle(key, e.target.checked)} />
-              <span className="flex-1 text-ink-muted">{label(key)}</span>
-            </li>
-          ))}
+        <ul className="divide-y divide-line rounded-lg border border-line" aria-label={t('rd.widthsTitle')}>
+          {(entry?.columns ?? []).map((key) => {
+            const text = current[key] ?? '';
+            const ok = widthValid(text);
+            return (
+              <li key={key} className="flex items-center gap-3 px-3 py-1.5 text-sm">
+                <span className="flex-1 text-ink">{label(key)}</span>
+                <Input
+                  inputMode="numeric"
+                  className="w-20 text-center"
+                  value={text}
+                  placeholder={t('rd.widthAuto')}
+                  disabled={!canEdit || busy}
+                  aria-label={label(key)}
+                  aria-invalid={!ok}
+                  onChange={(e) => setWidth(key, e.target.value)}
+                />
+                <span className="w-4 text-ink-muted">{t('rd.widthPercent')}</span>
+              </li>
+            );
+          })}
         </ul>
-        {chosen.length === 1 && <p className="text-xs text-ink-faint">{t('rd.atLeastOne')}</p>}
+        {!Object.values(current).every(widthValid) && <p className="text-xs text-danger">{t('rd.widthInvalid')}</p>}
+        {total > 0 && <p className={total > 100 ? 'text-xs text-danger' : 'text-xs text-ink-muted'}>{t('rd.widthTotal').replace('{total}', String(total))}</p>}
+        {overflow && <p className="text-xs text-danger">{t('rd.widthOver')}</p>}
 
-        {canEdit && !isDefault && entry && (
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => setChosen([...entry.defaults])}>
-            {t('rd.useDefaults')}
+        {canEdit && total > 0 && (
+          <Button variant="ghost" size="sm" disabled={busy} onClick={resetWidths}>
+            {t('rd.widthReset')}
           </Button>
         )}
       </div>

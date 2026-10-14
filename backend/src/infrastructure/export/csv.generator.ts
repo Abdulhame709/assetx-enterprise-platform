@@ -8,6 +8,7 @@ import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
 import { cellText, csvSafe } from './cell-format';
+import { bandText, isGroupRow } from '../../core/constants/report-groups';
 
 @Injectable()
 export class CsvGenerator implements FileGenerator {
@@ -37,7 +38,8 @@ export class CsvGenerator implements FileGenerator {
         }
         if (index < data.length) {
           const row = data[index++];
-          this.push(self.row(self.valuesOf(row, headerKeys)));
+          // A location band is a line of its own: the name (and count) in the first cell.
+          this.push(self.row(isGroupRow(row) ? [bandText(row), ...headerKeys.slice(1).map(() => '')] : self.valuesOf(row, headerKeys)));
         } else {
           this.push(null);
         }
