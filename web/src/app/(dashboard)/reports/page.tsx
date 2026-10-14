@@ -741,7 +741,7 @@ export default function ReportsPage() {
                 <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(locale)} icon={Archive} tone="neutral" />
               </div>
 
-              <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface print-hide">
+              <Card className="border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface print-hide">
                 <CardBody className="space-y-4">
                   <div className="flex items-start gap-3">
                     <span className="rounded-xl bg-brand/10 p-2.5 text-brand"><BarChart3 className="h-5 w-5" aria-hidden="true" /></span>
