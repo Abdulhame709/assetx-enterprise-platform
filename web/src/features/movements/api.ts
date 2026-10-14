@@ -13,6 +13,7 @@
  *   stored status exactly as the backend owns it.
  */
 import { http, API_BASE_URL } from '@/lib/api/client';
+import { currentReportLang } from '@/lib/api/report-lang';
 import { getEmployees, getStatuses, ReferenceEmployee, ReferenceStatus } from '@/features/reference/api';
 import { getLocations } from '@/features/locations/api';
 
@@ -268,7 +269,7 @@ export async function rejectMovement(id: string): Promise<MovementRow | null> {
 export async function downloadMovementsExport(format: 'csv' | 'xlsx' | 'pdf' = 'csv'): Promise<void> {
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
-  const res = await fetch(`${API_BASE_URL}/exports/movements?format=${format}`, {
+  const res = await fetch(`${API_BASE_URL}/exports/movements?format=${format}&lang=${currentReportLang()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);

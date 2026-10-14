@@ -105,6 +105,7 @@ import { ExportController } from './api/export/export.controller';
 import { ExportPipelineService } from './application/export/export-pipeline.service';
 import { ExportProfileRegistry } from './application/export/export-profile.registry';
 import { ExportMetricsService } from './application/export/export-metrics.service';
+import { ReportMetaService } from './application/export/report-meta.service';
 import { CsvExportStrategy } from './infrastructure/export/strategies/csv-export.strategy';
 import { ExcelExportStrategy } from './infrastructure/export/strategies/excel-export.strategy';
 import { PdfExportStrategy } from './infrastructure/export/strategies/pdf-export.strategy';
@@ -272,6 +273,7 @@ function resolveJwtSecrets(): { access: string; refresh: string } {
     ExportStrategyFactory,
     ExportProfileRegistry,
     ExportMetricsService,
+    ReportMetaService,
     ExportPipelineService,
     ExportService,
     LifecycleStateConfig,

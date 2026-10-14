@@ -6,6 +6,7 @@
  * Mock mode remains a controlled development fallback (AUTH_MODE=mock).
  */
 import { http, API_BASE_URL, ApiError } from '@/lib/api/client';
+import { currentReportLang } from '@/lib/api/report-lang';
 import {
   AssetAnalyticsSummary,
   AssetDepreciation,
@@ -269,7 +270,7 @@ export async function downloadAssetExport(format: 'csv' | 'xlsx' | 'pdf' = 'csv'
   assertRealMode();
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
-  const res = await fetch(`${API_BASE_URL}/exports/assets?format=${format}`, {
+  const res = await fetch(`${API_BASE_URL}/exports/assets?format=${format}&lang=${currentReportLang()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {

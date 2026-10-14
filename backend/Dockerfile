@@ -20,6 +20,8 @@ WORKDIR /app
 COPY --from=dependencies /app/backend/node_modules ./backend/node_modules
 COPY --from=build /app/backend/dist ./backend/dist
 COPY backend/package.json ./backend/package.json
+# Arabic report fonts (PDF export) are loaded from backend/assets at runtime.
+COPY backend/assets ./backend/assets
 COPY db ./db
 USER node
 EXPOSE 3001

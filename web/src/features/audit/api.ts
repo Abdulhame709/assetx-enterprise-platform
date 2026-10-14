@@ -5,6 +5,7 @@
  * No mock mode: this feature is real-only, like the rest of the app (AUTH_MODE=real).
  */
 import { http, API_BASE_URL } from '@/lib/api/client';
+import { currentReportLang } from '@/lib/api/report-lang';
 import { AuditEventRow, AuditQuery, PagedAudit } from './types';
 
 function asStr(v: unknown): string | null {
@@ -80,7 +81,7 @@ export async function getSecurityEvents(query: AuditQuery): Promise<PagedAudit> 
 export async function downloadAuditExport(): Promise<void> {
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
-  const res = await fetch(`${API_BASE_URL}/exports/audit?format=csv`, {
+  const res = await fetch(`${API_BASE_URL}/exports/audit?format=csv&lang=${currentReportLang()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
