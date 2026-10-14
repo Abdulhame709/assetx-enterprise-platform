@@ -26,6 +26,7 @@ import { humanError } from '@/lib/api/errors';
 import { AuditEventRow, AuditTab } from '@/features/audit/types';
 import { useAuditEvents } from '@/features/audit/use-audit';
 import { downloadAuditExport } from '@/features/audit/api';
+import { printReportExport } from '@/features/reports/api';
 import { AuditDetailModal } from '@/features/audit/components/AuditDetailModal';
 import { actionTone } from '@/features/audit/badge-tones';
 
@@ -109,6 +110,14 @@ export default function AuditPage() {
     },
   ];
 
+  const onPrint = async () => {
+    try {
+      await printReportExport('audit');
+    } catch {
+      window.print();
+    }
+  };
+
   const onExport = async () => {
     setExporting(true);
     try {
@@ -135,7 +144,7 @@ export default function AuditPage() {
         actions={[
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
           { id: 'export', label: t('audit.exportCsv'), icon: Download, onClick: () => void onExport(), permission: PERMISSIONS.EXPORT_AUDIT, loading: exporting, variant: 'primary' },
-          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => void onPrint(), separated: true },
           { id: 'reset', label: t('audit.clearFilters'), icon: Undo2, onClick: clearFilters, disabled: !hasFilters },
         ]}
       />

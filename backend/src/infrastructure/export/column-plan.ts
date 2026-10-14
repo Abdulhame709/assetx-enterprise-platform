@@ -6,6 +6,7 @@
  * Reference: Task T8 — Enterprise Export Framework.
  */
 import { ExportColumn, ExportOptions } from '../../core/entities/export.entity';
+import { columnLabel } from '../../core/constants/export-labels';
 
 export interface ColumnPlan {
   /** ordered keys to extract from each row */
@@ -19,9 +20,11 @@ export function resolveColumnPlan(data: unknown[], options?: ExportOptions): Col
   if (cols && cols.length > 0) {
     const ordered = cols.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const keys = ordered.map((c) => c.key);
-    const labels = ordered.map((c) => c.label ?? c.key);
+    const lang = options?.meta?.lang;
+    const labels = ordered.map((c) => (lang ? columnLabel(c.key, c.label, lang) : c.label ?? c.key));
     return { keys, labels };
   }
   const keys = data.length > 0 ? Object.keys(data[0] as Record<string, unknown>) : [];
-  return { keys, labels: keys };
+  const lang = options?.meta?.lang;
+  return { keys, labels: lang ? keys.map((k) => columnLabel(k, undefined, lang)) : keys };
 }

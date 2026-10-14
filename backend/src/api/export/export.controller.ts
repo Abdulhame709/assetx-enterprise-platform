@@ -6,7 +6,8 @@
 import { BadRequestException, Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
 import { ExportService } from '../../application/export.service';
-import { ExportColumn, ExportFormat } from '../../core/entities/export.entity';
+import { ReportMetaService } from '../../application/export/report-meta.service';
+import { ExportColumn, ExportFormat, ExportResource } from '../../core/entities/export.entity';
 import { ReportAggregation, ReportGroup, ReportSort } from '../../core/entities/report.entity';
 import { ExportProfileId } from '../../core/entities/export-profile.entity';
 import { AuthGuard } from '../../common/guards/auth.guard';
@@ -21,39 +22,39 @@ const VALID_AGGREGATIONS: ReportAggregation[] = ['count', 'sum', 'avg', 'min', '
 @Controller('exports')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class ExportController {
-  constructor(private readonly exports: ExportService) {}
+  constructor(private readonly exports: ExportService, private readonly reportMeta: ReportMetaService) {}
 
   @Get('assets')
   @RequirePermission('export.assets')
-  assets(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
-    return this.stream('assets', format, limit, profile, columns, sorting, grouping, u, res);
+  assets(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @Query('lang') lang: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('assets', format, limit, profile, columns, sorting, grouping, lang, u, res);
   }
 
   @Get('movements')
   @RequirePermission('export.movements')
-  movements(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
-    return this.stream('movements', format, limit, profile, columns, sorting, grouping, u, res);
+  movements(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @Query('lang') lang: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('movements', format, limit, profile, columns, sorting, grouping, lang, u, res);
   }
 
   @Get('inventory')
   @RequirePermission('export.inventory')
-  inventory(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
-    return this.stream('inventory', format, limit, profile, columns, sorting, grouping, u, res);
+  inventory(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @Query('lang') lang: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('inventory', format, limit, profile, columns, sorting, grouping, lang, u, res);
   }
 
   @Get('audit')
   @RequirePermission('export.audit')
-  audit(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
-    return this.stream('audit', format, limit, profile, columns, sorting, grouping, u, res);
+  audit(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @Query('lang') lang: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('audit', format, limit, profile, columns, sorting, grouping, lang, u, res);
   }
 
   @Get('dashboard')
   @RequirePermission('export.dashboard')
-  dashboard(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
-    return this.stream('dashboard', format, limit, profile, columns, sorting, grouping, u, res);
+  dashboard(@Query('format') format: ExportFormat, @Query('limit') limit: string, @Query('profile') profile: string, @Query('columns') columns: string, @Query('sorting') sorting: string, @Query('grouping') grouping: string, @Query('lang') lang: string, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dashboard', format, limit, profile, columns, sorting, grouping, lang, u, res);
   }
 
-  private async stream(resource: string, format: ExportFormat, limit: string, profile: string, columns: string, sorting: string, grouping: string, u: RequestUser, res: Response): Promise<void> {
+  private async stream(resource: string, format: ExportFormat, limit: string, profile: string, columns: string, sorting: string, grouping: string, lang: string, u: RequestUser, res: Response): Promise<void> {
     const fmt: ExportFormat = format ?? 'csv';
     const parsedProfile = this.parseProfile(profile);
     const parsedColumns = this.parseColumns(columns);
@@ -62,6 +63,16 @@ export class ExportController {
     const reportMetadata = this.buildReportMetadata(parsedColumns, parsedSorting, parsedGrouping);
     let result;
     try {
+      const meta = await this.reportMeta.build({
+        tenantId: u.tenant_id,
+        userName: u.username,
+        resource: resource as ExportResource,
+        lang,
+        profile: parsedProfile,
+        columns: parsedColumns,
+        sorting: parsedSorting,
+        grouping: parsedGrouping,
+      });
       result = await this.exports.generate({
         tenant_id: u.tenant_id,
         userId: u.sub,
@@ -70,6 +81,7 @@ export class ExportController {
         options: {
           limit: limit ? Number(limit) : 10000,
           includeHeaders: true,
+          meta,
           ...(parsedProfile ? { profile: parsedProfile } : {}),
           ...(parsedColumns ? { columns: parsedColumns } : {}),
           ...(reportMetadata ? { filters: { __report: reportMetadata } } : {}),

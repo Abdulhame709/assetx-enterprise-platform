@@ -34,6 +34,7 @@ import {
   MovementRow, MovementType, MOVEMENT_TYPES, MovementFilter, DEFAULT_FILTER,
   approveMovement, rejectMovement, downloadMovementsExport,
 } from '@/features/movements/api';
+import { printReportExport } from '@/features/reports/api';
 import { MovementDetailModal, STATUS_TONE } from '@/features/movements/components/MovementDetailModal';
 
 type StatusTab = 'pending' | 'all' | 'approved' | 'rejected';
@@ -150,6 +151,14 @@ export default function MovementsPage() {
       state.reload(); // e.g. MOVEMENT_NOT_PENDING — refresh stale row
     } finally {
       setDecidingId(null);
+    }
+  };
+
+  const onPrint = async () => {
+    try {
+      await printReportExport('movements');
+    } catch {
+      window.print();
     }
   };
 
@@ -285,7 +294,7 @@ export default function MovementsPage() {
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
           { id: 'export', label: t('movements.exportCsv'), icon: Download, onClick: () => void onExport('csv'), permission: PERMISSIONS.EXPORT_MOVEMENTS, loading: exporting, variant: 'primary' },
           { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void onExport('pdf'), permission: PERMISSIONS.EXPORT_MOVEMENTS, loading: exporting },
-          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => void onPrint(), separated: true },
           { id: 'reset', label: t('movements.clearFilters'), icon: Undo2, onClick: clearFilters, disabled: !filtered },
         ]}
       />

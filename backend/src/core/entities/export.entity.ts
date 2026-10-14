@@ -26,7 +26,35 @@ export interface ReportExecutionMetadata {
   }>;
 }
 
+/** Presentation context printed on every PDF/XLSX report (header, footer, direction). */
+export interface ExportMeta {
+  /** resource being exported — lets generators decide which columns can be totalled */
+  resource?: ExportResource;
+  title?: string;
+  organizationName?: string;
+  /** PNG/JPEG bytes of the organization logo (optional) */
+  logo?: Buffer;
+  userName?: string;
+  /** human-readable description of sorting/grouping/profile shown under the title */
+  filtersText?: string;
+  /** ISO timestamp the report was produced */
+  generatedAt?: string;
+  /** report language; drives labels, direction and alignment */
+  lang?: 'ar' | 'en';
+  dir?: 'rtl' | 'ltr';
+  /** auto = landscape when the table has more than 7 columns */
+  orientation?: 'auto' | 'portrait' | 'landscape';
+  /** optional narrative (e.g. the AI summary) printed above the table */
+  summary?: string;
+  /** print a signatures block after the table */
+  signatures?: boolean;
+  /** diagonal "draft" watermark */
+  draft?: boolean;
+}
+
 export interface ExportOptions {
+  /** presentation context for PDF/XLSX (title, organization, user, language) */
+  meta?: ExportMeta;
   /** filters / parameters passed to the data provider */
   filters?: Record<string, unknown>;
   /** page size hint for streaming large datasets */

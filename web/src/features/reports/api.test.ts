@@ -32,7 +32,7 @@ describe('report export API', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(response);
     await downloadReportExport({ resource: 'inventory', format: 'csv', limit: 250 });
 
-    expect(fetch).toHaveBeenCalledWith('/api/exports/inventory?format=csv&limit=250', {
+    expect(fetch).toHaveBeenCalledWith('/api/exports/inventory?format=csv&limit=250&lang=ar', {
       headers: { Authorization: 'Bearer access-token' },
     });
     expect((document.createElement('a') as unknown as { click: () => void }).click).toBeDefined();

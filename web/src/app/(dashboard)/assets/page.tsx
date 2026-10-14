@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { deleteAsset, disposeAsset, downloadAssetExport, getAsset, getCategories } from '@/features/assets/api';
+import { printReportExport } from '@/features/reports/api';
 import { getLocationsTree } from '@/features/assets/components/reference-selects';
 import { getEmployees, getStatuses, type ReferenceEmployee, type ReferenceStatus } from '@/features/reference/api';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
@@ -117,6 +118,14 @@ export default function AssetsPage() {
     reload();
   };
 
+  const onPrint = async () => {
+    try {
+      await printReportExport('assets');
+    } catch {
+      window.print();
+    }
+  };
+
   const onExport = async (format: 'csv' | 'pdf' = 'csv') => {
     setExporting(true);
     try {
@@ -199,7 +208,7 @@ export default function AssetsPage() {
           { id: 'search', label: t('assets.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), separated: true },
           { id: 'export', label: t('common.export'), icon: Download, onClick: () => void onExport('csv'), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
           { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void onExport('pdf'), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
-          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => void onPrint(), separated: true },
           { id: 'import', label: t('assets.importExcel'), icon: FileSpreadsheet, href: '/import-data', permission: PERMISSIONS.ASSET_CREATE },
           { id: 'preview', label: t('assets.previewCommand'), icon: Eye, onClick: () => setShowMobileDetail(true), disabled: !activeAsset },
           { id: 'add', label: t('assets.addCommand'), icon: Plus, onClick: () => { setFormAsset(null); setFormMode('create'); setFormOpen(true); }, permission: PERMISSIONS.ASSET_CREATE, variant: 'primary' },
