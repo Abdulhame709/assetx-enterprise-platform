@@ -9,6 +9,7 @@ import * as ExcelJS from 'exceljs';
 import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
+import { cellText } from './cell-format';
 
 @Injectable()
 export class ExcelGenerator implements FileGenerator {
@@ -30,7 +31,7 @@ export class ExcelGenerator implements FileGenerator {
     }
     for (const row of data) {
       const rec = (row ?? {}) as Record<string, unknown>;
-      sheet.addRow(headerKeys.map((k) => rec[k] ?? ''));
+      sheet.addRow(headerKeys.map((k) => (typeof rec[k] === 'number' ? rec[k] : cellText(rec[k]))));
     }
 
     const stream = new Readable();

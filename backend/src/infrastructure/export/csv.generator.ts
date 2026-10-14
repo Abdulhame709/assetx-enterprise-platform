@@ -7,6 +7,7 @@ import { Readable } from 'stream';
 import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
+import { cellText, csvSafe } from './cell-format';
 
 @Injectable()
 export class CsvGenerator implements FileGenerator {
@@ -52,9 +53,8 @@ export class CsvGenerator implements FileGenerator {
 
   private row(values: unknown[]): string {
     const escaped = values.map((v) => {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      const s = csvSafe(cellText(v));
+      return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     });
     return `${escaped.join(',')}\n`;
   }

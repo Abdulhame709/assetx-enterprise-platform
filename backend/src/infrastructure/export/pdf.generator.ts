@@ -15,6 +15,7 @@ import { ExportFormat, ExportOptions } from '../../core/entities/export.entity';
 import { ReportTemplate } from '../../core/entities/report-template.entity';
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
+import { cellText } from './cell-format';
 
 const PAGE_DIMS: Record<string, [number, number]> = {
   A4: [595.28, 841.89], A3: [841.89, 1190.55], LETTER: [612, 792], LEGAL: [612, 1008],
@@ -83,7 +84,7 @@ function distributeTableWidths(headers: string[], rows: unknown[], keys: string[
     let maxUnits = measureCellUnits(headers[i] ?? keys[i]);
     let allEmpty = true;
     for (const row of rows) {
-      const value = String((row as Record<string, unknown>)?.[keys[i]] ?? '');
+      const value = cellText((row as Record<string, unknown>)?.[keys[i]]);
       const units = measureCellUnits(value);
       if (units > maxUnits) maxUnits = units;
       if (value.trim() !== '') allEmpty = false;
@@ -243,7 +244,7 @@ export class PdfGenerator implements FileGenerator {
     if (includeHeaders && headerKeys.length > 0) drawRow(headerLabels, true, 0);
     data.forEach((row, i) => {
       const rec = (row ?? {}) as Record<string, unknown>;
-      drawRow(headerKeys.map((k) => String(rec[k] ?? '')), false, i);
+      drawRow(headerKeys.map((k) => cellText(rec[k])), false, i);
     });
   }
 
