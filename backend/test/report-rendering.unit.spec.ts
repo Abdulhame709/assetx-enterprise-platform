@@ -2,6 +2,7 @@
  * Unit tests — report rendering (RTL ordering, number formatting, PDF and XLSX layout).
  */
 import * as ExcelJS from 'exceljs';
+import PDFKit = require('pdfkit');
 import { visualSegments } from '../src/infrastructure/export/rtl-text';
 import { columnTotals, displayText, formatNumber, isNumericColumn } from '../src/infrastructure/export/cell-format';
 import { PdfGenerator } from '../src/infrastructure/export/pdf.generator';
@@ -86,6 +87,27 @@ describe('PdfGenerator — ERP layout', () => {
     expect((text.match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThan(1);
     expect(text).toContain('/FontFile2');
     expect(text).toContain('/MediaBox [0 0 595.28 841.89]');
+  });
+
+  it('places the words of an Arabic title right to left, with a gap between them', async () => {
+    const calls: { text: string; x: number }[] = [];
+    const original = PDFKit.prototype.text;
+    const spy = jest.spyOn(PDFKit.prototype, 'text').mockImplementation(function (this: PDFKit.PDFDocument, ...args: unknown[]) {
+      calls.push({ text: String(args[0]), x: Number(args[1]) });
+      return (original as (...a: unknown[]) => PDFKit.PDFDocument).apply(this, args);
+    } as never);
+    try {
+      await collect(gen.generate(rows(1), { columns, meta: { ...arMeta, title: 'جهاز كمبيوتر محمول' } } as ExportOptions));
+    } finally {
+      spy.mockRestore();
+    }
+    const [w1, w2, w3] = ['جهاز', 'كمبيوتر', 'محمول'].map((w) => calls.find((c) => c.text === w));
+    expect(w1 && w2 && w3).toBeTruthy();
+    // first word is the right-most one, last word the left-most one
+    expect(w1!.x).toBeGreaterThan(w2!.x);
+    expect(w2!.x).toBeGreaterThan(w3!.x);
+    // and nothing is drawn as a multi-word Arabic string that PDFKit would reorder
+    expect(calls.some((c) => c.text.includes('جهاز ') && c.text.includes('كمبيوتر'))).toBe(false);
   });
 
   it('switches to landscape automatically for wide reports', async () => {

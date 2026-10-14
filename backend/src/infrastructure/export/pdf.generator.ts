@@ -23,7 +23,7 @@ import { MONEY_KEYS, REPORT_TEXT } from '../../core/constants/export-labels';
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
 import { columnTotals, displayText, formatNumber, isNumericColumn } from './cell-format';
-import { BaseDirection, visualSegments } from './rtl-text';
+import { BaseDirection, hasRtlLetters, visualSegments } from './rtl-text';
 
 const PAGE_DIMS: Record<string, [number, number]> = {
   A4: [595.28, 841.89], A3: [841.89, 1190.55], LETTER: [612, 792], LEGAL: [612, 1008],
@@ -198,9 +198,17 @@ class Painter {
     const y = o.baseline - this.ascent(o.bold, o.size);
     this.doc.fillColor(o.color);
     for (const segment of segments) {
-      this.doc.font(this.fontName(o.bold)).fontSize(o.size).text(segment, x, y, { lineBreak: false });
-      this.current = this.fontName(o.bold);
-      x += this.width(segment, o.bold, o.size);
+      // PDFKit lays a string out word by word (split at spaces) and keeps the words in
+      // logical order, so a multi-word Arabic segment would show its words reversed.
+      // Arabic segments are therefore placed token by token, last word first.
+      const tokens = hasRtlLetters(segment) ? segment.split(/( +)/).filter(Boolean).reverse() : [segment];
+      for (const token of tokens) {
+        if (token.trim()) {
+          this.doc.font(this.fontName(o.bold)).fontSize(o.size).text(token, x, y, { lineBreak: false });
+          this.current = this.fontName(o.bold);
+        }
+        x += this.width(token, o.bold, o.size);
+      }
     }
   }
 }
@@ -292,7 +300,7 @@ export class PdfGenerator implements FileGenerator {
     const stampText = stamp(meta?.generatedAt);
 
     // ---- logo (optional, never fatal) ------------------------------------
-    const logoSize = 38;
+    const logoSize = 32;
     const drawLogo = (x: number, y: number, size: number): boolean => {
       if (!meta?.logo) return false;
       try { doc.image(meta.logo, x, y, { fit: [size, size], align: 'center', valign: 'center' }); return true; } catch { return false; }
@@ -309,29 +317,29 @@ export class PdfGenerator implements FileGenerator {
       const hasLogo = drawLogoAt(y);
       const textBox = hasLogo ? contentWidth * 0.55 - logoSize - 10 : contentWidth * 0.55;
       const textX = rtl ? left + contentWidth - (hasLogo ? logoSize + 10 : 0) - textBox : left + (hasLogo ? logoSize + 10 : 0);
-      painter.draw(organization, { x: textX, width: textBox, baseline: y + 18, side: start, bold: true, size: 13, color: pal.primary });
+      painter.draw(organization, { x: textX, width: textBox, baseline: y + 13, side: start, bold: true, size: 13, color: pal.primary });
       if (meta?.resource || meta?.title) {
-        painter.draw(`${ui.rowsCount}: ${formatNumber(data.length)}`, { x: textX, width: textBox, baseline: y + 33, side: start, size: 8.5, color: pal.muted });
+        painter.draw(`${ui.rowsCount}: ${formatNumber(data.length)}`, { x: textX, width: textBox, baseline: y + 25, side: start, size: 8.5, color: pal.muted });
       }
       // issue date + user on the opposite side
       const infoW = contentWidth * 0.4;
       const infoX = rtl ? left : left + contentWidth - infoW;
-      painter.draw(`${ui.generatedAt}: ${stampText}`, { x: infoX, width: infoW, baseline: y + 14, side: end, size: 8.5, color: pal.muted });
-      if (meta?.userName) painter.draw(`${ui.generatedBy}: ${meta.userName}`, { x: infoX, width: infoW, baseline: y + 28, side: end, size: 8.5, color: pal.muted });
-      y += 46;
+      painter.draw(`${ui.generatedAt}: ${stampText}`, { x: infoX, width: infoW, baseline: y + 10, side: end, size: 8.5, color: pal.muted });
+      if (meta?.userName) painter.draw(`${ui.generatedBy}: ${meta.userName}`, { x: infoX, width: infoW, baseline: y + 22, side: end, size: 8.5, color: pal.muted });
+      y += 34;
       rule(y, 1.4, pal.primary);
-      y += 14;
+      y += 7;
       // title
       painter.draw(title, { x: left, width: contentWidth, baseline: y + titleSize, side: 'center', bold: true, size: titleSize, color: pal.text });
-      y += titleSize * 1.5 + 4;
+      y += titleSize * 1.3 + 1;
       if (meta?.filtersText) {
         const lines = painter.wrap(meta.filtersText, false, 8.5, contentWidth - 40).slice(0, 2);
         for (const line of lines) {
-          painter.draw(line, { x: left, width: contentWidth, baseline: y + 9, side: 'center', size: 8.5, color: pal.muted });
-          y += 13;
+          painter.draw(line, { x: left, width: contentWidth, baseline: y + 8, side: 'center', size: 8.5, color: pal.muted });
+          y += 11;
         }
       }
-      y += 6;
+      y += 3;
       if (meta?.summary) y = drawSummary(y);
       return y;
     };
@@ -342,12 +350,12 @@ export class PdfGenerator implements FileGenerator {
     }
 
     const drawSummary = (top: number): number => {
-      const boxPad = 8;
+      const boxPad = 6;
       const inner = contentWidth - boxPad * 2 - 6;
       const all = painter.wrap(meta?.summary ?? '', false, bodySize, inner);
       const lines = all.length > 8 ? [...all.slice(0, 7), `${all[7].replace(/\s+\S*$/, '')} …`] : all;
-      const lineH = bodySize * 1.5;
-      const height = boxPad * 2 + lineH * (lines.length + 1);
+      const lineH = bodySize * 1.4;
+      const height = boxPad * 2 + lineH * (lines.length + 1) - 2;
       doc.save().rect(left, top, contentWidth, height).fill(PALETTE.summaryBg).restore();
       const barX = rtl ? left + contentWidth - 3 : left;
       doc.save().rect(barX, top, 3, height).fill(pal.primary).restore();
@@ -356,7 +364,7 @@ export class PdfGenerator implements FileGenerator {
       lines.forEach((line, i) => {
         painter.draw(line, { x: textX, width: inner, baseline: top + boxPad + lineH * (i + 1) + lineH * 0.75, side: start, size: bodySize, color: pal.text });
       });
-      return top + height + 10;
+      return top + height + 6;
     };
 
     /** Slim header for pages 2+. Returns the y where the body starts. */

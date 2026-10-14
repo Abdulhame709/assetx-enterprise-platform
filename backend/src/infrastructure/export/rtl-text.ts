@@ -34,7 +34,9 @@ function mirror(text: string): string {
 /**
  * Split `text` (one logical line) into segments in the order they must be drawn
  * from left to right. Segments that contain Arabic letters are returned in
- * logical order (fontkit reverses them); every other segment is ready to draw.
+ * logical order — the painter places them word by word, last word first, because PDFKit
+ * lays strings out per word and would otherwise keep the words in logical order. Every
+ * other segment is ready to draw as is.
  */
 export function visualSegments(text: string, base: BaseDirection): string[] {
   if (!text) return [];
