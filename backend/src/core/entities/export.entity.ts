@@ -62,6 +62,8 @@ export interface ExportMeta {
   rowNumbers?: boolean;
   /** blank paper form (field inventory): taller rows, empty writing cells stay empty */
   formMode?: boolean;
+  /** report designer: share of the table width (percent) a column takes; unlisted columns share the rest */
+  columnWidths?: Record<string, number>;
 }
 
 export interface ExportOptions {

@@ -11,7 +11,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ExportPort } from '../core/ports/export.port';
 import { ExportProvider } from '../core/ports/export-provider.port';
-import { ExportRequest, ExportResult, ExportMetadata, ExportMode, ExportOptions, ExportResource } from '../core/entities/export.entity';
+import { ExportRequest, ExportResult, ExportMetadata, ExportMode, ExportOptions, ExportResource, ExportColumn } from '../core/entities/export.entity';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
 import { EventBus } from '../core/events/event-bus';
@@ -43,12 +43,16 @@ export class ExportService implements ExportPort {
   async preview(
     req: { tenant_id: string; resource: ExportResource; options?: ExportOptions },
     maxRows = 200,
-  ): Promise<{ rows: Record<string, unknown>[]; total: number }> {
+  ): Promise<{ rows: Record<string, unknown>[]; total: number; columns?: ExportColumn[] }> {
     const provider = this.providers.get(req.resource);
     if (!provider) throw new Error('UNSUPPORTED_EXPORT_RESOURCE');
-    const { rows, total } = await provider.getData(req.tenant_id, req.options);
-    const all = rows as Record<string, unknown>[];
-    return { rows: all.slice(0, maxRows), total: Math.max(total, all.length) };
+    // Same steps as the file (profile, columns, sorting, grouping, location bands).
+    const profile = this.profiles.get(req.options?.profile);
+    const options = this.profiles.apply(req.options ?? {}, profile);
+    const { rows, total } = await this.pipeline.buildRows({
+      tenant: req.tenant_id, resource: req.resource, format: 'csv', provider, options,
+    });
+    return { rows: rows.slice(0, maxRows) as Record<string, unknown>[], total, columns: options.columns };
   }
 
   async generate(req: ExportRequest): Promise<ExportResult> {

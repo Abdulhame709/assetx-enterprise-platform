@@ -29,6 +29,7 @@ export interface ReportFilterInput {
   no_employee?: boolean;
   q?: string;
   blank_rows?: number;
+  group_by?: 'location';
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
 }
@@ -52,7 +53,7 @@ const TEXT = {
     profile: 'النمط', grouped: 'التجميع', sorted: 'الترتيب', asc: 'تصاعدي', desc: 'تنازلي',
     location: 'الموقع', category: 'نوع الأصل', status: 'الحالة', employee: 'الموظف', noEmployee: 'الأصول غير المرتبطة بموظف',
     search: 'بحث', scope: 'نطاق المواقع', main: 'الرئيسية فقط', sub: 'الفرعية فقط', blank: 'نموذج فارغ', lines: 'سطر',
-    sort: 'الترتيب حسب',
+    sort: 'الترتيب حسب', groupByLocation: 'التجميع: حسب الموقع (رئيسي ← فرعي ← أصول)',
     sortKeys: {
       location: 'الموقع', category: 'نوع الأصل', name: 'اسم الأصل', status: 'الحالة', employee: 'الموظف', code: 'الرمز', price: 'السعر',
     } as Record<string, string>,
@@ -61,7 +62,7 @@ const TEXT = {
     profile: 'Profile', grouped: 'Grouped by', sorted: 'Sorted by', asc: 'asc', desc: 'desc',
     location: 'Location', category: 'Asset type', status: 'Status', employee: 'Custodian', noEmployee: 'Assets without a custodian',
     search: 'Search', scope: 'Locations', main: 'Main only', sub: 'Sub-locations only', blank: 'Blank form', lines: 'lines',
-    sort: 'Sort by',
+    sort: 'Sort by', groupByLocation: 'Grouped by location (main → sub → assets)',
     sortKeys: {
       location: 'Location', category: 'Asset type', name: 'Asset name', status: 'Status', employee: 'Custodian', code: 'Code', price: 'Price',
     } as Record<string, string>,
@@ -98,6 +99,7 @@ export class ReportMetaService {
       showTotals: isForm ? false : designer.show_totals,
       ...(designer.row_numbers ? { rowNumbers: true } : {}),
       ...(isForm ? { formMode: true } : {}),
+      ...(designer.widths[input.resource] ? { columnWidths: designer.widths[input.resource] } : {}),
     };
   }
 
@@ -182,6 +184,7 @@ export class ReportMetaService {
     if (f.no_employee) parts.push(tx.noEmployee);
     else if (f.employee_id) named(tx.employee, names && nameOf(names.employees, f.employee_id));
     if (f.q) parts.push(`${tx.search}: ${f.q}`);
+    if (f.group_by === 'location') parts.push(tx.groupByLocation);
     if (f.sort_by && tx.sortKeys[f.sort_by]) {
       parts.push(`${tx.sort}: ${tx.sortKeys[f.sort_by]} ${f.sort_dir === 'desc' ? tx.desc : tx.asc}`);
     }

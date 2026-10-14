@@ -12,9 +12,10 @@ import { Response } from 'express';
 import { ExportService } from '../../application/export.service';
 import { ReportFilterInput, ReportMetaService } from '../../application/export/report-meta.service';
 import { isAssetSortKey } from '../../application/export/export-sort';
-import { ExportColumn, ExportFormat, ExportResource } from '../../core/entities/export.entity';
+import { ExportColumn, ExportFormat, ExportOptions, ExportResource } from '../../core/entities/export.entity';
 import { ReportAggregation, ReportGroup, ReportSort } from '../../core/entities/report.entity';
 import { ExportProfileId } from '../../core/entities/export-profile.entity';
+import { isGroupRow } from '../../core/constants/report-groups';
 import { RESOURCE_TITLES, ReportLang, columnLabel } from '../../core/constants/export-labels';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
@@ -33,8 +34,8 @@ type FilterKey = keyof ReportFilterInput;
 
 /** Which filters each asset-derived report understands (others are ignored, never printed). */
 const FILTER_KEYS: Partial<Record<ExportResource, FilterKey[]>> = {
-  assets: ['location_id', 'category_id', 'status_id', 'employee_id', 'no_employee', 'q', 'sort_by', 'sort_dir'],
-  'inventory-form': ['location_id', 'category_id', 'status_id', 'employee_id', 'no_employee', 'q', 'blank_rows', 'sort_by', 'sort_dir'],
+  assets: ['location_id', 'category_id', 'status_id', 'employee_id', 'no_employee', 'q', 'group_by', 'sort_by', 'sort_dir'],
+  'inventory-form': ['location_id', 'category_id', 'status_id', 'employee_id', 'no_employee', 'q', 'blank_rows', 'group_by', 'sort_by', 'sort_dir'],
   'asset-locations': ['location_id', 'location_scope'],
   'asset-types': ['location_id', 'status_id'],
   duplicates: ['category_id'],
@@ -108,27 +109,31 @@ export class ExportController {
     if (!(resource in FILTER_KEYS)) throw new BadRequestException('INVALID_EXPORT_RESOURCE');
     const res = resource as ExportResource;
     const lang: ReportLang = q.lang === 'en' ? 'en' : 'ar';
-    const filters = this.parseFilters(res, q);
     try {
-      const meta = await this.reportMeta.build({
-        tenantId: u.tenant_id, userName: u.username, resource: res, lang, filters,
-      });
-      const columns = (await this.reportMeta.defaultColumns(u.tenant_id, res)) ?? [];
-      const { rows, total } = await this.exports.preview({
+      const { meta, options } = await this.plan(res, q, u, 10000);
+      const { rows, total, columns } = await this.exports.preview({
         tenant_id: u.tenant_id,
         resource: res,
-        options: { limit: 10000, filters: { ...filters } },
+        options,
       }, PREVIEW_ROWS);
-      const keys = columns.map((c) => c.key);
+      const firstDetail = rows.find((row) => !isGroupRow(row));
+      const shown: ExportColumn[] = columns && columns.length > 0
+        ? [...columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        : Object.keys(firstDetail ?? {}).map((key) => ({ key }));
+      const keys = shown.map((c) => c.key);
+      const detailShown = rows.filter((row) => !isGroupRow(row)).length;
       return {
         resource: res,
         title: RESOURCE_TITLES[res]?.[lang] ?? res,
         organizationName: meta.organizationName ?? '',
         filtersText: meta.filtersText ?? '',
-        columns: keys.map((key) => ({ key, label: columnLabel(key, undefined, lang) })),
-        rows: rows.map((row) => Object.fromEntries(keys.map((key) => [key, row[key] ?? '']))),
+        columns: shown.map((c) => ({ key: c.key, label: columnLabel(c.key, c.label, lang) })),
+        // Location bands travel as { __group, __level, __count } so the screen can draw them like the file does.
+        rows: rows.map((row) => (isGroupRow(row)
+          ? { __group: row.__group, __level: row.__level, __count: row.__count }
+          : Object.fromEntries(keys.map((key) => [key, row[key] ?? ''])))),
         total,
-        truncated: total > rows.length,
+        truncated: total > detailShown,
       };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
@@ -140,51 +145,19 @@ export class ExportController {
 
   private async stream(resource: ExportResource, q: QueryParams, u: RequestUser, res: Response): Promise<void> {
     const fmt: ExportFormat = (str(q.format) as ExportFormat | undefined) ?? 'csv';
-    const lang = str(q.lang);
     const limit = str(q.limit);
-    const parsedProfile = this.parseProfile(str(q.profile));
-    let parsedColumns = this.parseColumns(str(q.columns));
-    const parsedSorting = this.parseSorting(str(q.sorting));
-    const parsedGrouping = this.parseGrouping(str(q.grouping));
-    const filters = this.parseFilters(resource, q);
-    const summary = this.parseSummary(q.summary);
-    const reportMetadata = this.buildReportMetadata(parsedColumns, parsedSorting, parsedGrouping);
     let result;
     try {
-      const meta = await this.reportMeta.build({
-        tenantId: u.tenant_id,
-        userName: u.username,
-        resource,
-        lang,
-        profile: parsedProfile,
-        columns: parsedColumns,
-        sorting: parsedSorting,
-        grouping: parsedGrouping,
-        filters,
-        summary,
-      });
-      // Nothing asked for explicitly: print the columns chosen in the Report Designer.
-      if (!parsedColumns && !parsedProfile && !parsedSorting && !parsedGrouping) {
-        parsedColumns = await this.reportMeta.defaultColumns(u.tenant_id, resource);
-      }
-      const providerFilters = { ...filters };
+      const { options } = await this.plan(resource, q, u, limit ? Number(limit) : 10000);
       result = await this.exports.generate({
         tenant_id: u.tenant_id,
         userId: u.sub,
         resource: resource as never,
         format: fmt,
-        options: {
-          limit: limit ? Number(limit) : 10000,
-          includeHeaders: true,
-          meta,
-          ...(parsedProfile ? { profile: parsedProfile } : {}),
-          ...(parsedColumns ? { columns: parsedColumns } : {}),
-          ...(reportMetadata || Object.keys(providerFilters).length > 0
-            ? { filters: { ...providerFilters, ...(reportMetadata ? { __report: reportMetadata } : {}) } }
-            : {}),
-        },
+        options,
       });
     } catch (err) {
+      if (err instanceof BadRequestException) throw err;
       // Surface the real reason (e.g. DB/SQL errors) so a failed export is
       // diagnosable instead of a generic 500.
       const reason = (err as Error)?.message ?? 'unknown export error';
@@ -195,6 +168,48 @@ export class ExportController {
     res.setHeader('Content-Type', result.mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
     result.stream.pipe(res);
+  }
+
+  /**
+   * Everything a report needs, from the query string: filters, columns, sorting,
+   * grouping and the header context. Shared by the file download and the preview so
+   * the screen shows what the file will contain. Nothing chosen = all (no filter).
+   */
+  private async plan(resource: ExportResource, q: QueryParams, u: RequestUser, limit: number) {
+    const profile = this.parseProfile(str(q.profile));
+    let columns = this.parseColumns(str(q.columns));
+    const sorting = this.parseSorting(str(q.sorting));
+    const grouping = this.parseGrouping(str(q.grouping));
+    const filters = this.parseFilters(resource, q);
+    const summary = this.parseSummary(q.summary);
+    const meta = await this.reportMeta.build({
+      tenantId: u.tenant_id,
+      userName: u.username,
+      resource,
+      lang: str(q.lang),
+      profile,
+      columns,
+      sorting,
+      grouping,
+      filters,
+      summary,
+    });
+    // No columns named (and no summary-style grouping): print the ones set in the Report Designer.
+    if (!columns && !profile && !(grouping && grouping.length > 0)) {
+      columns = await this.reportMeta.defaultColumns(u.tenant_id, resource);
+    }
+    const report = this.buildReportMetadata(columns, sorting, grouping, filters.group_by === 'location');
+    const options: ExportOptions = {
+      limit,
+      includeHeaders: true,
+      meta,
+      ...(profile ? { profile } : {}),
+      ...(columns ? { columns } : {}),
+      ...(report || Object.keys(filters).length > 0
+        ? { filters: { ...filters, ...(report ? { __report: report } : {}) } }
+        : {}),
+    };
+    return { meta, options };
   }
 
   /** Only the filters the report understands; a malformed id is rejected, not silently ignored. */
@@ -233,6 +248,11 @@ export class ExportController {
       const n = Number(blank);
       if (!Number.isInteger(n) || n < 0 || n > MAX_BLANK_ROWS) throw bad();
       if (n > 0) out.blank_rows = n;
+    }
+    const groupBy = str(q.group_by);
+    if (groupBy && groupBy !== 'none' && allowed.includes('group_by')) {
+      if (groupBy !== 'location') throw bad();
+      out.group_by = 'location';
     }
     const sortBy = str(q.sort_by);
     if (sortBy && allowed.includes('sort_by')) {
@@ -286,10 +306,12 @@ export class ExportController {
     });
   }
 
-  private buildReportMetadata(columns?: ExportColumn[], sorting?: ReportSort[], grouping?: ReportGroup[]) {
+  private buildReportMetadata(columns?: ExportColumn[], sorting?: ReportSort[], grouping?: ReportGroup[], byLocation = false) {
     if (!sorting && !grouping) return undefined;
     const fallback = [...(sorting ?? []).map((s) => s.field), ...(grouping ?? []).flatMap((g) => [g.field, ...(g.valueField ? [g.valueField] : [])])];
     const fields = columns?.map((column) => column.key) ?? [...new Set(fallback)];
+    // The location bands are built from the location column, so it must survive the projection.
+    if (byLocation && !fields.includes('location_name')) fields.push('location_name');
     return {
       columns: fields.map((field) => {
         const column = columns?.find((candidate) => candidate.key === field);

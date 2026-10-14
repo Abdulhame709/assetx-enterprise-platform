@@ -39,6 +39,8 @@ export interface ReportDesignerSettings {
   row_numbers: boolean;
   /** chosen columns per report, in print order; a missing report uses its defaults */
   columns: Partial<Record<ExportResource, string[]>>;
+  /** per report: column key → share of the table width in percent; a column not listed is sized automatically */
+  widths: Partial<Record<ExportResource, Record<string, number>>>;
 }
 
 export interface ReportDesignerPatch {
@@ -47,6 +49,8 @@ export interface ReportDesignerPatch {
   row_numbers?: unknown;
   /** report → column list; an empty list resets that report to its defaults */
   columns?: unknown;
+  /** report → { column: percent }; the map replaces that report's widths, an empty map resets it to automatic */
+  widths?: unknown;
 }
 
 /** What the designer screen needs besides the saved values. */
@@ -56,7 +60,13 @@ export interface ReportDesignerView extends ReportDesignerSettings {
   titles: Partial<Record<ExportResource, Record<ReportLang, string>>>;
 }
 
-export const DEFAULT_DESIGNER: ReportDesignerSettings = { rows_per_page: 0, show_totals: true, row_numbers: false, columns: {} };
+export const DEFAULT_DESIGNER: ReportDesignerSettings = { rows_per_page: 0, show_totals: true, row_numbers: false, columns: {}, widths: {} };
+export const MIN_COLUMN_WIDTH = 3;
+export const MAX_COLUMN_WIDTH = 60;
+
+function isColumnWidth(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= MIN_COLUMN_WIDTH && value <= MAX_COLUMN_WIDTH;
+}
 export const MIN_ROWS_PER_PAGE = 5;
 export const MAX_ROWS_PER_PAGE = 100;
 
@@ -157,11 +167,22 @@ export class SettingsService {
       const valid = list.filter((key): key is string => typeof key === 'string' && REPORT_CATALOG[resource]!.columns.includes(key));
       if (valid.length > 0) columns[resource] = [...new Set(valid)];
     }
+    const widths: ReportDesignerSettings['widths'] = {};
+    const savedWidths = parsed.widths && typeof parsed.widths === 'object' ? parsed.widths as Record<string, unknown> : {};
+    for (const [resource, map] of Object.entries(savedWidths)) {
+      if (!isDesignableResource(resource) || !map || typeof map !== 'object' || Array.isArray(map)) continue;
+      const valid: Record<string, number> = {};
+      for (const [key, value] of Object.entries(map as Record<string, unknown>)) {
+        if (REPORT_CATALOG[resource]!.columns.includes(key) && isColumnWidth(value)) valid[key] = value;
+      }
+      if (Object.keys(valid).length > 0) widths[resource] = valid;
+    }
     return {
       rows_per_page: Number.isInteger(rowsPerPage) && rowsPerPage >= MIN_ROWS_PER_PAGE && rowsPerPage <= MAX_ROWS_PER_PAGE ? rowsPerPage : 0,
       show_totals: parsed.show_totals !== false,
       row_numbers: parsed.row_numbers === true,
       columns,
+      widths,
     };
   }
 
@@ -204,6 +225,29 @@ export class SettingsService {
         }
         if (keys.length === 0) delete next.columns[resource];
         else next.columns[resource] = keys;
+      }
+    }
+    if (patch.widths !== undefined) {
+      if (!patch.widths || typeof patch.widths !== 'object' || Array.isArray(patch.widths)) {
+        throw new DomainError('SETTING_VALUE_INVALID', { field: 'widths' });
+      }
+      for (const [resource, map] of Object.entries(patch.widths as Record<string, unknown>)) {
+        if (!isDesignableResource(resource) || !map || typeof map !== 'object' || Array.isArray(map)) {
+          throw new DomainError('SETTING_VALUE_INVALID', { field: 'widths', resource });
+        }
+        const allowed = REPORT_CATALOG[resource]!.columns;
+        const clean: Record<string, number> = {};
+        for (const [key, value] of Object.entries(map as Record<string, unknown>)) {
+          if (!allowed.includes(key)) throw new DomainError('SETTING_VALUE_INVALID', { field: 'widths', resource, column: key });
+          // blank / null = automatic for that column
+          if (value === null || value === '') continue;
+          if (!isColumnWidth(value)) {
+            throw new DomainError('SETTING_VALUE_INVALID', { field: 'widths', resource, column: key, min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH });
+          }
+          clean[key] = value;
+        }
+        if (Object.keys(clean).length === 0) delete next.widths[resource];
+        else next.widths[resource] = clean;
       }
     }
     await this.upsert(tenantId, SETTING_KEYS.designer, JSON.stringify(next));

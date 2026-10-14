@@ -8,6 +8,7 @@ import { SettingsService } from '../src/application/settings.service';
 import { ReportMetaService } from '../src/application/export/report-meta.service';
 import { ExportResource } from '../src/core/entities/export.entity';
 import { normalizeText } from '../src/application/export/providers/duplicates-export.provider';
+import { isGroupRow } from '../src/core/constants/report-groups';
 import { isPlaceholderEmployee } from '../src/core/constants/placeholder-employee';
 
 type Row = Record<string, unknown>;
@@ -166,6 +167,72 @@ describe('Report center — integration', () => {
     });
   });
 
+
+  describe('location hierarchy and "nothing chosen = all"', () => {
+    const run = async (filters: Row = {}, extra: Row = {}) => {
+      const result = await h.exportService.preview({
+        tenant_id: h.tenantA, resource: 'assets',
+        options: { limit: 10000, filters: { ...filters, ...extra }, meta: { lang: 'ar' } as never },
+      });
+      return result.rows as Row[];
+    };
+    const bands = (rows: Row[]) => rows.filter((r) => isGroupRow(r)).map((r) => `${r.__level}:${r.__group}:${r.__count}`);
+
+    it('sorting by location with nothing else chosen returns every asset', async () => {
+      const all = await preview('assets');
+      const sorted = await preview('assets', { sort_by: 'location' });
+      expect(sorted.length).toBe(all.length);
+      expect(sorted.length).toBeGreaterThan(0);
+    });
+
+    it('sorting by employee with nothing else chosen returns every asset', async () => {
+      const all = await preview('assets');
+      const sorted = await preview('assets', { sort_by: 'employee' });
+      expect(sorted.length).toBe(all.length);
+    });
+
+    it('group_by=location without a location filter groups every asset under its location', async () => {
+      const rows = await run({ group_by: 'location' });
+      const details = rows.filter((r) => !isGroupRow(r));
+      expect(details.length).toBe((await preview('assets')).length);
+      expect(bands(rows)).toEqual(expect.arrayContaining(['0:RC Main A:2', '1:RC Sub A1:1', '0:RC Main B:3']));
+    });
+
+    it('a main location prints as parent band, then sub-location band, then its assets', async () => {
+      const rows = await run({ group_by: 'location', location_id: mainA });
+      const shape = rows.map((r) => (isGroupRow(r) ? `[${r.__group}]` : String(r.name)));
+      expect(shape).toEqual(['[RC Main A]', 'RC Zeta', '[RC Sub A1]', 'RC Alpha']);
+    });
+
+    it('a sub location prints only its own band', async () => {
+      const rows = await run({ group_by: 'location', location_id: subA1 });
+      expect(bands(rows)).toEqual(['0:RC Main A:1', '1:RC Sub A1:1']);
+    });
+
+    it('group_by=location keeps the sort inside each location', async () => {
+      const rows = await run({ group_by: 'location', location_id: mainB, sort_by: 'name' });
+      const names = rows.filter((r) => !isGroupRow(r)).map((r) => r.name);
+      expect(names).toEqual(['RC Dup One', 'RC Dup Two', 'RC Mid']);
+    });
+
+    it('the CSV file carries the same bands', async () => {
+      const built = await meta.build({ tenantId: h.tenantA, userName: 'u', resource: 'assets', lang: 'en', filters: { location_id: mainA, group_by: 'location' } });
+      expect(built.filtersText).toContain('Grouped by location');
+      const result = await h.exportService.generate({
+        tenant_id: h.tenantA, userId: 'u', resource: 'assets', format: 'csv',
+        options: {
+          limit: 100, includeHeaders: true, meta: built,
+          columns: [{ key: 'name', order: 0 }, { key: 'location_name', order: 1 }],
+          filters: { location_id: mainA, group_by: 'location', __report: { columns: ['name', 'location_name'] } },
+        },
+      });
+      let text = '';
+      for await (const chunk of result.stream as AsyncIterable<Buffer>) text += chunk.toString();
+      const lines = text.replace(/^\uFEFF/, '').trim().split(/\r?\n/);
+      expect(lines.slice(1)).toEqual(['RC Main A (2)', 'RC Zeta', '  RC Sub A1 (1)', 'RC Alpha']);
+    });
+  });
+
   describe('Report Designer settings', () => {
     it('has sensible defaults and a catalog', async () => {
       const view = await settings.getDesignerView(h.tenantA);
@@ -217,6 +284,31 @@ describe('Report center — integration', () => {
       await expect(settings.updateDesigner(h.tenantA, { columns: { assets: ['nope'] } })).rejects.toThrow('SETTING_VALUE_INVALID');
       await expect(settings.updateDesigner(h.tenantA, { columns: { assets: ['name', 'name'] } })).rejects.toThrow('SETTING_VALUE_INVALID');
       await expect(settings.updateDesigner(h.tenantA, { columns: { dashboard: ['name'] } })).rejects.toThrow('SETTING_VALUE_INVALID');
+    });
+
+    it('saves column widths per report and hands them to the report header', async () => {
+      await settings.updateDesigner(h.tenantA, { widths: { assets: { name: 30, status_name: 10 } } });
+      expect((await settings.getDesigner(h.tenantA)).widths.assets).toEqual({ name: 30, status_name: 10 });
+      const built = await meta.build({ tenantId: h.tenantA, userName: 'u', resource: 'assets', lang: 'ar' });
+      expect(built.columnWidths).toEqual({ name: 30, status_name: 10 });
+      const other = await meta.build({ tenantId: h.tenantA, userName: 'u', resource: 'movements', lang: 'ar' });
+      expect(other.columnWidths).toBeUndefined();
+    });
+
+    it('an empty width map resets a report to automatic widths', async () => {
+      await settings.updateDesigner(h.tenantA, { widths: { assets: {} } });
+      expect((await settings.getDesigner(h.tenantA)).widths.assets).toBeUndefined();
+      const built = await meta.build({ tenantId: h.tenantA, userName: 'u', resource: 'assets', lang: 'ar' });
+      expect(built.columnWidths).toBeUndefined();
+    });
+
+    it('rejects widths out of range, for unknown columns or unknown reports', async () => {
+      await expect(settings.updateDesigner(h.tenantA, { widths: { assets: { name: 2 } } })).rejects.toThrow('SETTING_VALUE_INVALID');
+      await expect(settings.updateDesigner(h.tenantA, { widths: { assets: { name: 61 } } })).rejects.toThrow('SETTING_VALUE_INVALID');
+      await expect(settings.updateDesigner(h.tenantA, { widths: { assets: { name: 'wide' } } })).rejects.toThrow('SETTING_VALUE_INVALID');
+      await expect(settings.updateDesigner(h.tenantA, { widths: { assets: { nope: 20 } } })).rejects.toThrow('SETTING_VALUE_INVALID');
+      await expect(settings.updateDesigner(h.tenantA, { widths: { dashboard: { name: 20 } } })).rejects.toThrow('SETTING_VALUE_INVALID');
+      await expect(settings.updateDesigner(h.tenantA, { widths: [] })).rejects.toThrow('SETTING_VALUE_INVALID');
     });
 
     it('keeps designer settings separate per tenant', async () => {

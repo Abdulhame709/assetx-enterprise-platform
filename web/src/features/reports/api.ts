@@ -6,7 +6,7 @@ export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
 
 /** Reports of the Report Center (asset-derived, filterable, viewable and printable). */
 export type ReportCenterResource = 'assets' | 'asset-locations' | 'asset-types' | 'duplicates' | 'inventory-form';
-type AnyReportResource = ReportResource | ReportCenterResource;
+export type AnyReportResource = ReportResource | ReportCenterResource;
 
 export type AssetSortKey = 'location' | 'category' | 'name' | 'status' | 'employee' | 'code' | 'price';
 
@@ -24,6 +24,8 @@ export interface ReportFilters {
   sort_by?: AssetSortKey;
   sort_dir?: 'asc' | 'desc';
   blank_rows?: number;
+  /** 'location': main location, its sub-locations and the assets in each, as nested bands. */
+  group_by?: 'location';
 }
 
 export interface ReportPreview {
@@ -32,9 +34,20 @@ export interface ReportPreview {
   organizationName: string;
   filtersText: string;
   columns: Array<{ key: string; label: string }>;
+  /** Detail rows, and band rows ({ __group, __level, __count }) when grouped by location. */
   rows: Array<Record<string, unknown>>;
   total: number;
   truncated: boolean;
+}
+
+export interface LocationBand {
+  __group: string;
+  __level: number;
+  __count: number;
+}
+
+export function isBandRow(row: Record<string, unknown>): row is Record<string, unknown> & LocationBand {
+  return '__group' in row;
 }
 
 /** Query-string pairs for the filters, skipping anything empty. */
@@ -47,6 +60,7 @@ export function filterParams(filters?: ReportFilters): Array<[string, string]> {
   }
   return out;
 }
+
 export type ReportProfileId = 'executive' | 'finance' | 'auditor' | 'inventory' | 'compliance';
 
 export interface ReportColumn {
@@ -110,6 +124,17 @@ export async function generateReportAiSummary(resource: AiReportResource): Promi
   return http.post<ReportAiSummary>('/ai/reports/summary', { resource });
 }
 
+/** The report definition (profile, columns, sorting, grouping) as query-string pairs. */
+function appendDefinition(
+  params: URLSearchParams,
+  { profile, columns, sorting, grouping }: Pick<ReportExportInput, 'profile' | 'columns' | 'sorting' | 'grouping'>,
+): void {
+  if (profile) params.set('profile', profile);
+  if (columns && columns.length > 0) params.set('columns', JSON.stringify(columns));
+  if (sorting && sorting.length > 0) params.set('sorting', JSON.stringify(sorting));
+  if (grouping && grouping.length > 0) params.set('grouping', JSON.stringify(grouping));
+}
+
 /**
  * Print the server-made PDF of a resource: it carries the organization header,
  * a real data table, page numbers and correct right-to-left layout, unlike
@@ -120,11 +145,12 @@ export async function generateReportAiSummary(resource: AiReportResource): Promi
 export async function printReportExport(
   resource: AnyReportResource,
   limit = 10000,
-  extra: { filters?: ReportFilters; summary?: string } = {},
+  extra: Pick<ReportExportInput, 'filters' | 'summary' | 'profile' | 'columns' | 'sorting' | 'grouping'> = {},
 ): Promise<void> {
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
   const params = new URLSearchParams({ format: 'pdf', limit: String(limit), lang: currentReportLang() });
+  appendDefinition(params, extra);
   for (const [key, value] of filterParams(extra.filters)) params.set(key, value);
   if (extra.summary) params.set('summary', extra.summary);
   const response = await fetch(`${API_BASE_URL}/exports/${resource}?${params.toString()}`, {
@@ -155,9 +181,13 @@ export async function printReportExport(
 }
 
 /** On-screen view of a Report Center report: the same filters and columns as the printed file. */
-export async function getReportPreview(resource: ReportCenterResource, filters?: ReportFilters): Promise<ReportPreview> {
+export async function getReportPreview(
+  resource: ReportCenterResource,
+  query: Pick<ReportExportInput, 'filters' | 'profile' | 'columns' | 'sorting' | 'grouping'> = {},
+): Promise<ReportPreview> {
   const params = new URLSearchParams({ lang: currentReportLang() });
-  for (const [key, value] of filterParams(filters)) params.set(key, value);
+  appendDefinition(params, query);
+  for (const [key, value] of filterParams(query.filters)) params.set(key, value);
   const raw = (await http.get<unknown>(`/exports/preview/${resource}?${params.toString()}`)) as Record<string, unknown>;
   const columns = Array.isArray(raw.columns) ? (raw.columns as Array<Record<string, unknown>>) : [];
   return {
@@ -177,10 +207,7 @@ export async function downloadReportExport({ resource, format, limit = 10000, pr
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
   const params = new URLSearchParams({ format, limit: String(limit) });
-  if (profile) params.set('profile', profile);
-  if (columns && columns.length > 0) params.set('columns', JSON.stringify(columns));
-  if (sorting && sorting.length > 0) params.set('sorting', JSON.stringify(sorting));
-  if (grouping && grouping.length > 0) params.set('grouping', JSON.stringify(grouping));
+  appendDefinition(params, { profile, columns, sorting, grouping });
   params.set('lang', currentReportLang());
   for (const [key, value] of filterParams(filters)) params.set(key, value);
   if (summary) params.set('summary', summary);

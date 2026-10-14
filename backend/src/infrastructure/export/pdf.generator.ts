@@ -24,6 +24,7 @@ import { ColorPalette } from '../../core/entities/report-template.entity';
 import { MONEY_KEYS, REPORT_TEXT } from '../../core/constants/export-labels';
 import { FileGenerator } from './file-generator.interface';
 import { resolveColumnPlan } from './column-plan';
+import { GroupRow, bandText, isGroupRow } from '../../core/constants/report-groups';
 import { columnTotals, displayText, formatNumber, isNumericColumn } from './cell-format';
 import { BaseDirection, hasRtlLetters, visualSegments } from './rtl-text';
 
@@ -55,6 +56,7 @@ function findFonts(): { regular: string; bold: string } | undefined {
 const PALETTE = {
   primary: '#1f3a5f', headerFg: '#ffffff', rowEven: '#f6f8fb', rowOdd: '#ffffff', text: '#111827',
   muted: '#64748b', border: '#dbe2ea', totalBg: '#e6edf5', accent: '#b91c1c', summaryBg: '#f1f5f9',
+  bandMain: '#d9e3f0', bandSub: '#e9eff7',
 };
 
 const ARABIC_RANGE = /[؀-ۿ]/;
@@ -116,6 +118,39 @@ function distributeTableWidths(headers: string[], columnTexts: string[][], total
     guard += 1;
   }
   return distributed;
+}
+
+/**
+ * Column widths: a column the report designer gave a share (percent of the table)
+ * keeps it; the others split what is left by content. Shares are scaled down when
+ * they would leave too little room for the rest.
+ */
+function resolveColumnWidths(
+  keys: string[], labels: string[], columnTexts: string[][], total: number, shares?: Record<string, number>,
+): number[] {
+  const fixed = keys.map((k) => { const s = shares?.[k]; return typeof s === 'number' && s > 0 ? s : 0; });
+  const free = keys.map((_, i) => i).filter((i) => fixed[i] === 0);
+  if (fixed.every((s) => s === 0)) return distributeTableWidths(labels, columnTexts, total);
+  const minFixed = 14;
+  const reserve = free.length > 0 ? Math.max(total * 0.1, free.length * total * 0.04) : 0;
+  let wanted = fixed.map((s) => (s > 0 ? Math.max(minFixed, (s / 100) * total) : 0));
+  const wantedSum = wanted.reduce((a, b) => a + b, 0);
+  const room = total - reserve;
+  if (wantedSum > room || free.length === 0) {
+    const scale = (free.length === 0 ? total : room) / wantedSum;
+    wanted = wanted.map((w) => (w > 0 ? Math.max(minFixed, w * scale) : 0));
+  }
+  const widths = wanted.map((w) => Math.round(w));
+  const fixedSum = widths.reduce((a, b) => a + b, 0);
+  if (free.length === 0) {
+    // absorb rounding in the widest column so the table exactly fills the page
+    const widest = widths.indexOf(Math.max(...widths));
+    widths[widest] += total - fixedSum;
+    return widths;
+  }
+  const rest = distributeTableWidths(free.map((i) => labels[i]), free.map((i) => columnTexts[i]), Math.max(total - fixedSum, free.length * 10));
+  free.forEach((col, n) => { widths[col] = rest[n]; });
+  return widths;
 }
 
 type Side = 'left' | 'right' | 'center';
@@ -323,7 +358,7 @@ export class PdfGenerator implements FileGenerator {
       const textX = rtl ? left + contentWidth - (hasLogo ? logoSize + 10 : 0) - textBox : left + (hasLogo ? logoSize + 10 : 0);
       painter.draw(organization, { x: textX, width: textBox, baseline: y + 13, side: start, bold: true, size: 13, color: pal.primary });
       if (meta?.resource || meta?.title) {
-        painter.draw(`${ui.rowsCount}: ${formatNumber(data.length)}`, { x: textX, width: textBox, baseline: y + 25, side: start, size: 8.5, color: pal.muted });
+        painter.draw(`${ui.rowsCount}: ${formatNumber(rows.length)}`, { x: textX, width: textBox, baseline: y + 25, side: start, size: 8.5, color: pal.muted });
       }
       // issue date + user on the opposite side
       const infoW = contentWidth * 0.4;
@@ -383,7 +418,8 @@ export class PdfGenerator implements FileGenerator {
     // ---- table ----------------------------------------------------------------
     const keys = plan.keys;
     const labels = plan.labels;
-    const rows = data.map((row) => (row ?? {}) as Record<string, unknown>);
+    // Location bands are drawn as their own lines; counts, widths and totals only look at real rows.
+    const rows = data.filter((row) => !isGroupRow(row)).map((row) => (row ?? {}) as Record<string, unknown>);
     const cells: string[][] = rows.map((rec) => keys.map((k) => displayText(k, rec[k])));
     // A blank value prints as "-" (the form keeps its cells empty: they are for writing in).
     const shown: string[][] = formMode ? cells : cells.map((r) => r.map((t) => (t.trim() === '' ? '-' : t)));
@@ -397,7 +433,7 @@ export class PdfGenerator implements FileGenerator {
 
     const columnTexts = keys.map((_, i) => cells.map((r) => r[i]));
     if (hasTotals) columnTexts.forEach((col, i) => col.push(totalCells[i]));
-    const colWidths = distributeTableWidths(labels, columnTexts, contentWidth);
+    const colWidths = resolveColumnWidths(keys, labels, columnTexts, contentWidth, meta?.columnWidths);
     // Visual order: first logical column sits at the right edge for RTL.
     const order = keys.map((_, i) => i);
     if (rtl) order.reverse();
@@ -412,6 +448,28 @@ export class PdfGenerator implements FileGenerator {
       doc.addPage();
       y = drawCompactHeader();
       bodyOnPage = 0;
+    };
+
+    /** A location band: full-width tinted line with the location name and its asset count. */
+    const drawBand = (band: GroupRow): void => {
+      const bandH = pitch + padY * 2 + (band.__level === 0 ? 3 : 1);
+      const pageFull = rowsPerPage > 0 && bodyOnPage >= rowsPerPage;
+      // keep the band together with at least one row that follows it
+      if (pageFull || (y > margins.top + 40 && y + bandH + pitch + padY * 2 > limit)) {
+        newPage();
+        if (includeHeaders && keys.length > 0) drawRow(labels, 'header', 0);
+      }
+      const top = y;
+      doc.save().rect(left, top, contentWidth, bandH).fill(band.__level === 0 ? PALETTE.bandMain : PALETTE.bandSub).restore();
+      const indent = band.__level * 14;
+      painter.draw(bandText({ ...band, __level: 0 }), {
+        x: rtl ? left + padX : left + padX + indent,
+        width: contentWidth - padX * 2 - indent,
+        side: start, bold: true, size: tableSize, color: pal.primary,
+        baseline: top + padY + pitch / 2 + tableSize * 0.35,
+      });
+      doc.save().lineWidth(0.4).strokeColor(PALETTE.border).moveTo(left, top + bandH).lineTo(left + contentWidth, top + bandH).stroke().restore();
+      y = top + bandH;
     };
 
     type RowKind = 'header' | 'body' | 'total';
@@ -460,7 +518,11 @@ export class PdfGenerator implements FileGenerator {
         painter.draw(ui.noData, { x: left, width: contentWidth, baseline: y + emptyH / 2 + 4, side: 'center', size: bodySize, color: pal.muted });
         y += emptyH;
       }
-      shown.forEach((row, i) => drawRow(row, 'body', i));
+      let detailIndex = 0;
+      for (const item of data) {
+        if (isGroupRow(item)) drawBand(item);
+        else { drawRow(shown[detailIndex], 'body', detailIndex); detailIndex += 1; }
+      }
       if (hasTotals) drawRow(totalCells, 'total', 0);
     }
     rule(y, 0.9, pal.primary);

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadReportExport, filterParams, generateReportAiSummary, getReportPreview } from './api';
+import { downloadReportExport, filterParams, generateReportAiSummary, getReportPreview, isBandRow } from './api';
 import { http } from '@/lib/api/client';
 
 vi.mock('@/lib/api/client', () => ({
@@ -123,10 +123,20 @@ describe('report export API', () => {
       title: 'تقرير الأصول', organizationName: 'شركة', filtersText: 'الموقع: أ',
       columns: [{ key: 'name', label: 'اسم الأصل' }], rows: [{ name: 'طابعة' }], total: 450, truncated: true,
     });
-    const preview = await getReportPreview('assets', { location_id: 'loc-1' });
-    expect(vi.mocked(http.get).mock.calls[0]?.[0]).toBe('/exports/preview/assets?lang=ar&location_id=loc-1');
+    const preview = await getReportPreview('assets', { filters: { location_id: 'loc-1', group_by: 'location' }, columns: [{ key: 'name', label: 'x', order: 1 }] });
+    const url = String(vi.mocked(http.get).mock.calls[0]?.[0]);
+    expect(url.startsWith('/exports/preview/assets?')).toBe(true);
+    const params = new URL(url, 'http://x').searchParams;
+    expect(params.get('location_id')).toBe('loc-1');
+    expect(params.get('group_by')).toBe('location');
+    expect(JSON.parse(params.get('columns') ?? '[]')).toHaveLength(1);
     expect(preview).toMatchObject({ resource: 'assets', total: 450, truncated: true });
     expect(preview.columns).toEqual([{ key: 'name', label: 'اسم الأصل' }]);
+  });
+
+  it('recognises location band rows', () => {
+    expect(isBandRow({ __group: 'Main', __level: 0, __count: 2 })).toBe(true);
+    expect(isBandRow({ name: 'x' })).toBe(false);
   });
 
   it('surfaces a failed export response', async () => {
