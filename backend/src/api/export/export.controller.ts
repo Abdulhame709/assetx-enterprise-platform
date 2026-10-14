@@ -116,6 +116,8 @@ export class ExportController {
         resource: res,
         options,
       }, PREVIEW_ROWS);
+      // eslint-disable-next-line no-console
+      console.log(`[ExportController] preview ${resource}: ${rows.length} rows, total ${total}, filters ${JSON.stringify(options.filters ?? {}).slice(0, 400)}`);
       const firstDetail = rows.find((row) => !isGroupRow(row));
       const shown: ExportColumn[] = columns && columns.length > 0
         ? [...columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
