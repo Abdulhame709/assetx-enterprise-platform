@@ -4,7 +4,9 @@
  * Produces an ERP-style report: organization header (logo, name, title, filters,
  * issue date) repeated on every page, a repeating table header, zebra rows,
  * a totals row, "page X of Y" footer, optional AI summary, signature block and
- * draft watermark. Arabic is the primary language: with meta.dir === 'rtl' the
+ * draft watermark. Report Designer options: rows per page, totals on/off, and
+ * "form mode" (tall empty cells to write in, used by the field inventory form).
+ * Empty cells print "-" so a blank never looks like a missing value. Arabic is the primary language: with meta.dir === 'rtl' the
  * columns run right to left, text is right aligned and numbers use Latin digits
  * with thousands separators.
  *
@@ -283,8 +285,10 @@ export class PdfGenerator implements FileGenerator {
     const bodySize = typo.bodySize ?? 9;
     const titleSize = typo.titleSize ?? 17;
     const footerSize = typo.footerSize ?? 8;
-    const alternating = tpl?.table?.alternatingRowColors ?? true;
-    const minRowHeight = tpl?.table?.rowHeight ?? 0;
+    const formMode = meta?.formMode === true;
+    const rowsPerPage = meta?.rowsPerPage && meta.rowsPerPage > 0 ? meta.rowsPerPage : 0;
+    const alternating = formMode ? false : (tpl?.table?.alternatingRowColors ?? true);
+    const minRowHeight = formMode ? Math.max(tpl?.table?.rowHeight ?? 0, 26) : (tpl?.table?.rowHeight ?? 0);
 
     const left = margins.left;
     const contentWidth = pageW - margins.left - margins.right;
@@ -381,9 +385,11 @@ export class PdfGenerator implements FileGenerator {
     const labels = plan.labels;
     const rows = data.map((row) => (row ?? {}) as Record<string, unknown>);
     const cells: string[][] = rows.map((rec) => keys.map((k) => displayText(k, rec[k])));
+    // A blank value prints as "-" (the form keeps its cells empty: they are for writing in).
+    const shown: string[][] = formMode ? cells : cells.map((r) => r.map((t) => (t.trim() === '' ? '-' : t)));
     const numeric = keys.map((k) => isNumericColumn(k, rows));
     const totals = columnTotals(keys, rows);
-    const hasTotals = rows.length > 0 && Object.keys(totals).length > 0;
+    const hasTotals = meta?.showTotals !== false && rows.length > 0 && Object.keys(totals).length > 0;
     const totalCells = keys.map((k, i) => {
       if (totals[k] !== undefined) return formatNumber(totals[k], MONEY_KEYS.has(k) ? 2 : undefined);
       return i === 0 ? ui.total : '';
@@ -401,9 +407,11 @@ export class PdfGenerator implements FileGenerator {
 
     let y = drawFirstHeader();
 
+    let bodyOnPage = 0;
     const newPage = () => {
       doc.addPage();
       y = drawCompactHeader();
+      bodyOnPage = 0;
     };
 
     type RowKind = 'header' | 'body' | 'total';
@@ -412,7 +420,8 @@ export class PdfGenerator implements FileGenerator {
       const wrapped = texts.map((t, i) => painter.wrap(t, isBold, tableSize, colWidths[i] - padX * 2));
       const lineCount = Math.max(1, ...wrapped.map((l) => l.length));
       const rowH = Math.max(minRowHeight, lineCount * pitch + padY * 2);
-      if (y > margins.top + 40 && y + rowH > limit) {
+      const pageFull = kind === 'body' && rowsPerPage > 0 && bodyOnPage >= rowsPerPage;
+      if (pageFull || (y > margins.top + 40 && y + rowH > limit)) {
         newPage();
         if (kind === 'body' || kind === 'total') if (includeHeaders && keys.length > 0) drawRow(labels, 'header', 0);
       }
@@ -420,7 +429,14 @@ export class PdfGenerator implements FileGenerator {
       const bg = kind === 'header' ? pal.primary
         : kind === 'total' ? PALETTE.totalBg
           : (alternating && index % 2 === 0 ? pal.rowEven : pal.rowOdd);
+      if (kind === 'body') bodyOnPage += 1;
       doc.save().rect(left, top, contentWidth, rowH).fill(bg).restore();
+      if (formMode && kind === 'body') {
+        // Cell borders so the empty cells read as boxes to write in.
+        doc.save().lineWidth(0.4).strokeColor(PALETTE.border);
+        for (const x of [...colX, left + contentWidth]) doc.moveTo(x, top).lineTo(x, top + rowH).stroke();
+        doc.restore();
+      }
       doc.save().lineWidth(kind === 'total' ? 0.9 : 0.4).strokeColor(kind === 'total' ? pal.primary : PALETTE.border)
         .moveTo(left, kind === 'total' ? top : top + rowH).lineTo(left + contentWidth, kind === 'total' ? top : top + rowH).stroke().restore();
       const fg = kind === 'header' ? pal.headerFg : pal.text;
@@ -444,7 +460,7 @@ export class PdfGenerator implements FileGenerator {
         painter.draw(ui.noData, { x: left, width: contentWidth, baseline: y + emptyH / 2 + 4, side: 'center', size: bodySize, color: pal.muted });
         y += emptyH;
       }
-      cells.forEach((row, i) => drawRow(row, 'body', i));
+      shown.forEach((row, i) => drawRow(row, 'body', i));
       if (hasTotals) drawRow(totalCells, 'total', 0);
     }
     rule(y, 0.9, pal.primary);

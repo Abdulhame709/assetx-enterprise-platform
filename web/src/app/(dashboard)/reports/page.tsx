@@ -12,7 +12,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
-import { downloadReportExport, generateReportAiSummary, ReportAggregation, ReportAiSummary, ReportColumn, ReportDefinition, ReportFormat, ReportGroup, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
+import { ReportCenter } from '@/features/reports/components/ReportCenter';
+import { downloadReportExport, generateReportAiSummary, printReportExport, ReportAggregation, ReportAiSummary, ReportColumn, ReportDefinition, ReportFormat, ReportGroup, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
 import { createReportTemplate, deleteReportTemplate, listReportTemplates, ReportTemplateRecord } from '@/features/reports/templates-api';
 import { Field, Input, Select } from '@/components/ui/form';
 import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
@@ -472,6 +473,17 @@ export default function ReportsPage() {
     }
   };
 
+  const printServerPdf = async () => {
+    if (!selectedResource) return;
+    const parsedLimit = Number(limit);
+    const safeLimit = Number.isInteger(parsedLimit) && parsedLimit >= 1 && parsedLimit <= 100000 ? parsedLimit : 10000;
+    try {
+      await printReportExport(selectedResource.resource, safeLimit, { summary: aiSummary ? aiSummary.summary.slice(0, 2000) : undefined });
+    } catch (error) {
+      toast.error(t('module.reportsExportFailed'), humanError(error));
+    }
+  };
+
   const download = async () => {
     if (!selectedResource) return;
     const parsedLimit = Number(limit);
@@ -481,7 +493,7 @@ export default function ReportsPage() {
     }
     setExporting(true);
     try {
-      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit, profile: profile || undefined, columns: selectedColumns, sorting, grouping });
+      await downloadReportExport({ resource: selectedResource.resource, format, limit: parsedLimit, profile: profile || undefined, columns: selectedColumns, sorting, grouping, summary: format === 'pdf' && aiSummary ? aiSummary.summary.slice(0, 2000) : undefined });
       toast.success(t('module.reportsExportReady'), t('module.reportsExportMessage'));
     } catch (error) {
       toast.error(t('module.reportsExportFailed'), humanError(error));
@@ -493,13 +505,14 @@ export default function ReportsPage() {
   return (
     <div className="reports-page space-y-6">
       <PageHeader title={t('nav.reports')} subtitle={t('module.reportsSubtitle')} />
+      <ReportCenter />
       <CommandToolbar
         label={t('module.reportsToolbar')}
         actions={[
           { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
           { id: 'export', label: t('module.reportsExport'), icon: Download, onClick: () => void download(), loading: exporting, disabled: !selectedResource, variant: 'primary' },
           { id: 'ai-summary', label: t('module.reportsAiGenerate'), icon: BrainCircuit, onClick: () => void generateAiSummary(), loading: aiGenerating, disabled: !canUseAi || !aiResourceSupported, separated: true },
-          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print(), separated: true },
+          { id: 'print', label: t('common.print'), icon: Printer, onClick: () => void printServerPdf(), disabled: !selectedResource, separated: true },
           { id: 'designer', label: showDesigner ? t('module.reportsDesignerHide') : t('module.reportsDesignerShow'), icon: Columns3, onClick: () => setShowDesigner((visible) => !visible), separated: true },
           { id: 'view-assets', label: t('module.reportsViewAssets'), icon: Eye, href: '/assets', separated: true },
         ]}

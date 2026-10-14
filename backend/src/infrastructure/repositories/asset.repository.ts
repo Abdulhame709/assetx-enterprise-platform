@@ -12,6 +12,7 @@ import {
   UpdateAssetInput,
 } from '../../core/ports/asset.port';
 import { DATABASE_PORT } from '../../core/ports/tokens';
+import { PLACEHOLDER_EMPLOYEE_PATTERN } from '../../core/constants/placeholder-employee';
 import { generateBaseAssetCode, generateFullAssetCode } from '../../application/asset-algorithms';
 
 @Injectable()
@@ -128,6 +129,13 @@ export class AssetRepository implements AssetPort {
     if (filter.status_id) { where += ` AND status_id = $${idx}`; params.push(filter.status_id); idx++; }
     if (filter.category_id) { where += ` AND category_id = $${idx}`; params.push(filter.category_id); idx++; }
     if (filter.employee_id) { where += ` AND employee_id = $${idx}`; params.push(filter.employee_id); idx++; }
+    if (filter.no_employee) {
+      where += ` AND (employee_id IS NULL OR employee_id IN (
+        SELECT id FROM employees WHERE tenant_id = $1 AND name ~* $${idx}
+      ))`;
+      params.push(PLACEHOLDER_EMPLOYEE_PATTERN);
+      idx++;
+    }
     if (filter.location_id) {
       // Include descendants via materialized path prefix (ADR-005).
       // LTREE's `<@` operator is unavailable in PGlite (path is a text column,

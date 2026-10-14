@@ -3,6 +3,50 @@ import { currentReportLang } from '@/lib/api/report-lang';
 
 export type ReportResource = 'assets' | 'movements' | 'inventory' | 'audit' | 'dashboard';
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
+
+/** Reports of the Report Center (asset-derived, filterable, viewable and printable). */
+export type ReportCenterResource = 'assets' | 'asset-locations' | 'asset-types' | 'duplicates' | 'inventory-form';
+type AnyReportResource = ReportResource | ReportCenterResource;
+
+export type AssetSortKey = 'location' | 'category' | 'name' | 'status' | 'employee' | 'code' | 'price';
+
+/**
+ * Filters a Report Center report understands. `employee_id` is an employee id,
+ * or 'none' for assets that have no employee. Empty values are never sent.
+ */
+export interface ReportFilters {
+  location_id?: string;
+  location_scope?: 'main' | 'sub';
+  category_id?: string;
+  status_id?: string;
+  employee_id?: string;
+  q?: string;
+  sort_by?: AssetSortKey;
+  sort_dir?: 'asc' | 'desc';
+  blank_rows?: number;
+}
+
+export interface ReportPreview {
+  resource: ReportCenterResource;
+  title: string;
+  organizationName: string;
+  filtersText: string;
+  columns: Array<{ key: string; label: string }>;
+  rows: Array<Record<string, unknown>>;
+  total: number;
+  truncated: boolean;
+}
+
+/** Query-string pairs for the filters, skipping anything empty. */
+export function filterParams(filters?: ReportFilters): Array<[string, string]> {
+  const out: Array<[string, string]> = [];
+  if (!filters) return out;
+  for (const [key, value] of Object.entries(filters)) {
+    if (value === undefined || value === null || value === '' || value === 0) continue;
+    out.push([key, String(value)]);
+  }
+  return out;
+}
 export type ReportProfileId = 'executive' | 'finance' | 'auditor' | 'inventory' | 'compliance';
 
 export interface ReportColumn {
@@ -36,9 +80,11 @@ export interface ReportDefinition {
 }
 
 export interface ReportExportInput {
-  resource: ReportResource;
+  resource: AnyReportResource;
   format: ReportFormat;
   limit?: number;
+  filters?: ReportFilters;
+  summary?: string;
   profile?: ReportProfileId;
   columns?: ReportColumn[];
   sorting?: ReportSort[];
@@ -71,10 +117,16 @@ export async function generateReportAiSummary(resource: AiReportResource): Promi
  * browser print dialog is opened; if the frame cannot print, the PDF opens in a
  * new tab instead.
  */
-export async function printReportExport(resource: ReportResource, limit = 10000): Promise<void> {
+export async function printReportExport(
+  resource: AnyReportResource,
+  limit = 10000,
+  extra: { filters?: ReportFilters; summary?: string } = {},
+): Promise<void> {
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
   const params = new URLSearchParams({ format: 'pdf', limit: String(limit), lang: currentReportLang() });
+  for (const [key, value] of filterParams(extra.filters)) params.set(key, value);
+  if (extra.summary) params.set('summary', extra.summary);
   const response = await fetch(`${API_BASE_URL}/exports/${resource}?${params.toString()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -102,8 +154,26 @@ export async function printReportExport(resource: ReportResource, limit = 10000)
   document.body.appendChild(frame);
 }
 
+/** On-screen view of a Report Center report: the same filters and columns as the printed file. */
+export async function getReportPreview(resource: ReportCenterResource, filters?: ReportFilters): Promise<ReportPreview> {
+  const params = new URLSearchParams({ lang: currentReportLang() });
+  for (const [key, value] of filterParams(filters)) params.set(key, value);
+  const raw = (await http.get<unknown>(`/exports/preview/${resource}?${params.toString()}`)) as Record<string, unknown>;
+  const columns = Array.isArray(raw.columns) ? (raw.columns as Array<Record<string, unknown>>) : [];
+  return {
+    resource,
+    title: String(raw.title ?? ''),
+    organizationName: String(raw.organizationName ?? ''),
+    filtersText: String(raw.filtersText ?? ''),
+    columns: columns.map((c) => ({ key: String(c.key ?? ''), label: String(c.label ?? c.key ?? '') })),
+    rows: Array.isArray(raw.rows) ? (raw.rows as Array<Record<string, unknown>>) : [],
+    total: Number(raw.total ?? 0),
+    truncated: raw.truncated === true,
+  };
+}
+
 /** Download a tenant-scoped report from the backend export stream. */
-export async function downloadReportExport({ resource, format, limit = 10000, profile, columns, sorting, grouping }: ReportExportInput): Promise<void> {
+export async function downloadReportExport({ resource, format, limit = 10000, profile, columns, sorting, grouping, filters, summary }: ReportExportInput): Promise<void> {
   const { tokenStore } = await import('@/lib/auth/token-store');
   const token = tokenStore.getAccess();
   const params = new URLSearchParams({ format, limit: String(limit) });
@@ -112,6 +182,8 @@ export async function downloadReportExport({ resource, format, limit = 10000, pr
   if (sorting && sorting.length > 0) params.set('sorting', JSON.stringify(sorting));
   if (grouping && grouping.length > 0) params.set('grouping', JSON.stringify(grouping));
   params.set('lang', currentReportLang());
+  for (const [key, value] of filterParams(filters)) params.set(key, value);
+  if (summary) params.set('summary', summary);
   const response = await fetch(`${API_BASE_URL}/exports/${resource}?${params.toString()}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });

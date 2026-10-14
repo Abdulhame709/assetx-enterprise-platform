@@ -55,6 +55,10 @@ import { MovementsExportProvider } from '../../src/application/export/providers/
 import { InventoryExportProvider } from '../../src/application/export/providers/inventory-export.provider';
 import { AuditExportProvider } from '../../src/application/export/providers/audit-export.provider';
 import { DashboardExportProvider } from '../../src/application/export/providers/dashboard-export.provider';
+import { AssetLocationsExportProvider } from '../../src/application/export/providers/asset-locations-export.provider';
+import { AssetTypesExportProvider } from '../../src/application/export/providers/asset-types-export.provider';
+import { DuplicatesExportProvider } from '../../src/application/export/providers/duplicates-export.provider';
+import { InventoryFormExportProvider } from '../../src/application/export/providers/inventory-form-export.provider';
 import { ExportService } from '../../src/application/export.service';
 import { ExportPipelineService } from '../../src/application/export/export-pipeline.service';
 import { ExportProfileRegistry } from '../../src/application/export/export-profile.registry';
@@ -290,6 +294,7 @@ export async function createHarness(): Promise<Harness> {
   const exportMetrics = new ExportMetricsService();
   const reportBuilder = new ReportBuilderService();
   const exportPipeline = new ExportPipelineService(bus, exportMetrics, new ExportDataAdapter(), reportBuilder);
+  const assetsExportProvider = new AssetsExportProvider(assetRepo, db);
   const exportService = new ExportService(
     exportStrategyFactory,
     exportPipeline,
@@ -298,11 +303,15 @@ export async function createHarness(): Promise<Harness> {
     audit,
     bus,
     [
-      new AssetsExportProvider(assetRepo, db),
+      assetsExportProvider,
       new MovementsExportProvider(new MovementRepository(db), db),
       new InventoryExportProvider(inventoryResult),
       new AuditExportProvider(new AuditRepository(db), db),
       new DashboardExportProvider(reporting),
+      new AssetLocationsExportProvider(db),
+      new AssetTypesExportProvider(db),
+      new DuplicatesExportProvider(db),
+      new InventoryFormExportProvider(assetsExportProvider),
     ],
   );
 

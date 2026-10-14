@@ -172,3 +172,59 @@ describe('ExcelGenerator — report sheet', () => {
     expect(workbook.worksheets[0].views[0]?.rightToLeft ?? false).toBe(false);
   });
 });
+
+describe('Report designer options — PDF and Excel', () => {
+  const pdf = new PdfGenerator();
+  const columns = [{ key: 'name', label: 'اسم الأصل' }, { key: 'employee_name', label: 'الموظف' }, { key: 'purchase_price', label: 'السعر' }];
+  const data = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `أصل ${i + 1}`, employee_name: '', purchase_price: 10 }));
+  const pageCount = (buf: Buffer) => (buf.toString('latin1').match(/\/Type \/Page\b/g) ?? []).length;
+
+  async function drawnTexts(run: () => Promise<unknown>): Promise<string[]> {
+    const calls: string[] = [];
+    const original = PDFKit.prototype.text;
+    const spy = jest.spyOn(PDFKit.prototype, 'text').mockImplementation(function (this: PDFKit.PDFDocument, ...args: unknown[]) {
+      calls.push(String(args[0]));
+      return (original as (...a: unknown[]) => PDFKit.PDFDocument).apply(this, args);
+    } as never);
+    try { await run(); } finally { spy.mockRestore(); }
+    return calls;
+  }
+
+  it('breaks the page after the chosen number of rows', async () => {
+    const plain = await collect(pdf.generate(data(30), { columns, meta: arMeta } as ExportOptions));
+    const paged = await collect(pdf.generate(data(30), { columns, meta: { ...arMeta, rowsPerPage: 5 } } as ExportOptions));
+    expect(pageCount(paged)).toBeGreaterThanOrEqual(6);
+    expect(pageCount(paged)).toBeGreaterThan(pageCount(plain));
+  });
+
+  it('prints "-" for an empty cell in a normal report', async () => {
+    const calls = await drawnTexts(() => collect(pdf.generate(data(2), { columns, meta: arMeta } as ExportOptions)));
+    expect(calls.filter((c) => c === '-').length).toBe(2);
+  });
+
+  it('keeps form cells empty (they are for writing in) and hides totals', async () => {
+    const calls = await drawnTexts(() => collect(pdf.generate(data(2), {
+      columns, meta: { ...arMeta, formMode: true, showTotals: false },
+    } as ExportOptions)));
+    expect(calls).not.toContain('-');
+    expect(calls).not.toContain('الإجمالي');
+  });
+
+  it('shows the totals row unless the designer turns it off', async () => {
+    const withTotals = await drawnTexts(() => collect(pdf.generate(data(2), { columns, meta: arMeta } as ExportOptions)));
+    const without = await drawnTexts(() => collect(pdf.generate(data(2), { columns, meta: { ...arMeta, showTotals: false } } as ExportOptions)));
+    expect(withTotals).toContain('الإجمالي');
+    expect(without).not.toContain('الإجمالي');
+  });
+
+  it('Excel: "-" for empty text cells, no SUM row when totals are off', async () => {
+    const buf = await collect(new ExcelGenerator().generate(data(2), { columns, meta: { ...arMeta, showTotals: false } } as ExportOptions));
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buf as unknown as ExcelJS.Buffer);
+    const sheet = workbook.worksheets[0];
+    let headerRow = 0;
+    sheet.eachRow((row, n) => { if (row.getCell(1).value === 'اسم الأصل') headerRow = n; });
+    expect(sheet.getRow(headerRow + 1).getCell(2).value).toBe('-');
+    expect(sheet.getRow(headerRow + 3).getCell(1).value).toBeNull();
+  });
+});

@@ -7,12 +7,16 @@ import { Inject, Injectable } from '@nestjs/common';
 import { DatabasePort } from '../core/ports/database.port';
 import { DATABASE_PORT } from '../core/ports/tokens';
 import { DomainError } from '../common/http/domain-error';
+import { ExportResource } from '../core/entities/export.entity';
+import { REPORT_CATALOG, ReportCatalogEntry, isDesignableResource } from '../core/constants/report-catalog';
+import { COLUMN_LABELS, ReportLang, RESOURCE_TITLES } from '../core/constants/export-labels';
 
 export const SETTING_KEYS = {
   name: 'organization_name',
   logo: 'organization_logo',
   signatures: 'report_signatures',
   orientation: 'report_orientation',
+  designer: 'report_designer',
 } as const;
 
 export type ReportOrientation = 'auto' | 'portrait' | 'landscape';
@@ -26,6 +30,35 @@ export interface OrganizationSettings {
   report_signatures: boolean;
   report_orientation: ReportOrientation;
 }
+
+/** Report Designer — how every printed report looks (page size, totals, which columns). */
+export interface ReportDesignerSettings {
+  /** 0 = automatic (fill the page); otherwise a page break after this many rows (PDF) */
+  rows_per_page: number;
+  show_totals: boolean;
+  row_numbers: boolean;
+  /** chosen columns per report, in print order; a missing report uses its defaults */
+  columns: Partial<Record<ExportResource, string[]>>;
+}
+
+export interface ReportDesignerPatch {
+  rows_per_page?: unknown;
+  show_totals?: unknown;
+  row_numbers?: unknown;
+  /** report → column list; an empty list resets that report to its defaults */
+  columns?: unknown;
+}
+
+/** What the designer screen needs besides the saved values. */
+export interface ReportDesignerView extends ReportDesignerSettings {
+  catalog: Partial<Record<ExportResource, ReportCatalogEntry>>;
+  labels: Record<string, Record<ReportLang, string>>;
+  titles: Partial<Record<ExportResource, Record<ReportLang, string>>>;
+}
+
+export const DEFAULT_DESIGNER: ReportDesignerSettings = { rows_per_page: 0, show_totals: true, row_numbers: false, columns: {} };
+export const MIN_ROWS_PER_PAGE = 5;
+export const MAX_ROWS_PER_PAGE = 100;
 
 export interface OrganizationSettingsPatch {
   organization_name?: string;
@@ -100,6 +133,81 @@ export class SettingsService {
   async clearLogo(tenantId: string): Promise<OrganizationSettings> {
     await this.upsert(tenantId, SETTING_KEYS.logo, '');
     return this.get(tenantId);
+  }
+
+  /** Saved designer settings, sanitised: a corrupt or outdated value falls back to the defaults. */
+  async getDesigner(tenantId: string): Promise<ReportDesignerSettings> {
+    const { rows } = await this.db.queryAsTenant<{ setting_value: string | null }>(
+      tenantId,
+      `SELECT setting_value FROM settings WHERE tenant_id = $1 AND setting_key = $2`,
+      [tenantId, SETTING_KEYS.designer],
+    );
+    let parsed: Record<string, unknown> = {};
+    try {
+      const value = JSON.parse(rows[0]?.setting_value || '{}');
+      if (value && typeof value === 'object' && !Array.isArray(value)) parsed = value as Record<string, unknown>;
+    } catch {
+      parsed = {};
+    }
+    const rowsPerPage = Number(parsed.rows_per_page);
+    const columns: ReportDesignerSettings['columns'] = {};
+    const savedColumns = parsed.columns && typeof parsed.columns === 'object' ? parsed.columns as Record<string, unknown> : {};
+    for (const [resource, list] of Object.entries(savedColumns)) {
+      if (!isDesignableResource(resource) || !Array.isArray(list)) continue;
+      const valid = list.filter((key): key is string => typeof key === 'string' && REPORT_CATALOG[resource]!.columns.includes(key));
+      if (valid.length > 0) columns[resource] = [...new Set(valid)];
+    }
+    return {
+      rows_per_page: Number.isInteger(rowsPerPage) && rowsPerPage >= MIN_ROWS_PER_PAGE && rowsPerPage <= MAX_ROWS_PER_PAGE ? rowsPerPage : 0,
+      show_totals: parsed.show_totals !== false,
+      row_numbers: parsed.row_numbers === true,
+      columns,
+    };
+  }
+
+  async getDesignerView(tenantId: string): Promise<ReportDesignerView> {
+    const saved = await this.getDesigner(tenantId);
+    const keys = new Set(Object.values(REPORT_CATALOG).flatMap((entry) => entry?.columns ?? []));
+    const labels: ReportDesignerView['labels'] = {};
+    for (const key of keys) if (COLUMN_LABELS[key]) labels[key] = COLUMN_LABELS[key];
+    const titles: ReportDesignerView['titles'] = {};
+    for (const resource of Object.keys(REPORT_CATALOG) as ExportResource[]) titles[resource] = RESOURCE_TITLES[resource];
+    return { ...saved, catalog: REPORT_CATALOG, labels, titles };
+  }
+
+  async updateDesigner(tenantId: string, patch: ReportDesignerPatch): Promise<ReportDesignerView> {
+    const next = await this.getDesigner(tenantId);
+    if (patch.rows_per_page !== undefined) {
+      const n = patch.rows_per_page;
+      const ok = typeof n === 'number' && Number.isInteger(n) && (n === 0 || (n >= MIN_ROWS_PER_PAGE && n <= MAX_ROWS_PER_PAGE));
+      if (!ok) throw new DomainError('SETTING_VALUE_INVALID', { field: 'rows_per_page', min: MIN_ROWS_PER_PAGE, max: MAX_ROWS_PER_PAGE });
+      next.rows_per_page = n as number;
+    }
+    if (patch.show_totals !== undefined) {
+      if (typeof patch.show_totals !== 'boolean') throw new DomainError('SETTING_VALUE_INVALID', { field: 'show_totals' });
+      next.show_totals = patch.show_totals;
+    }
+    if (patch.row_numbers !== undefined) {
+      if (typeof patch.row_numbers !== 'boolean') throw new DomainError('SETTING_VALUE_INVALID', { field: 'row_numbers' });
+      next.row_numbers = patch.row_numbers;
+    }
+    if (patch.columns !== undefined) {
+      if (!patch.columns || typeof patch.columns !== 'object' || Array.isArray(patch.columns)) {
+        throw new DomainError('SETTING_VALUE_INVALID', { field: 'columns' });
+      }
+      for (const [resource, list] of Object.entries(patch.columns as Record<string, unknown>)) {
+        if (!isDesignableResource(resource) || !Array.isArray(list)) throw new DomainError('SETTING_VALUE_INVALID', { field: 'columns', resource });
+        const allowed = REPORT_CATALOG[resource]!.columns;
+        const keys = list.map((key) => String(key));
+        if (keys.some((key) => !allowed.includes(key)) || new Set(keys).size !== keys.length) {
+          throw new DomainError('SETTING_VALUE_INVALID', { field: 'columns', resource });
+        }
+        if (keys.length === 0) delete next.columns[resource];
+        else next.columns[resource] = keys;
+      }
+    }
+    await this.upsert(tenantId, SETTING_KEYS.designer, JSON.stringify(next));
+    return this.getDesignerView(tenantId);
   }
 
   private toDataUri(stored: string): string {

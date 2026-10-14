@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { ThemePicker } from '@/components/settings/ThemePicker';
 import { OrganizationSettingsCard } from '@/components/settings/OrganizationSettingsCard';
 import { BackupInfoCard } from '@/components/settings/BackupInfoCard';
+import { ReportDesignerCard } from '@/components/settings/ReportDesignerCard';
 import { LocationTypeManager } from '@/features/location-types/components/LocationTypeManager';
 import { useI18n } from '@/lib/i18n';
 import { useCan } from '@/lib/auth/session-context';
@@ -22,6 +23,7 @@ export default function SettingsPage() {
         <div className="grid gap-4 xl:grid-cols-2">
           <OrganizationSettingsCard />
           <BackupInfoCard />
+          <div className="xl:col-span-2"><ReportDesignerCard /></div>
         </div>
       )}
       <div className="grid gap-4 xl:grid-cols-2">

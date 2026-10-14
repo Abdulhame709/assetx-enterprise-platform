@@ -18,7 +18,7 @@ describe('Settings — integration', () => {
   beforeAll(async () => {
     h = await createHarness();
     settings = new SettingsService(h.db);
-    meta = new ReportMetaService(settings);
+    meta = new ReportMetaService(settings, h.db);
   });
 
   it('falls back to the tenant name, no logo, signatures off, auto orientation', async () => {

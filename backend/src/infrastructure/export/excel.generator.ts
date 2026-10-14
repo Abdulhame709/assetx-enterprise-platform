@@ -135,8 +135,14 @@ export class ExcelGenerator implements FileGenerator {
     const numericColumn: boolean[] = keys.map(() => false);
     data.forEach((raw, rowIndex) => {
       const rec = (raw ?? {}) as Record<string, unknown>;
-      const prepared = keys.map((k) => prepare(k, rec[k]));
+      const prepared = keys.map((k) => {
+        const c = prepare(k, rec[k]);
+        // A blank text value prints as "-" (the field form keeps empty cells to write in).
+        if (meta && !meta.formMode && c.value === '' && !NUMERIC_KEYS.has(k)) return { ...c, value: '-' };
+        return c;
+      });
       const row = sheet.addRow(prepared.map((c) => c.value));
+      if (meta?.formMode) row.height = 26;
       prepared.forEach((c, i) => {
         const cell = row.getCell(i + 1);
         if (c.numFmt) cell.numFmt = c.numFmt;
@@ -153,7 +159,7 @@ export class ExcelGenerator implements FileGenerator {
     const lastData = sheet.rowCount;
 
     // ---- totals row (SUM formulas) -----------------------------------------------
-    if (meta && data.length > 0) {
+    if (meta && meta.showTotals !== false && data.length > 0) {
       const totalKeys = keys.map((k, i) => (ADDITIVE_KEYS.has(k) && numericColumn[i] ? i : -1));
       if (totalKeys.some((i) => i >= 0)) {
         const row = sheet.addRow(keys.map(() => null));

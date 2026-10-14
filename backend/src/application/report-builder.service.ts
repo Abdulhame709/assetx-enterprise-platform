@@ -15,7 +15,9 @@ import {
 } from '../core/entities/report.entity';
 import { ExportFormat, ExportRequest, ExportResource } from '../core/entities/export.entity';
 
-const VALID_RESOURCES: ExportResource[] = ['assets', 'movements', 'inventory', 'audit', 'dashboard'];
+const VALID_RESOURCES: ExportResource[] = [
+  'assets', 'movements', 'inventory', 'audit', 'dashboard', 'asset-locations', 'asset-types', 'duplicates', 'inventory-form',
+];
 const VALID_FORMATS: ExportFormat[] = ['csv', 'xlsx', 'pdf'];
 const VALID_FILTER_OPERATORS = ['eq', 'in', 'contains', 'range'];
 const VALID_AGGREGATIONS: ReportAggregation[] = ['count', 'sum', 'avg', 'min', 'max'];

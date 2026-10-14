@@ -13,6 +13,10 @@ export const RESOURCE_TITLES: Record<ExportResource, Record<ReportLang, string>>
   inventory: { ar: 'تقرير الجرد', en: 'Inventory Report' },
   audit: { ar: 'سجل التدقيق', en: 'Audit Log' },
   dashboard: { ar: 'ملخص مؤشرات الأصول', en: 'Assets Dashboard Summary' },
+  'asset-locations': { ar: 'تقرير مواقع الأصول', en: 'Asset Locations Report' },
+  'asset-types': { ar: 'تقرير أنواع الأصول', en: 'Asset Types Report' },
+  duplicates: { ar: 'تقرير الأصول المكررة والمتشابهة', en: 'Duplicate & Similar Assets Report' },
+  'inventory-form': { ar: 'نموذج الجرد الميداني', en: 'Field Inventory Form' },
 };
 
 export const PROFILE_NAMES: Record<string, Record<ReportLang, string>> = {
@@ -92,6 +96,18 @@ export const COLUMN_LABELS: Record<string, Record<ReportLang, string>> = {
   avg: { ar: 'المتوسط', en: 'Average' },
   min: { ar: 'الأدنى', en: 'Minimum' },
   max: { ar: 'الأعلى', en: 'Maximum' },
+  // report center: locations / types / duplicates / field-inventory form
+  row_no: { ar: '#', en: '#' },
+  parent_name: { ar: 'يتبع', en: 'Parent' },
+  level: { ar: 'المستوى', en: 'Level' },
+  direct_count: { ar: 'أصول مباشرة', en: 'Direct assets' },
+  total_count: { ar: 'إجمالي الأصول', en: 'Total assets' },
+  total_value: { ar: 'إجمالي القيمة', en: 'Total value' },
+  assets_count: { ar: 'عدد الأصول', en: 'Assets' },
+  total_quantity: { ar: 'إجمالي الكمية', en: 'Total quantity' },
+  group_no: { ar: 'المجموعة', en: 'Group' },
+  actual_status: { ar: 'الحالة الفعلية', en: 'Actual status' },
+  checked: { ar: 'تم الجرد', en: 'Checked' },
 };
 
 /**
@@ -109,12 +125,17 @@ export function columnLabel(key: string, label: string | undefined, lang: Report
 /** Fields that can be added up in a totals row (money and quantities only). */
 export const ADDITIVE_KEYS = new Set([
   'purchase_price', 'quantity', 'expected_quantity', 'actual_quantity', 'count', 'sum',
+  'direct_count', 'total_count', 'assets_count', 'total_quantity', 'total_value',
 ]);
 
+/** Columns left empty on the blank field-inventory form (the writing cells). */
+export const BLANK_FORM_KEYS = new Set(['actual_quantity', 'actual_status', 'checked', 'notes']);
+
 /** Fields printed with thousands separators and (for money) two decimals. */
-export const MONEY_KEYS = new Set(['purchase_price', 'sum', 'avg', 'min', 'max']);
+export const MONEY_KEYS = new Set(['purchase_price', 'sum', 'avg', 'min', 'max', 'total_value']);
 export const NUMERIC_KEYS = new Set([
   ...MONEY_KEYS, 'quantity', 'expected_quantity', 'actual_quantity', 'count', 'depreciation_rate', 'useful_life',
+  'direct_count', 'total_count', 'assets_count', 'total_quantity', 'level',
 ]);
 
 /** Fixed texts printed by the report generators (PDF / Excel). */

@@ -71,7 +71,7 @@ export class ExportPipelineService {
     // 2 · TRANSFORM — fetch raw data and normalize into uniform rows.
     const { rows } = await ctx.provider.getData(ctx.tenant, ctx.options);
     const adapted: ExportRow[] = this.adapter.toRows(rows);
-    const reportRows = this.applyReportDefinition(adapted, ctx);
+    const reportRows = this.addRowNumbers(this.applyReportDefinition(adapted, ctx), ctx.options);
     this.dropColumnsMissingFromRows(reportRows, ctx.options);
     const transformed: ExportRow[] = ctx.strategy.transform(reportRows, ctx.options);
     const outputRows = transformed.length;
@@ -140,6 +140,20 @@ export class ExportPipelineService {
     if (kept.length === options.columns.length) return;
     if (kept.length === 0) delete options.columns;
     else options.columns = kept;
+  }
+
+  /**
+   * Report designer "row numbers": prepend a running # column. Skipped for grouped
+   * output (rows are aggregates) and when the rows already carry their own row_no.
+   */
+  private addRowNumbers(rows: ExportRow[], options: ExportOptions): ExportRow[] {
+    if (!options.meta?.rowNumbers || rows.length === 0 || 'row_no' in rows[0]) return rows;
+    const report = options.filters?.__report as { grouping?: unknown[] } | undefined;
+    if (Array.isArray(report?.grouping) && report.grouping.length > 0) return rows;
+    if (options.columns && options.columns.length > 0 && !options.columns.some((c) => c.key === 'row_no')) {
+      options.columns = [{ key: 'row_no', order: -1 }, ...options.columns];
+    }
+    return rows.map((row, index) => ({ row_no: index + 1, ...row }));
   }
 
   private applyReportDefinition(rows: ExportRow[], ctx: ExportPipelineContext): ExportRow[] {

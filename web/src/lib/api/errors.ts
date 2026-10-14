@@ -5,6 +5,9 @@
  */
 
 const MESSAGES: Record<string, string> = {
+  INVALID_EXPORT_FILTER: 'One of the report filters is not valid.',
+  INVALID_EXPORT_SUMMARY: 'The summary text is too long for the report.',
+  INVALID_EXPORT_RESOURCE: 'This report cannot be shown on screen.',
   ORGANIZATION_NAME_INVALID: 'The organization name must be between 2 and 120 characters.',
   SETTING_VALUE_INVALID: 'One of the setting values is not valid.',
   LOGO_INVALID: 'The logo must be a PNG or JPEG image no larger than 300 KB.',
@@ -67,6 +70,9 @@ const MESSAGES: Record<string, string> = {
 };
 
 const MESSAGES_AR: Record<string, string> = {
+  INVALID_EXPORT_FILTER: 'أحد مرشحات التقرير غير صحيح.',
+  INVALID_EXPORT_SUMMARY: 'نص الملخص أطول من المسموح في التقرير.',
+  INVALID_EXPORT_RESOURCE: 'لا يمكن عرض هذا التقرير على الشاشة.',
   ORGANIZATION_NAME_INVALID: 'يجب أن يتكون اسم الجهة من حرفين إلى 120 حرفاً.',
   SETTING_VALUE_INVALID: 'إحدى قيم الإعدادات غير صحيحة.',
   LOGO_INVALID: 'يجب أن يكون الشعار صورة PNG أو JPEG لا يزيد حجمها عن 300 كيلوبايت.',

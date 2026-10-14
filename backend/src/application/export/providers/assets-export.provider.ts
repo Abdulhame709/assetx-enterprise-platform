@@ -11,6 +11,7 @@ import { ExportOptions } from '../../../core/entities/export.entity';
 import { ExportProvider } from '../../../core/ports/export-provider.port';
 import { ASSET_PORT, DATABASE_PORT } from '../../../core/ports/tokens';
 import { isoDate, loadNameMaps, nameOf, statusName } from '../export-lookups';
+import { isAssetSortKey, sortAssetRows } from '../export-sort';
 
 interface AssetDetail {
   id: string;
@@ -33,11 +34,12 @@ export class AssetsExportProvider implements ExportProvider {
   ) {}
 
   async getData(tenantId: string, options?: ExportOptions): Promise<{ rows: unknown[]; total: number }> {
+    const filters = (options?.filters ?? {}) as Record<string, unknown>;
     const res = await this.assets.search({
       tenant_id: tenantId,
       page: 1,
       limit: options?.limit ?? 10000,
-      ...(options?.filters as Record<string, unknown> | undefined),
+      ...filters,
     });
     const names = await loadNameMaps(this.db, tenantId);
     const { rows: details } = await this.db.query<AssetDetail>(
@@ -64,6 +66,8 @@ export class AssetsExportProvider implements ExportProvider {
         notes: d?.notes ?? '',
       };
     });
-    return { rows, total: res.total };
+    const sortBy = filters.sort_by;
+    const ordered = isAssetSortKey(sortBy) ? sortAssetRows(rows, sortBy, filters.sort_dir === 'desc' ? 'desc' : 'asc') : rows;
+    return { rows: ordered, total: res.total };
   }
 }

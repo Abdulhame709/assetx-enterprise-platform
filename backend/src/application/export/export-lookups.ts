@@ -4,6 +4,7 @@
  * only by the export providers (presentation of data, no business logic).
  */
 import { DatabasePort } from '../../core/ports/database.port';
+import { isPlaceholderEmployee } from '../../core/constants/placeholder-employee';
 
 export type NameMap = Map<string, string>;
 
@@ -33,13 +34,15 @@ async function load(db: DatabasePort, sql: string, tenantId: string): Promise<Na
 
 export async function loadNameMaps(db: DatabasePort, tenantId: string): Promise<ExportNameMaps> {
   await db.setTenant(tenantId);
-  const [categories, statuses, locations, employees, users] = await Promise.all([
+  const [categories, statuses, locations, allEmployees, users] = await Promise.all([
     load(db, `SELECT id, name AS label FROM asset_categories WHERE tenant_id = $1`, tenantId),
     load(db, `SELECT id, name AS label FROM statuses WHERE tenant_id = $1`, tenantId),
     load(db, `SELECT id, COALESCE(NULLIF(full_path, ''), name) AS label FROM locations WHERE tenant_id = $1`, tenantId),
     load(db, `SELECT id, name AS label FROM employees WHERE tenant_id = $1`, tenantId),
     load(db, `SELECT id, username AS label FROM users WHERE tenant_id = $1`, tenantId),
   ]);
+  // A stand-in employee such as "غير مرتبط بموظف" means "no custodian": leave the cell empty.
+  const employees: NameMap = new Map([...allEmployees].filter(([, name]) => !isPlaceholderEmployee(name)));
   return { categories, statuses, locations, employees, users };
 }
 

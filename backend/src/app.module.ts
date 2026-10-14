@@ -100,6 +100,10 @@ import { MovementsExportProvider } from './application/export/providers/movement
 import { InventoryExportProvider } from './application/export/providers/inventory-export.provider';
 import { AuditExportProvider } from './application/export/providers/audit-export.provider';
 import { DashboardExportProvider } from './application/export/providers/dashboard-export.provider';
+import { AssetLocationsExportProvider } from './application/export/providers/asset-locations-export.provider';
+import { AssetTypesExportProvider } from './application/export/providers/asset-types-export.provider';
+import { DuplicatesExportProvider } from './application/export/providers/duplicates-export.provider';
+import { InventoryFormExportProvider } from './application/export/providers/inventory-form-export.provider';
 import { ExportService } from './application/export.service';
 import { ExportController } from './api/export/export.controller';
 import { ExportPipelineService } from './application/export/export-pipeline.service';
@@ -259,10 +263,17 @@ function resolveJwtSecrets(): { access: string; refresh: string } {
     InventoryExportProvider,
     AuditExportProvider,
     DashboardExportProvider,
+    AssetLocationsExportProvider,
+    AssetTypesExportProvider,
+    DuplicatesExportProvider,
+    InventoryFormExportProvider,
     {
       provide: EXPORT_PROVIDERS,
-      useFactory: (assets, movements, inventory, audit, dashboard) => [assets, movements, inventory, audit, dashboard],
-      inject: [AssetsExportProvider, MovementsExportProvider, InventoryExportProvider, AuditExportProvider, DashboardExportProvider],
+      useFactory: (...providers) => providers,
+      inject: [
+        AssetsExportProvider, MovementsExportProvider, InventoryExportProvider, AuditExportProvider, DashboardExportProvider,
+        AssetLocationsExportProvider, AssetTypesExportProvider, DuplicatesExportProvider, InventoryFormExportProvider,
+      ],
     },
     CsvExportStrategy,
     ExcelExportStrategy,
