@@ -105,6 +105,8 @@ import { ExportController } from './api/export/export.controller';
 import { ExportPipelineService } from './application/export/export-pipeline.service';
 import { ExportProfileRegistry } from './application/export/export-profile.registry';
 import { ExportMetricsService } from './application/export/export-metrics.service';
+import { SettingsService } from './application/settings.service';
+import { SettingsController } from './api/settings/settings.controller';
 import { ReportMetaService } from './application/export/report-meta.service';
 import { CsvExportStrategy } from './infrastructure/export/strategies/csv-export.strategy';
 import { ExcelExportStrategy } from './infrastructure/export/strategies/excel-export.strategy';
@@ -273,6 +275,7 @@ function resolveJwtSecrets(): { access: string; refresh: string } {
     ExportStrategyFactory,
     ExportProfileRegistry,
     ExportMetricsService,
+    SettingsService,
     ReportMetaService,
     ExportPipelineService,
     ExportService,
@@ -332,7 +335,7 @@ function resolveJwtSecrets(): { access: string; refresh: string } {
     LocationController, LocationTypeController, CategoryController, ModelController, EmployeeController,
     StatusController, MasterDataImportController,
     InventoryController, MovementController, MaintenanceController, DashboardController, AuditController, ComplianceController,
-    NotificationController, ExportController, SearchController, SavedSearchController, ReportTemplateController, ReportAiController,
+    NotificationController, ExportController, SearchController, SavedSearchController, ReportTemplateController, ReportAiController, SettingsController,
   ],
   exports: [DATABASE_PORT, TOKEN_MANAGER, PASSWORD_HASHER, UserRepository, AuthService, UsersService, ASSET_PORT, AssetService, AUDIT_PORT, AuditService],
 })

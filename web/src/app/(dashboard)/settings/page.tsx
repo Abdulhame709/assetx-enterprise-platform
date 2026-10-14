@@ -5,6 +5,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ThemePicker } from '@/components/settings/ThemePicker';
+import { OrganizationSettingsCard } from '@/components/settings/OrganizationSettingsCard';
+import { BackupInfoCard } from '@/components/settings/BackupInfoCard';
 import { LocationTypeManager } from '@/features/location-types/components/LocationTypeManager';
 import { useI18n } from '@/lib/i18n';
 import { useCan } from '@/lib/auth/session-context';
@@ -16,6 +18,12 @@ export default function SettingsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title={t('nav.settings')} subtitle={t('module.settingsSubtitle')} />
+      {can(PERMISSIONS.SETTINGS_VIEW) && (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <OrganizationSettingsCard />
+          <BackupInfoCard />
+        </div>
+      )}
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader title={t('module.settingsLanguage')} subtitle={t('module.settingsLanguageDesc')} />

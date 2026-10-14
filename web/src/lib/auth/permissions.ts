@@ -67,6 +67,7 @@ export const PERMISSIONS = {
   NOTIFICATION_VIEW: 'notification.view',
   IMPORT_VIEW: 'import.view',
   SETTINGS_VIEW: 'settings.view',
+  SETTINGS_UPDATE: 'settings.update',
   EXPORT_ASSETS: 'export.assets',
   EXPORT_MOVEMENTS: 'export.movements',
   EXPORT_INVENTORY: 'export.inventory',

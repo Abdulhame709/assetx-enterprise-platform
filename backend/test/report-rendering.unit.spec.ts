@@ -122,6 +122,12 @@ describe('PdfGenerator — ERP layout', () => {
     expect(buf.subarray(0, 5).toString()).toBe('%PDF-');
   });
 
+  it('embeds a valid PNG logo in the header', async () => {
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+    const buf = await collect(gen.generate(rows(2), { columns, meta: { ...arMeta, logo: png } } as ExportOptions));
+    expect(buf.toString('latin1')).toContain('/Subtype /Image');
+  });
+
   it('survives an invalid logo and very long unbroken cells', async () => {
     const data = [{ name: 'X'.repeat(400), quantity: 1, purchase_price: 5, status_name: '', purchase_date: '' }];
     const buf = await collect(gen.generate(data, { columns, meta: { ...arMeta, logo: Buffer.from('not-an-image') } } as ExportOptions));
