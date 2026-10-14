@@ -45,6 +45,8 @@ export interface AssetFilter {
   location_id?: string; // includes descendants via path prefix
   category_id?: string;
   employee_id?: string;
+  /** assets with no custodian (also those linked to a placeholder employee) */
+  no_employee?: boolean;
   /** advanced search fields */
   barcode?: string;
   serial_number?: string;

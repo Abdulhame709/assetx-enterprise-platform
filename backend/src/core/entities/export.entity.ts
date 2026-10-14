@@ -13,7 +13,11 @@ export type ExportResource =
   | 'movements'
   | 'inventory'
   | 'audit'
-  | 'dashboard';
+  | 'dashboard'
+  | 'asset-locations'
+  | 'asset-types'
+  | 'duplicates'
+  | 'inventory-form';
 
 export interface ReportExecutionMetadata {
   /** selected fields to project before formatting */
@@ -50,6 +54,14 @@ export interface ExportMeta {
   signatures?: boolean;
   /** diagonal "draft" watermark */
   draft?: boolean;
+  /** report designer: force a page break after this many table rows (PDF) */
+  rowsPerPage?: number;
+  /** report designer: print the totals row (default true) */
+  showTotals?: boolean;
+  /** report designer: add a running row-number column */
+  rowNumbers?: boolean;
+  /** blank paper form (field inventory): taller rows, empty writing cells stay empty */
+  formMode?: boolean;
 }
 
 export interface ExportOptions {

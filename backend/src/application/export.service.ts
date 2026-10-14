@@ -11,7 +11,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ExportPort } from '../core/ports/export.port';
 import { ExportProvider } from '../core/ports/export-provider.port';
-import { ExportRequest, ExportResult, ExportMetadata, ExportMode } from '../core/entities/export.entity';
+import { ExportRequest, ExportResult, ExportMetadata, ExportMode, ExportOptions, ExportResource } from '../core/entities/export.entity';
 import { AuditService } from './audit.service';
 import { AUDIT_EVENTS } from '../core/constants/audit-events';
 import { EventBus } from '../core/events/event-bus';
@@ -37,6 +37,18 @@ export class ExportService implements ExportPort {
     @Inject(EXPORT_PROVIDERS) providers: ExportProvider[],
   ) {
     for (const p of providers) this.providers.set(p.resource, p);
+  }
+
+  /** First rows of a report as plain data, for the on-screen preview (no file, no audit trail). */
+  async preview(
+    req: { tenant_id: string; resource: ExportResource; options?: ExportOptions },
+    maxRows = 200,
+  ): Promise<{ rows: Record<string, unknown>[]; total: number }> {
+    const provider = this.providers.get(req.resource);
+    if (!provider) throw new Error('UNSUPPORTED_EXPORT_RESOURCE');
+    const { rows, total } = await provider.getData(req.tenant_id, req.options);
+    const all = rows as Record<string, unknown>[];
+    return { rows: all.slice(0, maxRows), total: Math.max(total, all.length) };
   }
 
   async generate(req: ExportRequest): Promise<ExportResult> {

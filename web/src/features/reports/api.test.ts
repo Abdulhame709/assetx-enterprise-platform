@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadReportExport, generateReportAiSummary } from './api';
+import { downloadReportExport, filterParams, generateReportAiSummary, getReportPreview } from './api';
 import { http } from '@/lib/api/client';
 
 vi.mock('@/lib/api/client', () => ({
   API_BASE_URL: '/api',
-  http: { post: vi.fn() },
+  http: { post: vi.fn(), get: vi.fn() },
 }));
 
 vi.mock('@/lib/auth/token-store', () => ({
@@ -93,6 +93,40 @@ describe('report export API', () => {
 
     await expect(generateReportAiSummary('assets')).resolves.toEqual(summary);
     expect(http.post).toHaveBeenCalledWith('/ai/reports/summary', { resource: 'assets' });
+  });
+
+  it('sends the report filters, an employee of "none", and the AI summary with the file request', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('x', { status: 200 }));
+    await downloadReportExport({
+      resource: 'assets',
+      format: 'pdf',
+      filters: { location_id: 'loc-1', employee_id: 'none', sort_by: 'name', sort_dir: 'desc', q: '' },
+      summary: 'ملخص',
+    });
+    const [url] = vi.mocked(fetch).mock.calls[0] ?? [];
+    const params = new URL(String(url), 'http://x').searchParams;
+    expect(params.get('location_id')).toBe('loc-1');
+    expect(params.get('employee_id')).toBe('none');
+    expect(params.get('sort_by')).toBe('name');
+    expect(params.get('sort_dir')).toBe('desc');
+    expect(params.get('summary')).toBe('ملخص');
+    expect(params.has('q')).toBe(false);
+  });
+
+  it('never sends empty filters', () => {
+    expect(filterParams({ location_id: '', q: undefined, blank_rows: 0, category_id: 'c1' })).toEqual([['category_id', 'c1']]);
+    expect(filterParams(undefined)).toEqual([]);
+  });
+
+  it('maps the on-screen preview of a report', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({
+      title: 'تقرير الأصول', organizationName: 'شركة', filtersText: 'الموقع: أ',
+      columns: [{ key: 'name', label: 'اسم الأصل' }], rows: [{ name: 'طابعة' }], total: 450, truncated: true,
+    });
+    const preview = await getReportPreview('assets', { location_id: 'loc-1' });
+    expect(vi.mocked(http.get).mock.calls[0]?.[0]).toBe('/exports/preview/assets?lang=ar&location_id=loc-1');
+    expect(preview).toMatchObject({ resource: 'assets', total: 450, truncated: true });
+    expect(preview.columns).toEqual([{ key: 'name', label: 'اسم الأصل' }]);
   });
 
   it('surfaces a failed export response', async () => {

@@ -5,9 +5,11 @@
  *   PUT    /settings/logo       settings.update   { data_uri: "data:image/png;base64,..." }
  *   DELETE /settings/logo       settings.update
  *   GET    /settings/branding   any signed-in user (name + logo shown in the app shell)
+ *   GET    /settings/report-designer   settings.view
+ *   PUT    /settings/report-designer   settings.update
  */
 import { Body, Controller, Delete, Get, Patch, Put, UseGuards } from '@nestjs/common';
-import { SettingsService, OrganizationSettingsPatch } from '../../application/settings.service';
+import { SettingsService, OrganizationSettingsPatch, ReportDesignerPatch } from '../../application/settings.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { PermissionGuard } from '../../common/guards/permission.guard';
@@ -38,6 +40,23 @@ export class SettingsController {
       organization_name: body?.organization_name,
       report_signatures: body?.report_signatures,
       report_orientation: body?.report_orientation,
+    });
+  }
+
+  @Get('report-designer')
+  @RequirePermission('settings.view')
+  getDesigner(@CurrentUser() user: RequestUser) {
+    return this.settings.getDesignerView(user.tenant_id);
+  }
+
+  @Put('report-designer')
+  @RequirePermission('settings.update')
+  updateDesigner(@Body() body: ReportDesignerPatch, @CurrentUser() user: RequestUser) {
+    return this.settings.updateDesigner(user.tenant_id, {
+      rows_per_page: body?.rows_per_page,
+      show_totals: body?.show_totals,
+      row_numbers: body?.row_numbers,
+      columns: body?.columns,
     });
   }
 
