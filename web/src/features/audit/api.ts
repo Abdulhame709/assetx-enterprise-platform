@@ -6,6 +6,7 @@
  */
 import { http, API_BASE_URL } from '@/lib/api/client';
 import { currentReportLang } from '@/lib/api/report-lang';
+import { filenameFromDisposition } from '@/lib/download';
 import { AuditEventRow, AuditQuery, PagedAudit } from './types';
 
 function asStr(v: unknown): string | null {
@@ -87,8 +88,7 @@ export async function downloadAuditExport(): Promise<void> {
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition') ?? '';
-  const match = /filename="?([^";]+)"?/.exec(disposition);
-  const filename = match?.[1] ?? 'audit-export.csv';
+  const filename = filenameFromDisposition(disposition, 'audit-export.csv');
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

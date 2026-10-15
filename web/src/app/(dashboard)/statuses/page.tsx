@@ -1,6 +1,7 @@
 'use client';
 
 /** Asset statuses — governed master data with StatusColor support (README §13.9). */
+import { intlLocale } from '@/lib/format';
 import { FormEvent, useMemo, useRef, useState } from 'react';
 import { CircleDot, FileSpreadsheet, Pencil, Plus, Printer, RefreshCw, Search, Trash2, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -22,7 +23,7 @@ import { createStatus, deleteStatus, getStatuses, ReferenceStatus, updateStatus 
 type ModalState = { mode: 'closed' } | { mode: 'create' } | { mode: 'edit'; status: ReferenceStatus };
 
 export default function StatusesPage() {
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
   const toast = useToast();
   const { confirm } = useConfirm();
   const state = useAsync(() => getStatuses(), [], { isEmpty: (items) => items.length === 0 });
@@ -32,12 +33,12 @@ export default function StatusesPage() {
   const [deactivatingId, setDeactivatingId] = useState<string | null>(null);
   const statuses = useMemo(() => {
     const term = search.trim().toLocaleLowerCase(locale);
-    return (state.data ?? []).filter((status) => !term || status.name.toLocaleLowerCase(locale).includes(term));
+    return (state.data ?? []).filter((status) => !term || (status.name.toLocaleLowerCase(locale).includes(term) || label(status.name).toLocaleLowerCase(locale).includes(term)));
   }, [locale, search, state.data]);
 
   const deactivate = async (status: ReferenceStatus) => {
     const accepted = await confirm({
-      title: t('statuses.deactivateTitle').replace('{name}', status.name),
+      title: t('statuses.deactivateTitle').replace('{name}', label(status.name)),
       message: t('statuses.deactivateMessage'),
       tone: 'danger',
       confirmLabel: t('statuses.deactivate'),
@@ -59,7 +60,7 @@ export default function StatusesPage() {
     <div>
       <PageHeader
         title={t('statuses.title')}
-        subtitle={t('statuses.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale))}
+        subtitle={t('statuses.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(intlLocale(locale)))}
       />
       <CommandToolbar
         label={t('statuses.commandToolbar')}
@@ -99,7 +100,7 @@ export default function StatusesPage() {
                   </span>
                   <span className="h-3.5 w-3.5 shrink-0 rounded-full ring-2 ring-surface" style={{ backgroundColor: status.color ?? '#64748b' }} aria-label={status.color ?? t('statuses.noColor')} />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-ink">{status.name}</p>
+                    <p className="truncate text-sm font-medium text-ink">{label(status.name)}</p>
                     <p className="font-mono text-xs text-ink-faint">{status.color ?? t('statuses.noColor')}</p>
                   </div>
                   {!status.is_active && <span className="rounded-full bg-surface-muted px-2 py-0.5 text-xs text-ink-muted">{t('statuses.inactive')}</span>}

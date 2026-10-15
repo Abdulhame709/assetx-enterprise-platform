@@ -69,6 +69,13 @@ const TEXT = {
   },
 };
 
+const TITLE_TEXT = {
+  ar: { by: 'حسب', and: ' و', category: 'النوع', status: 'الحالة', employee: 'الموظف', location: 'الموقع', none: 'غير مرتبطة بموظف' },
+  en: { by: 'by', and: ' & ', category: 'asset type', status: 'status', employee: 'custodian', location: 'location', none: 'no custodian' },
+};
+
+type Names = Awaited<ReturnType<typeof loadNameMaps>>;
+
 @Injectable()
 export class ReportMetaService {
   constructor(
@@ -80,11 +87,12 @@ export class ReportMetaService {
     const lang: ReportLang = input.lang === 'en' ? 'en' : 'ar';
     const { organizationName, logo, signatures, orientation } = await this.loadOrganization(input.tenantId);
     const designer = await this.loadDesigner(input.tenantId);
-    const filtersText = await this.describe(input, lang);
+    const names = await this.namesFor(input);
+    const filtersText = await this.describe(input, lang, names);
     const isForm = input.resource === 'inventory-form';
     return {
       resource: input.resource,
-      title: RESOURCE_TITLES[input.resource]?.[lang] ?? input.resource,
+      title: this.titleFor(input, lang, names),
       ...(organizationName ? { organizationName } : {}),
       ...(logo ? { logo } : {}),
       userName: input.userName,
@@ -136,14 +144,48 @@ export class ReportMetaService {
     }
   }
 
-  private async describe(input: ReportMetaInput, lang: ReportLang): Promise<string> {
+  /** Id → name maps, loaded only when a filter needs a name to be printed. */
+  private async namesFor(input: ReportMetaInput): Promise<Names | undefined> {
+    const f = input.filters;
+    if (!f || !(f.location_id || f.category_id || f.status_id || f.employee_id)) return undefined;
+    try {
+      return await loadNameMaps(this.db, input.tenantId);
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * The report title. The asset register is retitled after the filter chosen
+   * ("by asset type: Laptop", "by custodian: ...") so each report reads as its own report.
+   */
+  private titleFor(input: ReportMetaInput, lang: ReportLang, names?: Names): string {
+    const base = RESOURCE_TITLES[input.resource]?.[lang] ?? input.resource;
+    const f = input.filters;
+    if (input.resource !== 'assets' || !f) return base;
+    const tx = TITLE_TEXT[lang];
+    const dims: Array<{ label: string; name?: string }> = [];
+    if (f.category_id) dims.push({ label: tx.category, name: names && nameOf(names.categories, f.category_id) });
+    if (f.status_id) dims.push({ label: tx.status, name: names && statusName(names.statuses, f.status_id, lang) });
+    if (f.no_employee) dims.push({ label: tx.employee, name: tx.none });
+    else if (f.employee_id) dims.push({ label: tx.employee, name: names && nameOf(names.employees, f.employee_id) });
+    if (f.location_id) dims.push({ label: tx.location, name: names && nameOf(names.locations, f.location_id) });
+    if (dims.length === 0) return base;
+    if (dims.length === 1) {
+      const [d] = dims;
+      return `${base} ${tx.by} ${d.label}${d.name ? `: ${d.name}` : ''}`;
+    }
+    return `${base} ${tx.by} ${dims.map((d) => d.label).join(tx.and)}`;
+  }
+
+  private async describe(input: ReportMetaInput, lang: ReportLang, names?: Names): Promise<string> {
     const tx = TEXT[lang];
     const parts: string[] = [];
     const label = (key: string) => columnLabel(key, input.columns?.find((c) => c.key === key)?.label, lang);
     if (input.profile && PROFILE_NAMES[input.profile]) {
       parts.push(`${tx.profile}: ${PROFILE_NAMES[input.profile][lang]}`);
     }
-    parts.push(...await this.describeFilters(input, lang));
+    parts.push(...this.describeFilters(input, lang, names));
     if (input.grouping && input.grouping.length > 0) {
       const groups = input.grouping.map((g) => {
         const aggregate = AGGREGATE_NAMES[g.aggregate ?? 'count']?.[lang] ?? g.aggregate ?? '';
@@ -160,27 +202,18 @@ export class ReportMetaService {
   }
 
   /** One short phrase per applied filter, with names (not ids) so the printed page explains itself. */
-  private async describeFilters(input: ReportMetaInput, lang: ReportLang): Promise<string[]> {
+  private describeFilters(input: ReportMetaInput, lang: ReportLang, names?: Names): string[] {
     const f = input.filters;
     if (!f) return [];
     const tx = TEXT[lang];
     const parts: string[] = [];
-    const needsNames = Boolean(f.location_id || f.category_id || f.status_id || f.employee_id);
-    let names: Awaited<ReturnType<typeof loadNameMaps>> | undefined;
-    if (needsNames) {
-      try {
-        names = await loadNameMaps(this.db, input.tenantId);
-      } catch {
-        names = undefined;
-      }
-    }
     if (f.blank_rows && f.blank_rows > 0) parts.push(`${tx.blank}: ${f.blank_rows} ${tx.lines}`);
     if (f.location_scope) parts.push(`${tx.scope}: ${f.location_scope === 'main' ? tx.main : tx.sub}`);
     // Never print a raw id: a filter whose name cannot be resolved is simply not described.
     const named = (title: string, name: string | undefined) => { if (name) parts.push(`${title}: ${name}`); };
     if (f.location_id) named(tx.location, names && nameOf(names.locations, f.location_id));
     if (f.category_id) named(tx.category, names && nameOf(names.categories, f.category_id));
-    if (f.status_id) named(tx.status, names && statusName(names.statuses, f.status_id));
+    if (f.status_id) named(tx.status, names && statusName(names.statuses, f.status_id, lang));
     if (f.no_employee) parts.push(tx.noEmployee);
     else if (f.employee_id) named(tx.employee, names && nameOf(names.employees, f.employee_id));
     if (f.q) parts.push(`${tx.search}: ${f.q}`);

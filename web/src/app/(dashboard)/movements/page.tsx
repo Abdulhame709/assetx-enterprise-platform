@@ -28,7 +28,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { humanError } from '@/lib/api/errors';
 import { useI18n, formatDateTime } from '@/lib/i18n';
-import { shortRef } from '@/lib/format';
+import { shortRef, intlLocale } from '@/lib/format';
 import { useMovements } from '@/features/movements/use-movements';
 import {
   MovementRow, MovementType, MOVEMENT_TYPES, MovementFilter, DEFAULT_FILTER,
@@ -108,7 +108,7 @@ export default function MovementsPage() {
   const approvedVisible = rows.filter((movement) => movement.status === 'approved').length;
   const rejectedVisible = rows.filter((movement) => movement.status === 'rejected').length;
   const formatMessage = (key: string, values: Record<string, number>) => Object.entries(values).reduce(
-    (text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(locale)), t(key),
+    (text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(intlLocale(locale))), t(key),
   );
 
   const filtered =
@@ -284,7 +284,7 @@ export default function MovementsPage() {
         title={t('movements.title')}
         subtitle={
           data
-            ? t('movements.summary').replace('{pending}', data.pendingTotal.toLocaleString(locale)).replace('{total}', data.page.total.toLocaleString(locale))
+            ? t('movements.summary').replace('{pending}', data.pendingTotal.toLocaleString(intlLocale(locale))).replace('{total}', data.page.total.toLocaleString(intlLocale(locale)))
             : t('movements.subtitle')
         }
       />
@@ -300,10 +300,10 @@ export default function MovementsPage() {
       />
 
       <section aria-label={t('movements.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard icon={ClipboardCheck} label={t('movements.pendingApprovals')} value={(data?.pendingTotal ?? 0).toLocaleString(locale)} tone="warning" />
-        <MetricCard icon={ArrowRightLeft} label={t('movements.displayedMovements')} value={(data?.page.total ?? 0).toLocaleString(locale)} tone="brand" />
-        <MetricCard icon={Check} label={t('movements.approvedInView')} value={approvedVisible.toLocaleString(locale)} tone="success" />
-        <MetricCard icon={X} label={t('movements.rejectedInView')} value={rejectedVisible.toLocaleString(locale)} tone="danger" />
+        <MetricCard icon={ClipboardCheck} label={t('movements.pendingApprovals')} value={(data?.pendingTotal ?? 0).toLocaleString(intlLocale(locale))} tone="warning" />
+        <MetricCard icon={ArrowRightLeft} label={t('movements.displayedMovements')} value={(data?.page.total ?? 0).toLocaleString(intlLocale(locale))} tone="brand" />
+        <MetricCard icon={Check} label={t('movements.approvedInView')} value={approvedVisible.toLocaleString(intlLocale(locale))} tone="success" />
+        <MetricCard icon={X} label={t('movements.rejectedInView')} value={rejectedVisible.toLocaleString(intlLocale(locale))} tone="danger" />
       </section>
 
       <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-labelledby="movement-filters-title">

@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { Activity, Boxes, UserCheck, Wrench } from 'lucide-react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
@@ -18,10 +19,10 @@ export default function AnalyticsPage() {
         {(data) => (
           <>
             <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <KpiCard label={t('module.analyticsTotal')} value={data.total_assets.toLocaleString(locale)} icon={Boxes} tone="info" />
-              <KpiCard label={t('module.analyticsActive')} value={data.active_assets.toLocaleString(locale)} icon={Activity} tone="success" />
-              <KpiCard label={t('module.analyticsMaintenance')} value={data.maintenance_assets.toLocaleString(locale)} icon={Wrench} tone="warning" />
-              <KpiCard label={t('module.analyticsAssigned')} value={data.assigned_assets.toLocaleString(locale)} icon={UserCheck} tone="brand" />
+              <KpiCard label={t('module.analyticsTotal')} value={data.total_assets.toLocaleString(intlLocale(locale))} icon={Boxes} tone="info" />
+              <KpiCard label={t('module.analyticsActive')} value={data.active_assets.toLocaleString(intlLocale(locale))} icon={Activity} tone="success" />
+              <KpiCard label={t('module.analyticsMaintenance')} value={data.maintenance_assets.toLocaleString(intlLocale(locale))} icon={Wrench} tone="warning" />
+              <KpiCard label={t('module.analyticsAssigned')} value={data.assigned_assets.toLocaleString(intlLocale(locale))} icon={UserCheck} tone="brand" />
             </div>
             <Card>
               <CardHeader title={t('module.analyticsStates')} subtitle={t('module.analyticsStatesDesc')} />
@@ -29,7 +30,7 @@ export default function AnalyticsPage() {
                 <div className="flex flex-wrap gap-2">
                   {data.lifecycle_distribution.map((item) => (
                     <span key={item.state} className="rounded-full bg-surface-muted px-3 py-1.5 text-sm text-ink">
-                      {label(item.state)}: {item.count.toLocaleString(locale)}
+                      {label(item.state)}: {item.count.toLocaleString(intlLocale(locale))}
                     </span>
                   ))}
                 </div>

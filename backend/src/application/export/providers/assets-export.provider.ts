@@ -34,6 +34,8 @@ export class AssetsExportProvider implements ExportProvider {
   ) {}
 
   async getData(tenantId: string, options?: ExportOptions): Promise<{ rows: unknown[]; total: number }> {
+    // The on-screen preview has no audit write before it (which binds the tenant), so bind it here.
+    await this.db.setTenant(tenantId);
     const filters = (options?.filters ?? {}) as Record<string, unknown>;
     const res = await this.assets.search({
       tenant_id: tenantId,
@@ -54,7 +56,7 @@ export class AssetsExportProvider implements ExportProvider {
         ...a,
         purchase_price: Number(a.purchase_price ?? 0),
         category_name: nameOf(names.categories, a.category_id),
-        status_name: statusName(names.statuses, a.status_id),
+        status_name: statusName(names.statuses, a.status_id, options?.meta?.lang === 'en' ? 'en' : 'ar'),
         location_name: nameOf(names.locations, a.location_id),
         employee_name: nameOf(names.employees, a.employee_id),
         purchase_date: isoDate(d?.purchase_date),

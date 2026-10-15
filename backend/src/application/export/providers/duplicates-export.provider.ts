@@ -49,6 +49,8 @@ export class DuplicatesExportProvider implements ExportProvider {
   constructor(@Inject(DATABASE_PORT) private readonly db: DatabasePort) {}
 
   async getData(tenantId: string, options?: ExportOptions): Promise<{ rows: unknown[]; total: number }> {
+    // The on-screen preview has no audit write before it (which binds the tenant), so bind it here.
+    await this.db.setTenant(tenantId);
     const filters = (options?.filters ?? {}) as Record<string, unknown>;
     const lang = options?.meta?.lang === 'en' ? 'en' : 'ar';
     const names = await loadNameMaps(this.db, tenantId);
@@ -100,7 +102,7 @@ export class DuplicatesExportProvider implements ExportProvider {
             category_name: nameOf(names.categories, a.category_id),
             location_name: nameOf(names.locations, a.location_id),
             employee_name: nameOf(names.employees, a.employee_id),
-            status_name: statusName(names.statuses, a.status_id),
+            status_name: statusName(names.statuses, a.status_id, lang),
             purchase_price: Number(a.purchase_price ?? 0),
           });
         }

@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 interface ModalProps {
   open: boolean;
@@ -18,7 +19,9 @@ const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl' };
 const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /** Modal/Dialog — accessible overlay dialog with ESC, focus trap, and focus restore. */
-export function Modal({ open, onClose, title, children, footer, size = 'md', closeLabel = 'Close' }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'md', closeLabel }: ModalProps) {
+  const { t } = useI18n();
+  const closeText = closeLabel ?? t('common.close');
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
@@ -86,7 +89,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', clo
       >
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 id={titleId} className="text-base font-semibold text-ink">{title}</h2>
-          <button className="rounded-lg p-1 text-ink-faint hover:bg-surface-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40" onClick={onClose} aria-label={closeLabel} title={closeLabel}>
+          <button className="rounded-lg p-1 text-ink-faint hover:bg-surface-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40" onClick={onClose} aria-label={closeText} title={closeText}>
             <X className="h-5 w-5" />
           </button>
         </div>

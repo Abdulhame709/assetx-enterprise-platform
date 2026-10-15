@@ -6,6 +6,7 @@
  * toolbar (search + export + actions), row actions, empty/loading/error states.
  * Keeps the existing DataTable's rendering contract; clients pass columns/rows.
  */
+import { intlLocale } from '@/lib/format';
 import { ReactNode, useMemo, useState } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown, Columns3, ChevronLeft, ChevronRight, Download, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -143,7 +144,7 @@ export function EnterpriseTable<T>({
             </div>
           )}
           {selectable && selectedKeys && selectedKeys.length > 0 && (
-            <span className="text-sm text-ink-muted">{selectedKeys.length.toLocaleString(locale)} {t('table.selected')}</span>
+            <span className="text-sm text-ink-muted">{selectedKeys.length.toLocaleString(intlLocale(locale))} {t('table.selected')}</span>
           )}
           <div className="ms-auto flex flex-wrap items-center gap-2 max-sm:w-full">
             {toolbarActions}
@@ -241,7 +242,7 @@ export function EnterpriseTable<T>({
       {onPageChange && (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 text-sm">
           <span className="text-ink-muted">
-            {page.toLocaleString(locale)} / {totalPages.toLocaleString(locale)} · {total.toLocaleString(locale)} {t('table.results')}
+            {page.toLocaleString(intlLocale(locale))} / {totalPages.toLocaleString(intlLocale(locale))} · {total.toLocaleString(intlLocale(locale))} {t('table.results')}
           </span>
           <div className="flex gap-1">
             <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label={t('table.previous')}>

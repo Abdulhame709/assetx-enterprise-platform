@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { MoreHorizontal, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 export interface ActionItem {
   key: string;
@@ -13,7 +14,8 @@ export interface ActionItem {
 }
 
 /** ActionMenu — dropdown of row/card actions (ellipsis trigger). */
-export function ActionMenu({ items, triggerLabel = 'Actions' }: { items: ActionItem[]; triggerLabel?: string }) {
+export function ActionMenu({ items, triggerLabel }: { items: ActionItem[]; triggerLabel?: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -30,7 +32,7 @@ export function ActionMenu({ items, triggerLabel = 'Actions' }: { items: ActionI
       <button
         className="rounded-lg p-1.5 text-ink-muted hover:bg-surface-muted hover:text-ink"
         onClick={() => setOpen((v) => !v)}
-        aria-label={triggerLabel}
+        aria-label={triggerLabel ?? t('common.actions')}
         aria-haspopup="menu"
         aria-expanded={open}
       >

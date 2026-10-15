@@ -128,7 +128,7 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
   };
 
   const locationOptions = [...lookups.locations.entries()].map(([value, lbl]) => ({ value, label: lbl }));
-  const statusOptions = [...lookups.statuses.values()].map((s) => ({ value: s.id, label: s.name }));
+  const statusOptions = [...lookups.statuses.values()].map((s) => ({ value: s.id, label: label(s.name) }));
   const employeeOptions = [...lookups.employees.values()].map((p) => ({ value: p.id, label: p.department ? `${p.name} · ${p.department}` : p.name }));
 
   return (
@@ -138,7 +138,7 @@ export function CountRecordModal({ open, cycleId, record, lookups, onClose, onSa
         <span className="font-medium text-ink">{t('inventoryRecord.expected')}</span> {t('inventoryRecord.quantity')} {record.expected_quantity ?? '—'}
         {record._assetCode ? ` · ${record._assetCode}` : ''}
         {` · ${record._expectedLocation ?? '—'}`}
-        {record._expectedStatus ? ` · ${record._expectedStatus}` : ''}
+        {record._expectedStatus ? ` · ${label(record._expectedStatus)}` : ''}
         {record._expectedEmployee ? ` · ${t('inventoryRecord.custodian')} ${record._expectedEmployee}` : ''}
       </div>
       <form onSubmit={submit} className="space-y-4">

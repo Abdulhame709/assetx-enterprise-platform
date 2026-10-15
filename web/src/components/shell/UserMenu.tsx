@@ -5,11 +5,13 @@ import { LogOut, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth/session-context';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 /** UserMenu — profile menu (roles + logout). */
 export function UserMenu() {
   const { session, logout } = useSession();
   const router = useRouter();
+  const { t, label } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -47,7 +49,7 @@ export function UserMenu() {
             <p className="text-xs text-ink-muted">@{session?.user.username}</p>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {session?.user.roles.map((r) => (
-                <span key={r} className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-muted">{r}</span>
+                <span key={r} className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-muted">{label(r)}</span>
               ))}
             </div>
           </div>
@@ -56,14 +58,14 @@ export function UserMenu() {
             className={cn('flex w-full items-center gap-2 px-4 py-2 text-sm text-ink hover:bg-surface-muted')}
             onClick={() => setOpen(false)}
           >
-            <UserIcon className="h-4 w-4" /> Profile
+            <UserIcon className="h-4 w-4" /> {t('common.profile')}
           </button>
           <button
             role="menuitem"
             className="flex w-full items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-surface-muted"
             onClick={handleLogout}
           >
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="h-4 w-4" /> {t('common.signOut')}
           </button>
         </div>
       )}

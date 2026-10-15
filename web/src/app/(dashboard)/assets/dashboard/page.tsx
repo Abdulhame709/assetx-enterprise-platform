@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import Link from 'next/link';
 import { Boxes, CheckCircle2, UserCheck, Wrench, Trash2, Archive } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -36,12 +37,12 @@ export default function AssetDashboardPage() {
           <>
             {/* KPI cards */}
             <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <KpiCard label={t('assetDashboard.total')} value={data.total_assets.toLocaleString(locale)} icon={Boxes} tone="info" />
-              <KpiCard label={t('assetDashboard.active')} value={data.active_assets.toLocaleString(locale)} icon={CheckCircle2} tone="success" />
-              <KpiCard label={t('assetDashboard.assigned')} value={data.assigned_assets.toLocaleString(locale)} icon={UserCheck} tone="brand" />
-              <KpiCard label={t('assetDashboard.maintenance')} value={data.maintenance_assets.toLocaleString(locale)} icon={Wrench} tone="warning" />
-              <KpiCard label={t('assetDashboard.disposed')} value={data.disposed_assets.toLocaleString(locale)} icon={Trash2} tone="danger" />
-              <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(locale)} icon={Archive} tone="neutral" />
+              <KpiCard label={t('assetDashboard.total')} value={data.total_assets.toLocaleString(intlLocale(locale))} icon={Boxes} tone="info" />
+              <KpiCard label={t('assetDashboard.active')} value={data.active_assets.toLocaleString(intlLocale(locale))} icon={CheckCircle2} tone="success" />
+              <KpiCard label={t('assetDashboard.assigned')} value={data.assigned_assets.toLocaleString(intlLocale(locale))} icon={UserCheck} tone="brand" />
+              <KpiCard label={t('assetDashboard.maintenance')} value={data.maintenance_assets.toLocaleString(intlLocale(locale))} icon={Wrench} tone="warning" />
+              <KpiCard label={t('assetDashboard.disposed')} value={data.disposed_assets.toLocaleString(intlLocale(locale))} icon={Trash2} tone="danger" />
+              <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(intlLocale(locale))} icon={Archive} tone="neutral" />
             </div>
 
             {/* Distributions */}
@@ -63,7 +64,7 @@ export default function AssetDashboardPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               {data.lifecycle_distribution.slice(0, 8).map((d) => (
                 <Badge key={d.state} tone="neutral" className="capitalize">
-                  {label(d.state)}: {d.count.toLocaleString(locale)}
+                  {label(d.state)}: {d.count.toLocaleString(intlLocale(locale))}
                 </Badge>
               ))}
             </div>

@@ -71,7 +71,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
   const [serverError, setServerError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [createdAsset, setCreatedAsset] = useState<AssetDetail | null>(null);
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
 
   useEffect(() => {
     if (!open) return;
@@ -234,7 +234,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
               <Select value={form.status_id} onChange={(e) => set('status_id', e.target.value)} required>
                 <option value="">{t('assetForm.chooseStatus')}</option>
                 {statuses.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
+                  <option key={s.id} value={s.id}>{label(s.name)}</option>
                 ))}
               </Select>
             </Field>

@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { useMemo, useRef, useState } from 'react';
 import { Building2, FileSpreadsheet, Mail, Pencil, Phone, Plus, Printer, RefreshCw, Search, Undo2, UserRoundCheck, UsersRound, UserX } from 'lucide-react';
 import { deleteEmployee, getEmployees, ReferenceEmployee } from '@/features/reference/api';
@@ -87,10 +88,10 @@ export default function EmployeesPage() {
     />
 
     <section aria-label={t('employees.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-      <MetricCard icon={UsersRound} label={t('employees.total')} value={employees.length.toLocaleString(locale)} tone="brand" />
-      <MetricCard icon={Building2} label={t('employees.departments')} value={departmentCount.toLocaleString(locale)} tone="warning" />
-      <MetricCard icon={Mail} label={t('employees.withContact')} value={completeContactCount.toLocaleString(locale)} tone="success" />
-      <MetricCard icon={UserX} label={t('employees.missingContact')} value={noContactCount.toLocaleString(locale)} tone="danger" />
+      <MetricCard icon={UsersRound} label={t('employees.total')} value={employees.length.toLocaleString(intlLocale(locale))} tone="brand" />
+      <MetricCard icon={Building2} label={t('employees.departments')} value={departmentCount.toLocaleString(intlLocale(locale))} tone="warning" />
+      <MetricCard icon={Mail} label={t('employees.withContact')} value={completeContactCount.toLocaleString(intlLocale(locale))} tone="success" />
+      <MetricCard icon={UserX} label={t('employees.missingContact')} value={noContactCount.toLocaleString(intlLocale(locale))} tone="danger" />
     </section>
 
     <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-labelledby="employee-controls-title">

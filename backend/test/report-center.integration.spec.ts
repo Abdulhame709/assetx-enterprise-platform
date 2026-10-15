@@ -6,7 +6,8 @@
 import { createHarness, Harness } from './support/db.harness';
 import { SettingsService } from '../src/application/settings.service';
 import { ReportMetaService } from '../src/application/export/report-meta.service';
-import { ExportResource } from '../src/core/entities/export.entity';
+import { ExportColumn, ExportResource } from '../src/core/entities/export.entity';
+import { ExportController } from '../src/api/export/export.controller';
 import { normalizeText } from '../src/application/export/providers/duplicates-export.provider';
 import { isGroupRow } from '../src/core/constants/report-groups';
 import { isPlaceholderEmployee } from '../src/core/constants/placeholder-employee';
@@ -157,6 +158,40 @@ describe('Report center — integration', () => {
       expect(built.filtersText).toContain('RC Main A');
       expect(built.filtersText).toContain('RC Employee');
       expect(built.filtersText).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/);
+    });
+
+    const titleFor = async (filters: Row, lang = 'ar') => (await meta.build({
+      tenantId: h.tenantA, userName: 'u', resource: 'assets', lang, filters,
+    })).title;
+
+    it('title follows the chosen filter', async () => {
+      const base = await titleFor({});
+      expect(base).toBe('تقرير الأصول');
+      expect(await titleFor({ category_id: typeB })).toBe(`${base} حسب النوع: RC Type B`);
+      expect(await titleFor({ employee_id: emp })).toBe(`${base} حسب الموظف: RC Employee`);
+      expect(await titleFor({ no_employee: true })).toBe(`${base} حسب الموظف: غير مرتبطة بموظف`);
+      expect(await titleFor({ location_id: mainA })).toBe(`${base} حسب الموقع: RC Main A`);
+      expect(await titleFor({ status_id: h.refA.status })).toMatch(new RegExp(`^${base} حسب الحالة: .+`));
+      expect(await titleFor({ sort_by: 'name' })).toBe(base);
+    });
+
+    it('title lists the dimensions when several filters are combined', async () => {
+      expect(await titleFor({ category_id: typeB, status_id: h.refA.status })).toBe('تقرير الأصول حسب النوع والحالة');
+      expect(await titleFor({ category_id: typeB }, 'en')).toMatch(/by asset type: RC Type B$/);
+    });
+
+    it('type / status / employee filters add the location name and the filtered column', async () => {
+      const ctrl = new ExportController(h.exportService, meta) as unknown as {
+        withFilterColumns(c: ExportColumn[] | undefined, g: unknown, f: Row): ExportColumn[] | undefined;
+      };
+      const base: ExportColumn[] = [{ key: 'name', label: 'x', order: 1 }];
+      const keys = (cols?: ExportColumn[]) => (cols ?? []).map((c) => c.key);
+      expect(keys(ctrl.withFilterColumns(base, undefined, { category_id: typeB }))).toEqual(['name', 'location_name', 'category_name']);
+      expect(keys(ctrl.withFilterColumns(base, undefined, { status_id: h.refA.status }))).toEqual(['name', 'location_name', 'status_name']);
+      expect(keys(ctrl.withFilterColumns(base, undefined, { no_employee: true }))).toEqual(['name', 'location_name', 'employee_name']);
+      expect(keys(ctrl.withFilterColumns(base, undefined, { location_id: mainA }))).toEqual(['name']);
+      const withLoc: ExportColumn[] = [...base, { key: 'location_name', label: 'x', order: 2 }];
+      expect(keys(ctrl.withFilterColumns(withLoc, undefined, { employee_id: emp }))).toEqual(['name', 'location_name', 'employee_name']);
     });
 
     it('form: landscape, no totals, formMode', async () => {

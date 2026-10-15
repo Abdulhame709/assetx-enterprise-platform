@@ -14,6 +14,7 @@
  */
 import { http, API_BASE_URL } from '@/lib/api/client';
 import { currentReportLang } from '@/lib/api/report-lang';
+import { filenameFromDisposition } from '@/lib/download';
 import { getEmployees, getStatuses, ReferenceEmployee, ReferenceStatus } from '@/features/reference/api';
 import { getLocations } from '@/features/locations/api';
 
@@ -275,8 +276,7 @@ export async function downloadMovementsExport(format: 'csv' | 'xlsx' | 'pdf' = '
   if (!res.ok) throw new Error(`Export failed (${res.status})`);
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition') ?? '';
-  const match = /filename="?([^";]+)"?/.exec(disposition);
-  const filename = match?.[1] ?? `movements-export.${format}`;
+  const filename = filenameFromDisposition(disposition, `movements-export.${format}`);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -6,6 +6,7 @@
  * Writes: start / close / count / recount / verify — all real endpoints.
  * Backend guards are mirrored as UX gates only (it remains the security boundary).
  */
+import { intlLocale } from '@/lib/format';
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -259,8 +260,8 @@ export default function InventoryCyclePage() {
                       <Badge tone={CYCLE_TONE[cycle.status]}>{label(cycle.status)}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-ink-muted">
-                      {cycle.start_date ? `${t('inventory.started')} ${new Date(cycle.start_date).toLocaleDateString(locale)}` : t('inventory.notStarted')}
-                      {cycle.end_date ? ` · ${t('inventory.closed')} ${new Date(cycle.end_date).toLocaleDateString(locale)}` : ''}
+                      {cycle.start_date ? `${t('inventory.started')} ${new Date(cycle.start_date).toLocaleDateString(intlLocale(locale))}` : t('inventory.notStarted')}
+                      {cycle.end_date ? ` · ${t('inventory.closed')} ${new Date(cycle.end_date).toLocaleDateString(intlLocale(locale))}` : ''}
                       {summary ? ` · ${t('inventory.netVariance')} ${summary.variance}` : ''}
                     </p>
                   </div>
@@ -270,11 +271,11 @@ export default function InventoryCyclePage() {
               {/* Summary (all values from the computed summary endpoint) */}
               {summary && (
                 <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                  <KpiCard label={t('inventory.expected')} value={summary.expected_assets.toLocaleString()} icon={Boxes} tone="brand" />
+                  <KpiCard label={t('inventory.expected')} value={summary.expected_assets.toLocaleString(intlLocale(locale))} icon={Boxes} tone="brand" />
                   <KpiCard label={t('inventory.counted')} value={`${summary.inventoried} (${summary.completion}%)`} icon={ScanSearch} tone="info" />
-                  <KpiCard label={t('inventory.matched')} value={summary.found.toLocaleString()} icon={CheckCheck} tone="success" />
+                  <KpiCard label={t('inventory.matched')} value={summary.found.toLocaleString(intlLocale(locale))} icon={CheckCheck} tone="success" />
                   <KpiCard label={t('inventory.deficitExtra')} value={`${summary.deficit} / ${summary.extra}`} icon={TrendingUp} tone="warning" />
-                  <KpiCard label={t('inventory.missing')} value={summary.missing.toLocaleString()} icon={PackageX} tone="danger" />
+                  <KpiCard label={t('inventory.missing')} value={summary.missing.toLocaleString(intlLocale(locale))} icon={PackageX} tone="danger" />
                   <KpiCard label={t('inventory.transferredUncounted')} value={`${summary.transferred} / ${summary.not_inventoried}`} icon={ArrowLeftRight} tone="neutral" />
                 </div>
               )}
@@ -329,6 +330,7 @@ export default function InventoryCyclePage() {
                     onCreateMovement={(r) => void onCreateMovementRequest(r)}
                     label={label}
                     t={t}
+                    locale={locale}
                   />
                 </CardBody>
               </Card>
@@ -364,7 +366,7 @@ export default function InventoryCyclePage() {
 
 function RecordsTable({
   records, resultFilter, onResultFilter, writable, verifyingId, canVerifyNow, canCreateMovement, movementRequestingId, movementRequestedIds, closed,
-  onCount, onVerify, onCreateMovement, label, t,
+  onCount, onVerify, onCreateMovement, label, t, locale,
 }: {
   records: InventoryRecordRow[];
   resultFilter: string | null;
@@ -381,6 +383,7 @@ function RecordsTable({
   onCreateMovement: (r: InventoryRecordRow) => void;
   label: (code?: string | null) => string;
   t: (key: string, fallback?: string) => string;
+  locale: string;
 }) {
   const resultOptions = useMemo(
     () => [
@@ -441,7 +444,7 @@ function RecordsTable({
         </div>
       ),
     },
-    { key: 'date', header: t('inventory.countedOn'), render: (r) => <span className="text-xs text-ink-faint">{r.inventory_date ? new Date(r.inventory_date).toLocaleDateString() : '—'}</span> },
+    { key: 'date', header: t('inventory.countedOn'), render: (r) => <span className="text-xs text-ink-faint">{r.inventory_date ? new Date(r.inventory_date).toLocaleDateString(intlLocale(locale)) : '—'}</span> },
     {
       key: 'verified', header: t('inventory.verified'),
       render: (r) => r.is_verified ? <Badge tone="success">{t('inventory.verified')}</Badge> : <span className="text-xs text-ink-faint">—</span>,

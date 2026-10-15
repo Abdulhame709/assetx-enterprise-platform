@@ -1,6 +1,7 @@
 
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, BrainCircuit, Check, CircleCheckBig, Columns3, Download, Eye, FileSearch, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, RotateCcw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -209,7 +210,7 @@ interface DistributionPanelProps {
 }
 
 function DistributionPanel({ title, subtitle, buckets, icon: Icon, emptyLabel }: DistributionPanelProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const max = Math.max(...buckets.map((bucket) => bucket.count), 0);
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
 
@@ -230,7 +231,7 @@ function DistributionPanel({ title, subtitle, buckets, icon: Icon, emptyLabel }:
                 <div key={bucket.name} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="min-w-0 truncate font-medium text-ink" title={bucket.name}>{bucket.name}</span>
-                    <span className="shrink-0 text-xs tabular-nums text-ink-muted">{bucket.count.toLocaleString()} · {percentage}%</span>
+                    <span className="shrink-0 text-xs tabular-nums text-ink-muted">{bucket.count.toLocaleString(intlLocale(locale))} · {percentage}%</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuenow={percentage} aria-valuemin={0} aria-valuemax={100} aria-label={`${bucket.name}: ${percentage}%`}>
                     <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${width}%` }} />
@@ -254,7 +255,7 @@ interface LifecyclePanelProps {
 }
 
 function LifecyclePanel({ title, subtitle, buckets, emptyLabel }: LifecyclePanelProps) {
-  const { t, label } = useI18n();
+  const { t, label, locale } = useI18n();
   const total = buckets.reduce((sum, bucket) => sum + bucket.count, 0);
   return (
     <Card className="min-w-0">
@@ -272,7 +273,7 @@ function LifecyclePanel({ title, subtitle, buckets, emptyLabel }: LifecyclePanel
                 <div key={bucket.state} className="rounded-xl border border-border bg-surface-muted/30 p-3">
                   <div className="flex items-start justify-between gap-2">
                     <span className="text-sm font-medium text-ink">{stateLabel(bucket.state, label)}</span>
-                    <span className="text-lg font-semibold tabular-nums text-ink">{bucket.count.toLocaleString()}</span>
+                    <span className="text-lg font-semibold tabular-nums text-ink">{bucket.count.toLocaleString(intlLocale(locale))}</span>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">{percentage}% {t('module.reportsPercentOfAssets')}</p>
                 </div>
@@ -349,7 +350,7 @@ function cellText(value: unknown): string {
 export default function ReportsPage() {
   const state = useAnalytics();
   const toast = useToast();
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
   const can = useCan();
   const { session } = useSession();
   const [resource, setResource] = useState<AnyReportResource>('assets');
@@ -390,7 +391,7 @@ export default function ReportsPage() {
   const canDeleteTemplates = can(PERMISSIONS.REPORT_DELETE);
   const canUseAi = can(PERMISSIONS.REPORT_VIEW) && can(PERMISSIONS.AI_USE);
   const aiResourceSupported = resource === 'assets' || resource === 'dashboard';
-  const printGeneratedAt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+  const printGeneratedAt = new Intl.DateTimeFormat(intlLocale(locale), {
     dateStyle: 'medium',
     timeStyle: 'short',
   }).format(new Date());
@@ -714,7 +715,7 @@ export default function ReportsPage() {
         <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
           <div><span className="font-semibold text-ink">{t('module.reportsPrintSource')}:</span> {selectedResource ? t(selectedResource.labelKey) : t('module.reportsPrintNoSource')}</div>
           <div><span className="font-semibold text-ink">{t('module.reportsPrintFormat')}:</span> {t(`module.reportsFormat.${format}`)}</div>
-          <div><span className="font-semibold text-ink">{t('module.reportsPrintLimit')}:</span> {Number(limit || 0).toLocaleString(locale)}</div>
+          <div><span className="font-semibold text-ink">{t('module.reportsPrintLimit')}:</span> {Number(limit || 0).toLocaleString(intlLocale(locale))}</div>
           <div><span className="font-semibold text-ink">{t('module.reportsPrintGeneratedAt')}:</span> {printGeneratedAt}</div>
         </div>
         <div className="mt-3 border-t border-line pt-3 text-sm">
@@ -733,15 +734,15 @@ export default function ReportsPage() {
           return (
             <div className="space-y-6">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <KpiCard label={t('module.reportsTotal')} value={data.total_assets.toLocaleString(locale)} icon={Layers3} tone="info" />
-                <KpiCard label={t('module.reportsActive')} value={data.active_assets.toLocaleString(locale)} icon={CircleCheckBig} tone="success" />
-                <KpiCard label={t('assetDashboard.assigned')} value={data.assigned_assets.toLocaleString(locale)} icon={Users} tone="brand" />
-                <KpiCard label={t('assetDashboard.maintenance')} value={data.maintenance_assets.toLocaleString(locale)} icon={Wrench} tone="warning" />
-                <KpiCard label={t('assetDashboard.disposed')} value={data.disposed_assets.toLocaleString(locale)} icon={PackageCheck} tone="danger" />
-                <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(locale)} icon={Archive} tone="neutral" />
+                <KpiCard label={t('module.reportsTotal')} value={data.total_assets.toLocaleString(intlLocale(locale))} icon={Layers3} tone="info" />
+                <KpiCard label={t('module.reportsActive')} value={data.active_assets.toLocaleString(intlLocale(locale))} icon={CircleCheckBig} tone="success" />
+                <KpiCard label={t('assetDashboard.assigned')} value={data.assigned_assets.toLocaleString(intlLocale(locale))} icon={Users} tone="brand" />
+                <KpiCard label={t('assetDashboard.maintenance')} value={data.maintenance_assets.toLocaleString(intlLocale(locale))} icon={Wrench} tone="warning" />
+                <KpiCard label={t('assetDashboard.disposed')} value={data.disposed_assets.toLocaleString(intlLocale(locale))} icon={PackageCheck} tone="danger" />
+                <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(intlLocale(locale))} icon={Archive} tone="neutral" />
               </div>
 
-              <Card className="overflow-hidden border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface print-hide">
+              <Card className="border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface print-hide">
                 <CardBody className="space-y-4">
                   <div className="flex items-start gap-3">
                     <span className="rounded-xl bg-brand/10 p-2.5 text-brand"><BarChart3 className="h-5 w-5" aria-hidden="true" /></span>
@@ -801,7 +802,7 @@ export default function ReportsPage() {
                         )}
                         {has('status') && (
                           <Field label={t('rc.f.status')}>
-                            <SearchableSelect options={statuses} value={filterForm.status_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('status_id', value ?? '')} />
+                            <SearchableSelect options={statuses.map((o) => ({ ...o, label: label(o.label) }))} value={filterForm.status_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('status_id', value ?? '')} />
                           </Field>
                         )}
                         {has('employee') && (
@@ -901,7 +902,7 @@ export default function ReportsPage() {
                       <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-3">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                           <span className="text-xs font-semibold text-violet-700">{aiSummary.source === 'llm' ? t('module.reportsAiLlm') : t('module.reportsAiDeterministic')}</span>
-                          <span className="text-xs text-ink-muted">{t('module.reportsAiConfidence')}: {Math.round(aiSummary.confidence * 100).toLocaleString(locale)}%</span>
+                          <span className="text-xs text-ink-muted">{t('module.reportsAiConfidence')}: {Math.round(aiSummary.confidence * 100).toLocaleString(intlLocale(locale))}%</span>
                         </div>
                         <p className="text-sm leading-7 text-ink">{aiSummary.summary}</p>
                       </div>

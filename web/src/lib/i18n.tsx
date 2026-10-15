@@ -16,7 +16,7 @@ export type Direction = 'ltr' | 'rtl';
 const LANG_KEY = 'assetx.lang.v1';
 
 /** Static UI dictionary. Keys are shared by the shell and feature pages. */
-const TRANSLATIONS: Record<Locale, Record<string, string>> = {
+export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
   en: {
     'nav.overview': 'Overview', 'nav.operations': 'Operations', 'nav.masterData': 'Master Data',
     'nav.insights': 'Insights', 'nav.administration': 'Administration', 'nav.dashboard': 'Dashboard',
@@ -25,6 +25,7 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'nav.locations': 'Locations', 'nav.assetTypes': 'Asset Types', 'nav.statuses': 'Asset Statuses', 'nav.models': 'Models', 'nav.reports': 'Reports',
     'nav.analytics': 'Analytics', 'nav.compliance': 'Compliance', 'nav.audit': 'Audit',
     'nav.importData': 'Import Data', 'nav.settings': 'Settings', 'nav.administrationPage': 'Administration',
+    'common.noData': 'No data to display', 'shell.tagline': 'Enterprise Asset Operations', 'common.delete': 'Delete', 'common.actions': 'Actions', 'common.skipToContent': 'Skip to content', 'common.breadcrumb': 'Breadcrumb', 'common.profile': 'Profile', 'common.signOut': 'Sign out', 'common.loadFailed': 'Failed to load', 'common.somethingWrong': 'Something went wrong', 'module.searchResourceAssets': 'Assets', 'module.searchResourceMovements': 'Movements', 'module.searchResourceAudit': 'Audit log', 'module.searchReason': 'Reason', 'module.searchRecord': 'Record', 'login.title': 'Sign in to AssetX', 'login.subtitle': 'Enterprise Asset Management Platform', 'login.username': 'Username', 'login.password': 'Password', 'login.signIn': 'Sign in', 'login.failed': 'Sign-in failed', 'login.demoAccounts': 'Demo accounts (mock mode — development only)', 'login.language': 'Language', 'compliance.check.assets_without_location': 'Assets without a location', 'compliance.check.assets_without_status': 'Assets without a status', 'compliance.check.assets_without_owner': 'Assets without a custodian', 'compliance.check.stale_pending_movements': 'Stale pending movements', 'compliance.check.open_inventory_cycles': 'Open inventory cycles', 'compliance.check.users_without_permissions': 'Users without permissions', 'compliance.check.assets_without_barcode': 'Assets without a barcode', 'compliance.check.assets_without_category': 'Assets without a type', 'compliance.check.orphan_asset': 'Orphan assets', 'compliance.check.missing_barcode': 'Missing barcode', 'compliance.check.missing_category': 'Missing asset type', 'compliance.check.missing_location': 'Missing location', 'compliance.check.missing_owner': 'Missing custodian', 'compliance.check.duplicate_asset': 'Duplicate assets',
     'common.home': 'Home', 'common.details': 'Details', 'common.cancel': 'Cancel', 'common.close': 'Close', 'common.confirm': 'Confirm', 'common.save': 'Save', 'common.refresh': 'Refresh', 'common.tenant': 'Tenant',
     'common.mainNavigation': 'Main navigation', 'common.toggleNavigation': 'Toggle navigation',
     'common.toggleLanguage': 'Toggle language', 'common.arabic': 'العربية', 'common.english': 'English',
@@ -290,6 +291,7 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'rc.type.inventory-form': 'Field inventory form',
     'rc.type.inventory-formDesc': 'A printable form with empty columns to write the actual count by hand. Blank rows are also possible.',
     'rc.filters': 'Filters',
+    'rc.filtersHint': 'Leave a filter empty to include everything.',
     'rc.all': 'All',
     'rc.f.location': 'Location',
     'rc.f.locationHint': 'A main location also includes everything inside it.',
@@ -421,6 +423,7 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'nav.locations': 'المواقع', 'nav.assetTypes': 'أنواع الأصول', 'nav.statuses': 'حالات الأصول', 'nav.models': 'الموديلات', 'nav.reports': 'التقارير',
     'nav.analytics': 'التحليلات', 'nav.compliance': 'الامتثال', 'nav.audit': 'سجل التدقيق',
     'nav.importData': 'استيراد البيانات', 'nav.settings': 'الإعدادات', 'nav.administrationPage': 'الإدارة',
+    'common.noData': 'لا توجد بيانات للعرض', 'shell.tagline': 'عمليات الأصول المؤسسية', 'common.delete': 'حذف', 'common.actions': 'الإجراءات', 'common.skipToContent': 'تخطَّ إلى المحتوى', 'common.breadcrumb': 'مسار التنقل', 'common.profile': 'الملف الشخصي', 'common.signOut': 'تسجيل الخروج', 'common.loadFailed': 'تعذّر التحميل', 'common.somethingWrong': 'حدث خطأ ما', 'module.searchResourceAssets': 'الأصول', 'module.searchResourceMovements': 'الحركات', 'module.searchResourceAudit': 'سجل التدقيق', 'module.searchReason': 'السبب', 'module.searchRecord': 'السجل', 'login.title': 'تسجيل الدخول إلى AssetX', 'login.subtitle': 'منصة إدارة الأصول المؤسسية', 'login.username': 'اسم المستخدم', 'login.password': 'كلمة المرور', 'login.signIn': 'تسجيل الدخول', 'login.failed': 'فشل تسجيل الدخول', 'login.demoAccounts': 'حسابات تجريبية (وضع المحاكاة — للتطوير فقط)', 'login.language': 'اللغة', 'compliance.check.assets_without_location': 'أصول بلا موقع', 'compliance.check.assets_without_status': 'أصول بلا حالة', 'compliance.check.assets_without_owner': 'أصول بلا عهدة', 'compliance.check.stale_pending_movements': 'حركات معلّقة منذ مدة طويلة', 'compliance.check.open_inventory_cycles': 'دورات جرد مفتوحة', 'compliance.check.users_without_permissions': 'مستخدمون بلا صلاحيات', 'compliance.check.assets_without_barcode': 'أصول بلا باركود', 'compliance.check.assets_without_category': 'أصول بلا نوع', 'compliance.check.orphan_asset': 'أصول يتيمة', 'compliance.check.missing_barcode': 'باركود مفقود', 'compliance.check.missing_category': 'نوع الأصل مفقود', 'compliance.check.missing_location': 'موقع مفقود', 'compliance.check.missing_owner': 'عهدة مفقودة', 'compliance.check.duplicate_asset': 'أصول مكررة',
     'common.home': 'الرئيسية', 'common.details': 'التفاصيل', 'common.cancel': 'إلغاء', 'common.close': 'إغلاق', 'common.confirm': 'تأكيد', 'common.save': 'حفظ', 'common.refresh': 'تحديث', 'common.tenant': 'الجهة',
     'common.mainNavigation': 'التنقل الرئيسي', 'common.toggleNavigation': 'تبديل قائمة التنقل',
     'common.toggleLanguage': 'تبديل اللغة', 'common.arabic': 'العربية', 'common.english': 'English',
@@ -686,6 +689,7 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
     'rc.type.inventory-form': 'نموذج الجرد الميداني',
     'rc.type.inventory-formDesc': 'نموذج للطباعة بأعمدة فارغة لكتابة العدّ الفعلي يدوياً. ويمكن طباعته بصفوف فارغة.',
     'rc.filters': 'التصفية',
+    'rc.filtersHint': 'اترك أي خيار فارغًا ليشمل التقرير الكل.',
     'rc.all': 'الكل',
     'rc.f.location': 'الموقع',
     'rc.f.locationHint': 'اختيار موقع رئيسي يشمل كل ما بداخله.',
@@ -811,7 +815,23 @@ const TRANSLATIONS: Record<Locale, Record<string, string>> = {
   },
 };
 
-const AR_LABELS: Record<string, string> = {
+export const AR_LABELS: Record<string, string> = {
+  // default tenant data names (statuses, asset types, root location, roles)
+  'New': 'جديد',
+  'Good': 'جيد',
+  'Used': 'مستخدم',
+  'Needs Maintenance': 'يحتاج صيانة',
+  'Under Maintenance': 'تحت الصيانة',
+  'Damaged': 'تالف',
+  'Missing': 'مفقود',
+  'Retired': 'خارج الخدمة',
+  'Furniture': 'أثاث',
+  'IT Equipment': 'معدات تقنية المعلومات',
+  'Vehicles': 'مركبات',
+  'Office Equipment': 'معدات مكتبية',
+  'Headquarters': 'المقر الرئيسي',
+  'Department Manager': 'مدير القسم',
+  'Inventory Team': 'فريق الجرد',
   draft: 'مسودة', registered: 'مسجل', active: 'نشط', assigned: 'مُسلَّم', in_maintenance: 'قيد الصيانة',
   transferred: 'منقول', disposed: 'مستبعد', archived: 'مؤرشف', transfer: 'نقل', assignment: 'تسليم عهدة',
   return: 'إرجاع', maintenance_return: 'إرجاع من الصيانة', disposal: 'استبعاد', retirement: 'إحالة للتقاعد',
@@ -828,10 +848,60 @@ const AR_LABELS: Record<string, string> = {
   EXPORT_COMPLETED: 'اكتمل التصدير', EXPORT_FAILED: 'فشل التصدير', SAVED_SEARCH_CREATED: 'تم إنشاء البحث المحفوظ',
   SAVED_SEARCH_UPDATED: 'تم تحديث البحث المحفوظ', SAVED_SEARCH_DELETED: 'تم حذف البحث المحفوظ',
   SAVED_SEARCH_EXECUTED: 'تم تنفيذ البحث المحفوظ', API_REQUEST: 'طلب API',
+  'CATEGORY_DEACTIVATED': 'تم تعطيل نوع أصل',
+  'STATUS_DEACTIVATED': 'تم تعطيل حالة',
+  'LOCATION_TYPE_DEACTIVATED': 'تم تعطيل نوع موقع',
+  'MAINTENANCE_CREATED': 'تم إنشاء أمر صيانة',
+  'MAINTENANCE_STARTED': 'بدأت الصيانة',
+  'MAINTENANCE_COMPLETED': 'اكتملت الصيانة',
+  'INVENTORY_DELETED': 'تم حذف دورة الجرد',
+  'REPORT_TEMPLATE_CREATED': 'تم إنشاء قالب تقرير',
+  'REPORT_TEMPLATE_UPDATED': 'تم تحديث قالب التقرير',
+  'REPORT_TEMPLATE_DELETED': 'تم حذف قالب التقرير',
+  'AI_REPORT_SUMMARY_GENERATED': 'تم إنشاء ملخص التقرير بالذكاء الاصطناعي',
+  'Administrator': 'مدير النظام',
+  'Asset Manager': 'مدير الأصول',
+  'Auditor': 'مدقق',
+  'Maintenance': 'الصيانة',
+  'Employee': 'موظف',
+  'Warehouse': 'أمين المستودع',
+  'api': 'واجهة API',
+  'asset': 'أصل',
+  'asset_category': 'نوع أصل',
+  'auth': 'المصادقة',
+  'compliance': 'الامتثال',
+  'export': 'التصدير',
+  'inventory': 'الجرد',
+  'location_type': 'نوع موقع',
+  'maintenance_order': 'أمر صيانة',
+  'movement': 'حركة',
+  'permission': 'صلاحية',
+  'report': 'تقرير',
+  'report_template': 'قالب تقرير',
+  'saved_search': 'بحث محفوظ',
+  'status': 'حالة',
+  'user': 'مستخدم',
+  'location': 'موقع',
 };
 
 /** Human labels for internal codes (presentation-only; backend untouched). */
-const LABELS: Record<string, string> = {
+export const LABELS: Record<string, string> = {
+  // default tenant data names (statuses, asset types, root location, roles)
+  'New': 'New',
+  'Good': 'Good',
+  'Used': 'Used',
+  'Needs Maintenance': 'Needs Maintenance',
+  'Under Maintenance': 'Under Maintenance',
+  'Damaged': 'Damaged',
+  'Missing': 'Missing',
+  'Retired': 'Retired',
+  'Furniture': 'Furniture',
+  'IT Equipment': 'IT Equipment',
+  'Vehicles': 'Vehicles',
+  'Office Equipment': 'Office Equipment',
+  'Headquarters': 'Headquarters',
+  'Department Manager': 'Department Manager',
+  'Inventory Team': 'Inventory Team',
   // lifecycle states
   draft: 'Draft',
   registered: 'Registered',
@@ -892,6 +962,41 @@ const LABELS: Record<string, string> = {
   SAVED_SEARCH_DELETED: 'Saved search deleted',
   SAVED_SEARCH_EXECUTED: 'Saved search executed',
   API_REQUEST: 'API request',
+  // audit actions added later, roles, audit entities
+  'CATEGORY_DEACTIVATED': 'Asset type deactivated',
+  'STATUS_DEACTIVATED': 'Status deactivated',
+  'LOCATION_TYPE_DEACTIVATED': 'Location type deactivated',
+  'MAINTENANCE_CREATED': 'Maintenance order created',
+  'MAINTENANCE_STARTED': 'Maintenance started',
+  'MAINTENANCE_COMPLETED': 'Maintenance completed',
+  'INVENTORY_DELETED': 'Inventory cycle deleted',
+  'REPORT_TEMPLATE_CREATED': 'Report template created',
+  'REPORT_TEMPLATE_UPDATED': 'Report template updated',
+  'REPORT_TEMPLATE_DELETED': 'Report template deleted',
+  'AI_REPORT_SUMMARY_GENERATED': 'AI report summary generated',
+  'Administrator': 'Administrator',
+  'Asset Manager': 'Asset Manager',
+  'Auditor': 'Auditor',
+  'Maintenance': 'Maintenance',
+  'Employee': 'Employee',
+  'Warehouse': 'Warehouse',
+  'api': 'API',
+  'asset': 'Asset',
+  'asset_category': 'Asset type',
+  'auth': 'Authentication',
+  'compliance': 'Compliance',
+  'export': 'Export',
+  'inventory': 'Inventory',
+  'location_type': 'Location type',
+  'maintenance_order': 'Maintenance order',
+  'movement': 'Movement',
+  'permission': 'Permission',
+  'report': 'Report',
+  'report_template': 'Report template',
+  'saved_search': 'Saved search',
+  'status': 'Status',
+  'user': 'User',
+  'location': 'Location',
   // misc
   Uncategorized: 'Uncategorized',
   Unassigned: 'Unassigned',
@@ -965,7 +1070,7 @@ export function useI18n(): I18nContextValue {
 export function formatDateTime(iso?: string | null, locale: Locale = 'en'): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
+    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn-ca-gregory' : 'en-US-u-nu-latn-ca-gregory', {
       dateStyle: 'medium', timeStyle: 'short',
     });
   } catch { return iso; }

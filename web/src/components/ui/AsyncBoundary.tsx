@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { AsyncState } from '@/lib/use-async';
+import { useI18n } from '@/lib/i18n';
 import { LoadingState, EmptyState, ErrorState } from './states';
 
 interface AsyncBoundaryProps<T> {
@@ -20,12 +21,13 @@ interface AsyncBoundaryProps<T> {
  * every page (no duplicated state code).
  */
 export function AsyncBoundary<T>({ state, children, loading, empty, isEmpty }: AsyncBoundaryProps<T>) {
+  const { t } = useI18n();
   if (state.status === 'loading') {
     return loading ?? <LoadingState />;
   }
 
   if (state.status === 'error') {
-    return <ErrorState message={state.error ?? 'Failed to load'} onRetry={state.reload} />;
+    return <ErrorState message={state.error ?? t('common.loadFailed')} onRetry={state.reload} />;
   }
 
   if (state.status === 'empty' || (state.data != null && isEmpty && isEmpty(state.data))) {

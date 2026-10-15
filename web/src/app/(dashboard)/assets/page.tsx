@@ -21,7 +21,7 @@ import { getLocationsTree } from '@/features/assets/components/reference-selects
 import { getEmployees, getStatuses, type ReferenceEmployee, type ReferenceStatus } from '@/features/reference/api';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
 import { AssetBulkEditModal } from '@/features/assets/components/AssetBulkEditModal';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, intlLocale } from '@/lib/format';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
 
@@ -59,11 +59,11 @@ export default function AssetsPage() {
   const { data: analytics } = useAnalytics();
   const toast = useToast();
   const { confirm } = useConfirm();
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
 
   const formatMessage = (key: string, values: Record<string, string | number>) =>
     Object.entries(values).reduce((message, [name, value]) => message.replace(`{${name}}`, String(value)), t(key));
-  const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(locale);
+  const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(intlLocale(locale));
   const activeAsset = useMemo(() => data?.items.find((asset) => asset.id === activeId) ?? data?.items[0] ?? null, [activeId, data?.items]);
   const hasActiveFilters = Boolean(q.trim() || category || location || statusId || employeeId);
   const activeIndex = data?.items.findIndex((asset) => asset.id === activeAsset?.id) ?? -1;
@@ -99,7 +99,7 @@ export default function AssetsPage() {
     if (!activeId || !data.items.some((asset) => asset.id === activeId)) setActiveId(firstAsset.id);
   }, [activeId, data?.items]);
 
-  const statusName = (id: string | null): string => statuses.find((item) => item.id === id)?.name ?? t('workspace.unknownStatus');
+  const statusName = (id: string | null): string => label(statuses.find((item) => item.id === id)?.name) === '—' ? t('workspace.unknownStatus') : label(statuses.find((item) => item.id === id)?.name);
   const statusTone = (id: string | null): BadgeTone => {
     const color = statuses.find((item) => item.id === id)?.color?.toLowerCase();
     if (!color) return 'neutral';
@@ -251,7 +251,7 @@ export default function AssetsPage() {
                 <div className="mt-2 grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
                   <SearchableSelect options={categories} value={category} onChange={setCategory} placeholder={t('common.type')} />
                   <SearchableSelect options={locations} value={location} onChange={setLocation} placeholder={t('common.location')} />
-                  <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={setStatusId} placeholder={t('common.status')} />
+                  <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: label(item.name) }))} value={statusId} onChange={setStatusId} placeholder={t('common.status')} />
                   <SearchableSelect options={employees.map((item) => ({ value: item.id, label: item.department ? `${item.name} · ${item.department}` : item.name }))} value={employeeId} onChange={setEmployeeId} placeholder={t('common.custodian')} />
                   {hasActiveFilters && <Button variant="ghost" size="sm" className="h-8 w-8 p-0" aria-label={t('assets.clearFilters')} title={t('assets.clearFilters')} onClick={() => { setQ(''); setCategory(null); setLocation(null); setStatusId(null); setEmployeeId(null); }}><FilterX className="h-3.5 w-3.5" /></Button>}
                 </div>
@@ -327,7 +327,7 @@ export default function AssetsPage() {
       {bulkOpen && <AssetBulkEditModal
         open assetIds={selected} locations={locations}
         employees={employees.map((employee) => ({ value: employee.id, label: employee.department ? `${employee.name} · ${employee.department}` : employee.name }))}
-        statuses={statuses.map((item) => ({ value: item.id, label: item.name }))}
+        statuses={statuses.map((item) => ({ value: item.id, label: label(item.name) }))}
         onClose={() => setBulkOpen(false)}
         onSaved={(result) => { toast.success(t(result.failed.length ? 'assetActions.bulkPartial' : 'assetActions.bulkDone'), `${result.updated.length}/${selected.length}`); setSelected([]); reload(); }}
       />}
