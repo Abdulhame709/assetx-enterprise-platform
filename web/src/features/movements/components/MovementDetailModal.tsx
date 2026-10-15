@@ -93,7 +93,7 @@ export function MovementDetailModal({ open, movement, onClose, canApprove, canRe
       <div className="space-y-0">
         <Row label={t('movements.location')} value={(m.from_location_id || m.to_location_id) ? transfer(m._fromLocation, m._toLocation) : null} />
         <Row label={t('movements.custodian')} value={(m.from_employee_id || m.to_employee_id) ? transfer(m._fromEmployee, m._toEmployee) : null} />
-        <Row label={t('movements.statusChange')} value={(m.from_status_id || m.to_status_id) ? transfer(m._fromStatus, m._toStatus) : null} />
+        <Row label={t('movements.statusChange')} value={(m.from_status_id || m.to_status_id) ? transfer(m._fromStatus ? label(m._fromStatus) : m._fromStatus, m._toStatus ? label(m._toStatus) : m._toStatus) : null} />
         <Row label={t('movements.quantity')} value={m.quantity != null ? m.quantity.toLocaleString(intlLocale(locale)) : null} />
         <Row label={t('movements.reason')} value={m.reason} />
         <Row label={t('movements.notes')} value={m.notes} />

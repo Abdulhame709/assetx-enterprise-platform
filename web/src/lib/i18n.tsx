@@ -816,6 +816,22 @@ export const TRANSLATIONS: Record<Locale, Record<string, string>> = {
 };
 
 export const AR_LABELS: Record<string, string> = {
+  // default tenant data names (statuses, asset types, root location, roles)
+  'New': 'جديد',
+  'Good': 'جيد',
+  'Used': 'مستخدم',
+  'Needs Maintenance': 'يحتاج صيانة',
+  'Under Maintenance': 'تحت الصيانة',
+  'Damaged': 'تالف',
+  'Missing': 'مفقود',
+  'Retired': 'خارج الخدمة',
+  'Furniture': 'أثاث',
+  'IT Equipment': 'معدات تقنية المعلومات',
+  'Vehicles': 'مركبات',
+  'Office Equipment': 'معدات مكتبية',
+  'Headquarters': 'المقر الرئيسي',
+  'Department Manager': 'مدير القسم',
+  'Inventory Team': 'فريق الجرد',
   draft: 'مسودة', registered: 'مسجل', active: 'نشط', assigned: 'مُسلَّم', in_maintenance: 'قيد الصيانة',
   transferred: 'منقول', disposed: 'مستبعد', archived: 'مؤرشف', transfer: 'نقل', assignment: 'تسليم عهدة',
   return: 'إرجاع', maintenance_return: 'إرجاع من الصيانة', disposal: 'استبعاد', retirement: 'إحالة للتقاعد',
@@ -870,6 +886,22 @@ export const AR_LABELS: Record<string, string> = {
 
 /** Human labels for internal codes (presentation-only; backend untouched). */
 export const LABELS: Record<string, string> = {
+  // default tenant data names (statuses, asset types, root location, roles)
+  'New': 'New',
+  'Good': 'Good',
+  'Used': 'Used',
+  'Needs Maintenance': 'Needs Maintenance',
+  'Under Maintenance': 'Under Maintenance',
+  'Damaged': 'Damaged',
+  'Missing': 'Missing',
+  'Retired': 'Retired',
+  'Furniture': 'Furniture',
+  'IT Equipment': 'IT Equipment',
+  'Vehicles': 'Vehicles',
+  'Office Equipment': 'Office Equipment',
+  'Headquarters': 'Headquarters',
+  'Department Manager': 'Department Manager',
+  'Inventory Team': 'Inventory Team',
   // lifecycle states
   draft: 'Draft',
   registered: 'Registered',

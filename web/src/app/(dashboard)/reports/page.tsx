@@ -350,7 +350,7 @@ function cellText(value: unknown): string {
 export default function ReportsPage() {
   const state = useAnalytics();
   const toast = useToast();
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
   const can = useCan();
   const { session } = useSession();
   const [resource, setResource] = useState<AnyReportResource>('assets');
@@ -802,7 +802,7 @@ export default function ReportsPage() {
                         )}
                         {has('status') && (
                           <Field label={t('rc.f.status')}>
-                            <SearchableSelect options={statuses} value={filterForm.status_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('status_id', value ?? '')} />
+                            <SearchableSelect options={statuses.map((o) => ({ ...o, label: label(o.label) }))} value={filterForm.status_id || null} placeholder={t('rc.all')} onChange={(value) => setFilter('status_id', value ?? '')} />
                           </Field>
                         )}
                         {has('employee') && (

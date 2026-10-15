@@ -71,7 +71,7 @@ export default function AssetDetailPage() {
                     <Meta label={t('assetDetail.category')} value={detail._categoryName ?? '—'} />
                     <Meta label={t('assetDetail.location')} value={detail._locationName ?? '—'} />
                     <Meta label={t('assetDetail.custodian')} value={detail._employeeName ?? '—'} />
-                    <Meta label={t('assetDetail.status')} value={detail.status_id ? (detail._statusName ?? '—') : (detail.is_active ? t('assetDetail.active') : t('assetDetail.inactive'))} />
+                    <Meta label={t('assetDetail.status')} value={detail.status_id ? label(detail._statusName) : (detail.is_active ? t('assetDetail.active') : t('assetDetail.inactive'))} />
                     {detail.is_active === false ? <Badge tone="danger">{t('assetDetail.deactivated')}</Badge> : null}
                     <Meta label={t('assetDetail.value')} value={formatCurrency(detail.purchase_price, locale)} />
                   </div>

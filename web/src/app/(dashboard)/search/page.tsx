@@ -73,13 +73,13 @@ function asString(value: unknown): string {
   return value == null ? '' : String(value);
 }
 
-function renderAssetResult(item: SearchItem, t: (key: string, fallback?: string) => string) {
+function renderAssetResult(item: SearchItem, t: (key: string, fallback?: string) => string, label: (code?: string | null) => string) {
   if (!('name' in item)) return null;
   return (
     <Link key={item.id} href={`/assets/${item.id}`} className="block rounded-lg px-2 py-3 transition-colors hover:bg-surface-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <p className="font-medium text-brand">{item.name}</p>
-        <p className="text-xs text-ink-muted">{item._statusName ?? '—'} · {item._employeeName ?? t('module.searchUnassigned')}</p>
+        <p className="text-xs text-ink-muted">{label(item._statusName)} · {item._employeeName ?? t('module.searchUnassigned')}</p>
       </div>
       <p className="text-xs text-ink-muted">{t('module.searchCode')}: {item.full_asset_code} · {t('module.searchLocation')}: {item._locationName ?? '—'}</p>
     </Link>
@@ -115,7 +115,7 @@ function renderAuditResult(item: SearchItem, t: (key: string, fallback?: string)
 }
 
 export default function SearchPage() {
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
   const toast = useToast();
   const { confirm } = useConfirm();
   const can = useCan();
@@ -424,7 +424,7 @@ export default function SearchPage() {
                     <SearchableSelect options={categories} value={category} onChange={(value) => { setCategory(value); setPage(1); }} placeholder={t('common.type')} />
                     <SearchableSelect options={mainLocationOptions} value={mainLocationId} onChange={(value) => { setMainLocationId(value); setSubLocationId(null); setPage(1); }} placeholder={t('module.searchMainLocation')} />
                     <SearchableSelect options={subLocationOptions} value={subLocationId} disabled={!mainLocationId} onChange={(value) => { setSubLocationId(value); setPage(1); }} placeholder={t('module.searchSubLocation')} />
-                    <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: item.name }))} value={statusId} onChange={(value) => { setStatusId(value); setPage(1); }} placeholder={t('common.status')} />
+                    <SearchableSelect options={statuses.map((item) => ({ value: item.id, label: label(item.name) }))} value={statusId} onChange={(value) => { setStatusId(value); setPage(1); }} placeholder={t('common.status')} />
                     <SearchableSelect options={employees.map((item) => ({ value: item.id, label: item.department ? `${item.name} · ${item.department}` : item.name }))} value={employeeId} onChange={(value) => { setEmployeeId(value); setPage(1); }} placeholder={t('module.searchEmployee')} />
                     <Field label={t('module.searchBarcode')}><Input value={barcode} onChange={(event) => { setBarcode(event.target.value); setPage(1); }} /></Field>
                     <Field label={t('module.searchSerialNumber')}><Input value={serialNumber} onChange={(event) => { setSerialNumber(event.target.value); setPage(1); }} /></Field>
@@ -479,7 +479,7 @@ export default function SearchPage() {
               <>
                 <CardHeader title={t('module.searchResults')} subtitle={`${data.total.toLocaleString(intlLocale(locale))} ${t('module.searchResultCount')} · ${t('module.searchPage')} ${data.page}`} />
                 <div className="divide-y divide-line" aria-live="polite">
-                  {data.items.map((item) => resource === 'assets' ? renderAssetResult(item, t) : resource === 'movements' ? renderMovementResult(item, t, locale) : renderAuditResult(item, t, locale))}
+                  {data.items.map((item) => resource === 'assets' ? renderAssetResult(item, t, label) : resource === 'movements' ? renderMovementResult(item, t, locale) : renderAuditResult(item, t, locale))}
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
                   <span className="text-xs text-ink-muted">{t('module.searchPageSummary').replace('{page}', String(data.page)).replace('{limit}', String(data.limit))}</span>
