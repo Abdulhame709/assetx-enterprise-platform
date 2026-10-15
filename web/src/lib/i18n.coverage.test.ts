@@ -98,6 +98,9 @@ const STRICT = [
   'components/ui/SkipLink.tsx',
   'components/ui/CommandToolbar.tsx',
   'components/shell',
+  'app/(dashboard)',
+  'features',
+  'components',
 ];
 
 const ENGLISH_PROP = /\b(?:placeholder|title|aria-label|alt|label|description)=["']([^"'{}]*[A-Za-z]{3,}[^"'{}]*)["']/g;
@@ -119,6 +122,8 @@ describe('hard-coded English in strict files', () => {
       for (const m of text.matchAll(ENGLISH_TEXT)) {
         // skip generics / type arguments such as <Foo>Bar</Foo> in non-JSX contexts
         if (/^(?:Promise|Array|Record|Partial|Omit|Pick)$/.test(m[1])) continue;
+        // the product name is a brand, not a translatable word
+        if (/^AssetX/.test(m[1])) continue;
         offenders.push(`${rel(file)}: text "${m[1]}"`);
       }
     }
