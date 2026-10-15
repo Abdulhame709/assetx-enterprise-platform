@@ -36,7 +36,7 @@ export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTex
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={cn('ax-input appearance-none', className)} {...props}>
+    <select className={cn('ax-select', className)} {...props}>
       {children}
     </select>
   );

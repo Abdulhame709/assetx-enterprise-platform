@@ -303,7 +303,7 @@ function AssetTypeModal({
         </Field>
         {mode === 'edit' && (
           <Field label={t('assetTypes.parent')} hint={t('assetTypes.parentHint')}>
-            <select value={parentId} onChange={(e) => setParentId(e.target.value)} className="ax-input">
+            <select value={parentId} onChange={(e) => setParentId(e.target.value)} className="ax-select">
               <option value="">{t('assetTypes.rootParent')}</option>
               {parentOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.full_path}</option>

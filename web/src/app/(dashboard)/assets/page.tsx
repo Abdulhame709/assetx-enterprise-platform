@@ -60,7 +60,8 @@ export default function AssetsPage() {
   const { data: analytics } = useAnalytics();
   const toast = useToast();
   const { confirm } = useConfirm();
-  const { t, locale, label } = useI18n();
+  const { t, locale, label, dir } = useI18n();
+  const rtl = dir === 'rtl';
 
   const formatMessage = (key: string, values: Record<string, string | number>) =>
     Object.entries(values).reduce((message, [name, value]) => message.replace(`{${name}}`, String(value)), t(key));
@@ -202,10 +203,10 @@ export default function AssetsPage() {
       <CommandToolbar
         label={t('assets.commandToolbar')}
         actions={[
-          { id: 'first', label: t('assets.firstRecord'), icon: ChevronsRight, onClick: () => moveTo(0), disabled: activeIndex <= 0 },
-          { id: 'previous', label: t('assets.previousRecord'), icon: ChevronRight, onClick: () => moveTo(activeIndex - 1), disabled: activeIndex <= 0 },
-          { id: 'next', label: t('assets.nextRecord'), icon: ChevronLeft, onClick: () => moveTo(activeIndex + 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
-          { id: 'last', label: t('assets.lastRecord'), icon: ChevronsLeft, onClick: () => moveTo((data?.items.length ?? 1) - 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
+          { id: 'first', label: t('assets.firstRecord'), icon: rtl ? ChevronsRight : ChevronsLeft, onClick: () => moveTo(0), disabled: activeIndex <= 0 },
+          { id: 'previous', label: t('assets.previousRecord'), icon: rtl ? ChevronRight : ChevronLeft, onClick: () => moveTo(activeIndex - 1), disabled: activeIndex <= 0 },
+          { id: 'next', label: t('assets.nextRecord'), icon: rtl ? ChevronLeft : ChevronRight, onClick: () => moveTo(activeIndex + 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
+          { id: 'last', label: t('assets.lastRecord'), icon: rtl ? ChevronsLeft : ChevronsRight, onClick: () => moveTo((data?.items.length ?? 1) - 1), disabled: activeIndex < 0 || activeIndex >= (data?.items.length ?? 0) - 1 },
           { id: 'search', label: t('assets.searchCommand'), icon: Search, onClick: () => searchInputRef.current?.focus(), separated: true },
           { id: 'export', label: t('common.export'), icon: Download, onClick: () => void onExport('csv'), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },
           { id: 'export-pdf', label: t('common.exportPdf'), icon: FileDown, onClick: () => void onExport('pdf'), permission: PERMISSIONS.EXPORT_ASSETS, loading: exporting },

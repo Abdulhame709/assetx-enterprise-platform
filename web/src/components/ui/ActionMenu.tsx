@@ -50,7 +50,7 @@ export function ActionMenu({ items, triggerLabel }: { items: ActionItem[]; trigg
                 key={item.key}
                 role="menuitem"
                 className={cn(
-                  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-surface-muted',
+                  'flex w-full items-center gap-2 px-3 py-2 text-start text-sm hover:bg-surface-muted',
                   item.tone === 'danger' ? 'text-danger' : 'text-ink',
                 )}
                 onClick={() => {

@@ -40,7 +40,7 @@ interface CommandToolbarProps {
 const variants: Record<CommandToolbarVariant, string> = {
   default: 'text-ink-muted hover:bg-surface-muted hover:text-ink',
   // Primary commands keep the same dimensions as every other icon; colour is the only emphasis.
-  primary: 'bg-brand text-white shadow-sm hover:bg-brand-strong',
+  primary: 'bg-brand text-white shadow-sm hover:bg-brand-hover',
   danger: 'text-danger hover:bg-danger/10',
   ghost: 'text-ink-faint hover:bg-surface-muted hover:text-ink',
 };

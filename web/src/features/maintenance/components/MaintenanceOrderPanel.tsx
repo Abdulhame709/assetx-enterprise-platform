@@ -123,7 +123,7 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
     <Modal open onClose={onClose} title={t('maintenance.createTitle').replace('{name}', assetName)} size="md">
       <form onSubmit={submit} className="space-y-4">
         <Field label={t('maintenance.type')}>
-          <select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
+          <select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="ax-select w-full py-2">
             <option value="preventive">{t('maintenance.type.preventive')}</option>
             <option value="corrective">{t('maintenance.corrective')}</option>
           </select>
@@ -131,7 +131,7 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
         <Field label={t('maintenance.technician')}><Input value={technician} onChange={(event) => setTechnician(event.target.value)} /></Field>
         <Field label={t('maintenance.technicianContact')}><Input value={technicianContact} onChange={(event) => setTechnicianContact(event.target.value)} /></Field>
         <Field label={t('maintenance.priority')}>
-          <select value={priority} onChange={(event) => setPriority(event.target.value as MaintenancePriority)} className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
+          <select value={priority} onChange={(event) => setPriority(event.target.value as MaintenancePriority)} className="ax-select w-full py-2">
             {(['low', 'medium', 'high', 'critical'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.priority.${value}`)}</option>)}
           </select>
         </Field>
