@@ -1,5 +1,6 @@
 import { API_BASE_URL, http } from '@/lib/api/client';
 import { currentReportLang } from '@/lib/api/report-lang';
+import { filenameFromDisposition } from '@/lib/download';
 
 export type ReportResource = 'assets' | 'movements' | 'inventory' | 'audit' | 'dashboard';
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
@@ -229,8 +230,7 @@ export async function downloadReportExport({ resource, format, limit = 10000, pr
 
   const blob = await response.blob();
   const disposition = response.headers.get('Content-Disposition') ?? '';
-  const match = /filename="?([^";]+)"?/.exec(disposition);
-  const filename = match?.[1] ?? `${resource}-export.${format}`;
+  const filename = filenameFromDisposition(disposition, `${resource}-export.${format}`);
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;

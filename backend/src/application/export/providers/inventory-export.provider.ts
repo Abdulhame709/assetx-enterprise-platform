@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { InventoryResultService } from '../../inventory-result.service';
 import { ExportOptions } from '../../../core/entities/export.entity';
 import { ExportProvider } from '../../../core/ports/export-provider.port';
+import { STATUS_AR } from '../export-lookups';
 
 const RESULT_AR: Record<string, string> = {
   matched: 'مطابق',
@@ -17,11 +18,13 @@ const RESULT_AR: Record<string, string> = {
   not_inventoried: 'غير مُجرّد',
 };
 
-const STATUS_AR: Record<string, string> = {
-  'New': 'جديد',
-  'Good': 'جيد',
-  'Used': 'مستخدم',
-  'Needs Maintenance': 'يحتاج صيانة',
+const RESULT_EN: Record<string, string> = {
+  matched: 'Matched',
+  deficit: 'Deficit',
+  surplus: 'Surplus',
+  transferred: 'Transferred',
+  missing: 'Missing',
+  not_inventoried: 'Not inventoried',
 };
 
 /** Names used inside a saved condition-detail line ("تفصيل الحالة: New:2 | ...")
@@ -46,13 +49,18 @@ export class InventoryExportProvider implements ExportProvider {
     const rows = cycleId
       ? await this.results.getResults(cycleId, tenantId)
       : await this.results.getResultsForLatest(tenantId);
-    // Export-only presentation: map known status/result values to Arabic while
-    // leaving internal DB names untouched (they are used as lookup keys).
-    return { rows: rows.map((row) => this.translateRow(row as unknown as Record<string, unknown>)), total: rows.length };
+    // Export-only presentation: map known status/result values to the report language
+    // while leaving internal DB names untouched (they are used as lookup keys).
+    const lang = options?.meta?.lang === 'en' ? 'en' : 'ar';
+    return { rows: rows.map((row) => this.translateRow(row as unknown as Record<string, unknown>, lang)), total: rows.length };
   }
 
-  private translateRow(row: Record<string, unknown>): Record<string, unknown> {
+  private translateRow(row: Record<string, unknown>, lang: 'ar' | 'en'): Record<string, unknown> {
     const out = { ...row };
+    if (lang === 'en') {
+      if (typeof out.result === 'string' && RESULT_EN[out.result]) out.result = RESULT_EN[out.result];
+      return out;
+    }
     if (typeof out.expected_status_name === 'string' && STATUS_AR[out.expected_status_name]) {
       out.expected_status_name = STATUS_AR[out.expected_status_name];
     }

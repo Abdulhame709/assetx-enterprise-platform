@@ -7,6 +7,7 @@
  */
 import { http, API_BASE_URL, ApiError } from '@/lib/api/client';
 import { currentReportLang } from '@/lib/api/report-lang';
+import { filenameFromDisposition } from '@/lib/download';
 import {
   AssetAnalyticsSummary,
   AssetDepreciation,
@@ -278,8 +279,7 @@ export async function downloadAssetExport(format: 'csv' | 'xlsx' | 'pdf' = 'csv'
   }
   const blob = await res.blob();
   const disposition = res.headers.get('Content-Disposition') ?? '';
-  const match = /filename="?([^";]+)"?/.exec(disposition);
-  const filename = match?.[1] ?? `assets-export.${format}`;
+  const filename = filenameFromDisposition(disposition, `assets-export.${format}`);
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -56,7 +56,7 @@ export class AssetsExportProvider implements ExportProvider {
         ...a,
         purchase_price: Number(a.purchase_price ?? 0),
         category_name: nameOf(names.categories, a.category_id),
-        status_name: statusName(names.statuses, a.status_id),
+        status_name: statusName(names.statuses, a.status_id, options?.meta?.lang === 'en' ? 'en' : 'ar'),
         location_name: nameOf(names.locations, a.location_id),
         employee_name: nameOf(names.employees, a.employee_id),
         purchase_date: isoDate(d?.purchase_date),

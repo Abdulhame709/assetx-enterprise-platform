@@ -23,6 +23,9 @@ export const STATUS_AR: Record<string, string> = {
   'Used': 'مستخدم',
   'Needs Maintenance': 'يحتاج صيانة',
   'Damaged': 'تالف',
+  'Under Maintenance': 'تحت الصيانة',
+  'Missing': 'مفقود',
+  'Retired': 'خارج الخدمة',
 };
 
 async function load(db: DatabasePort, sql: string, tenantId: string): Promise<NameMap> {
@@ -51,9 +54,10 @@ export function nameOf(map: NameMap, id: unknown): string {
   return typeof id === 'string' ? map.get(id) ?? '' : '';
 }
 
-export function statusName(map: NameMap, id: unknown): string {
+/** Status name in the report language: built-in names are translated for Arabic, custom names stay as typed. */
+export function statusName(map: NameMap, id: unknown, lang: 'ar' | 'en' = 'ar'): string {
   const n = nameOf(map, id);
-  return STATUS_AR[n] ?? n;
+  return lang === 'ar' ? STATUS_AR[n] ?? n : n;
 }
 
 /** Date/timestamp to ISO text (date only for pure dates). Null stays ''. */

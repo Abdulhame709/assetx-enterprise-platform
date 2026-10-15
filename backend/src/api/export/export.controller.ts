@@ -12,6 +12,7 @@ import { Response } from 'express';
 import { ExportService } from '../../application/export.service';
 import { ReportFilterInput, ReportMetaService } from '../../application/export/report-meta.service';
 import { isAssetSortKey } from '../../application/export/export-sort';
+import { contentDisposition } from './content-disposition';
 import { ExportColumn, ExportFormat, ExportOptions, ExportResource } from '../../core/entities/export.entity';
 import { ReportAggregation, ReportGroup, ReportSort } from '../../core/entities/report.entity';
 import { ExportProfileId } from '../../core/entities/export-profile.entity';
@@ -149,8 +150,11 @@ export class ExportController {
     const fmt: ExportFormat = (str(q.format) as ExportFormat | undefined) ?? 'csv';
     const limit = str(q.limit);
     let result;
+    let title: string | undefined;
     try {
-      const { options } = await this.plan(resource, q, u, limit ? Number(limit) : 10000);
+      const planned = await this.plan(resource, q, u, limit ? Number(limit) : 10000);
+      const options = planned.options;
+      title = planned.meta.title;
       result = await this.exports.generate({
         tenant_id: u.tenant_id,
         userId: u.sub,
@@ -168,7 +172,7 @@ export class ExportController {
       throw new BadRequestException(`EXPORT_FAILED: ${reason}`);
     }
     res.setHeader('Content-Type', result.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.setHeader('Content-Disposition', contentDisposition(result.filename, title));
     result.stream.pipe(res);
   }
 

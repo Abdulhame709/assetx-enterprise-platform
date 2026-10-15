@@ -24,6 +24,7 @@ export class MovementsExportProvider implements ExportProvider {
 
   async getData(tenantId: string, options?: ExportOptions): Promise<{ rows: unknown[]; total: number }> {
     const filters = options?.filters as { status?: MovementStatus; movement_type?: MovementType } | undefined;
+    const lang = options?.meta?.lang === 'en' ? 'en' : 'ar';
     const list = await this.movements.list(tenantId, filters);
     const names = await loadNameMaps(this.db, tenantId);
     const { rows: assetRows } = await this.db.query<{ id: string; name: string; full_asset_code: string }>(
@@ -41,8 +42,8 @@ export class MovementsExportProvider implements ExportProvider {
         to_location_name: nameOf(names.locations, m.to_location_id),
         from_employee_name: nameOf(names.employees, m.from_employee_id),
         to_employee_name: nameOf(names.employees, m.to_employee_id),
-        from_status_name: statusName(names.statuses, m.from_status_id),
-        to_status_name: statusName(names.statuses, m.to_status_id),
+        from_status_name: statusName(names.statuses, m.from_status_id, lang),
+        to_status_name: statusName(names.statuses, m.to_status_id, lang),
         performed_by_name: nameOf(names.users, m.performed_by),
         created_at: isoDate(m.created_at, true),
         approved_at: isoDate(m.approved_at, true),

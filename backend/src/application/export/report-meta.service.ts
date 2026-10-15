@@ -166,7 +166,7 @@ export class ReportMetaService {
     const tx = TITLE_TEXT[lang];
     const dims: Array<{ label: string; name?: string }> = [];
     if (f.category_id) dims.push({ label: tx.category, name: names && nameOf(names.categories, f.category_id) });
-    if (f.status_id) dims.push({ label: tx.status, name: names && statusName(names.statuses, f.status_id) });
+    if (f.status_id) dims.push({ label: tx.status, name: names && statusName(names.statuses, f.status_id, lang) });
     if (f.no_employee) dims.push({ label: tx.employee, name: tx.none });
     else if (f.employee_id) dims.push({ label: tx.employee, name: names && nameOf(names.employees, f.employee_id) });
     if (f.location_id) dims.push({ label: tx.location, name: names && nameOf(names.locations, f.location_id) });
@@ -213,7 +213,7 @@ export class ReportMetaService {
     const named = (title: string, name: string | undefined) => { if (name) parts.push(`${title}: ${name}`); };
     if (f.location_id) named(tx.location, names && nameOf(names.locations, f.location_id));
     if (f.category_id) named(tx.category, names && nameOf(names.categories, f.category_id));
-    if (f.status_id) named(tx.status, names && statusName(names.statuses, f.status_id));
+    if (f.status_id) named(tx.status, names && statusName(names.statuses, f.status_id, lang));
     if (f.no_employee) parts.push(tx.noEmployee);
     else if (f.employee_id) named(tx.employee, names && nameOf(names.employees, f.employee_id));
     if (f.q) parts.push(`${tx.search}: ${f.q}`);

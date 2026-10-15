@@ -102,7 +102,7 @@ export class DuplicatesExportProvider implements ExportProvider {
             category_name: nameOf(names.categories, a.category_id),
             location_name: nameOf(names.locations, a.location_id),
             employee_name: nameOf(names.employees, a.employee_id),
-            status_name: statusName(names.statuses, a.status_id),
+            status_name: statusName(names.statuses, a.status_id, lang),
             purchase_price: Number(a.purchase_price ?? 0),
           });
         }
