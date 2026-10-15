@@ -49,7 +49,7 @@ export default function LoginPage() {
         </button>
       </div>
       <div className="mb-6 flex flex-col items-center gap-2 text-center">
-        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-white">
+        <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-brand-fg">
           <Boxes className="h-6 w-6" />
         </span>
         <h1 className="text-xl font-semibold text-ink">{t('login.title')}</h1>

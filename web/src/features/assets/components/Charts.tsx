@@ -2,7 +2,7 @@
 
 import { AnalyticsBucket } from '../types';
 
-const PALETTE = ['#1d4ed8', '#0ea5e9', '#f59e0b', '#10b981', '#8b5cf6', '#ef4444', '#64748b'];
+const PALETTE = ['#C8853F', '#2F6F73', '#D9A441', '#5B8C5A', '#8B5E83', '#B5483A', '#7A7567'];
 
 /** Simple horizontal bar distribution (category/location). */
 export function BarList({ data, max }: { data: AnalyticsBucket[]; max?: number }) {

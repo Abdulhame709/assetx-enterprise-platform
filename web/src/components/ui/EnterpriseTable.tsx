@@ -8,11 +8,12 @@
  */
 import { intlLocale } from '@/lib/format';
 import { ReactNode, useMemo, useState } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Columns3, ChevronLeft, ChevronRight, Download, Search } from 'lucide-react';
+import { ArrowUpDown, ArrowUp, ArrowDown, Columns3, Download, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Button } from './Button';
 import { TableSkeleton } from './Skeleton';
 import { EmptyState, ErrorState } from './states';
+import { Pagination } from './Pagination';
 import { useI18n } from '@/lib/i18n';
 
 export interface EColumn<T> {
@@ -244,14 +245,7 @@ export function EnterpriseTable<T>({
           <span className="text-ink-muted">
             {page.toLocaleString(intlLocale(locale))} / {totalPages.toLocaleString(intlLocale(locale))} · {total.toLocaleString(intlLocale(locale))} {t('table.results')}
           </span>
-          <div className="flex gap-1">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label={t('table.previous')}>
-              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
-            </Button>
-            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label={t('table.next')}>
-              <ChevronRight className="h-4 w-4 rtl:rotate-180" />
-            </Button>
-          </div>
+          <Pagination page={page} totalPages={totalPages} onChange={onPageChange} />
         </div>
       )}
     </div>

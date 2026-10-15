@@ -35,6 +35,13 @@ const config: Config = {
         accent: {
           dark: 'rgb(var(--ax-accent-dark) / <alpha-value>)',
         },
+        sidebar: {
+          DEFAULT: 'rgb(var(--ax-sidebar) / <alpha-value>)',
+          ink: 'rgb(var(--ax-sidebar-ink) / <alpha-value>)',
+          muted: 'rgb(var(--ax-sidebar-muted) / <alpha-value>)',
+          line: 'rgb(var(--ax-sidebar-line) / <alpha-value>)',
+          hover: 'rgb(var(--ax-sidebar-hover) / <alpha-value>)',
+        },
         success: 'rgb(var(--ax-success) / <alpha-value>)',
         warning: 'rgb(var(--ax-warning) / <alpha-value>)',
         danger: 'rgb(var(--ax-danger) / <alpha-value>)',

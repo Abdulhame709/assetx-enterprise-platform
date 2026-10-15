@@ -311,7 +311,7 @@ export default function AssetsPage() {
 
       {selected.length > 0 && (
         <section className="sticky bottom-3 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/25 bg-surface-raised px-4 py-3 shadow-lg" aria-label={t('assets.selectionTitle')}>
-          <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-white"><SlidersHorizontal className="h-4 w-4" /></span><p className="text-sm font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p></div>
+          <div className="flex items-center gap-2"><span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-fg"><SlidersHorizontal className="h-4 w-4" /></span><p className="text-sm font-semibold text-ink">{formatMessage('assets.selectedCount', { count: selected.length })}</p></div>
           <div className="flex flex-wrap gap-2">
             <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}>
               <Button variant="secondary" size="sm" className="h-8 w-8 p-0" disabled={selected.length !== 1} aria-label={t('assetActions.edit')} title={t('assetActions.edit')} onClick={() => void openForm(selected[0], 'edit')}><Pencil className="h-3.5 w-3.5" /></Button>
@@ -374,7 +374,7 @@ function AssetPreview({ asset, statusName, statusTone, locale, t, onEdit, onCopy
         <PreviewField label={t('workspace.recordState')} value={asset.is_active ? t('common.active') : t('common.inactive')} />
       </div>
       <div className="mt-6 border-t border-line pt-4">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t('workspace.moreDetails')}</p>
+        <p className="mb-3 text-xs font-semibold text-ink-faint">{t('workspace.moreDetails')}</p>
         <Link href={`/assets/${asset.id}`} className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline">{t('workspace.openFullRecord')} <ChevronLeft className="h-4 w-4 rtl:rotate-180" /></Link>
       </div>
     </div>

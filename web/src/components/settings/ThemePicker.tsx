@@ -25,7 +25,7 @@ export function ThemePicker() {
                 aria-pressed={selected}
               >
                 <div className={`relative h-16 overflow-hidden rounded-lg border border-line ${option.previewClass}`} aria-hidden="true">
-                  <span className="absolute end-2 top-2 flex h-6 w-6 items-center justify-center rounded-md bg-white/80 text-slate-700 shadow-sm dark:bg-slate-900/70 dark:text-slate-100">
+                  <span className="absolute end-2 top-2 flex h-6 w-6 items-center justify-center rounded-md bg-white/80 text-ink shadow-sm dark:bg-black/50 dark:text-white">
                     {option.dark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
                   </span>
                   <span className="absolute bottom-2 start-2 h-2 w-20 rounded-full bg-white/70" />
@@ -36,7 +36,7 @@ export function ThemePicker() {
                     <p className="font-semibold text-ink">{t(option.labelKey)}</p>
                     <p className="mt-1 text-xs leading-5 text-ink-muted">{t(option.descriptionKey)}</p>
                   </div>
-                  {selected && <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-white"><Check className="h-4 w-4" aria-hidden="true" /></span>}
+                  {selected && <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-brand-fg"><Check className="h-4 w-4" aria-hidden="true" /></span>}
                 </div>
               </button>
             );

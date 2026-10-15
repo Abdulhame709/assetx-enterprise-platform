@@ -198,7 +198,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
           </dl>
           <div className="flex flex-wrap justify-end gap-2">
             <Button type="button" variant="secondary" size="sm" onClick={startAnother}>{t('assetForm.createAnother')}</Button>
-            <Link href={`/assets/${createdAsset.id}`} onClick={onClose} className="inline-flex items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-medium text-white hover:bg-brand-strong">{t('assetForm.openAsset')}</Link>
+            <Link href={`/assets/${createdAsset.id}`} onClick={onClose} className="inline-flex items-center justify-center rounded-lg bg-brand px-3 py-2 text-sm font-medium text-brand-fg hover:bg-brand-strong">{t('assetForm.openAsset')}</Link>
             <Button type="button" variant="primary" size="sm" onClick={onClose}>{t('assetForm.cancel')}</Button>
           </div>
         </div>

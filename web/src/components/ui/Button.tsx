@@ -16,7 +16,7 @@ const base =
   'inline-flex touch-manipulation items-center justify-center gap-2 rounded-lg font-medium transition-[transform,background-color,color,opacity] duration-150 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:pointer-events-none';
 
 const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-brand text-white hover:bg-brand/90',
+  primary: 'bg-brand text-brand-fg shadow-button hover:bg-brand-hover',
   secondary: 'bg-surface-raised text-ink border border-line hover:bg-surface-muted',
   outline: 'bg-transparent text-ink border border-line hover:bg-surface-muted',
   ghost: 'bg-transparent text-ink-muted hover:bg-surface-muted hover:text-ink',
