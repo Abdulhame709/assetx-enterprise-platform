@@ -3,95 +3,253 @@
 @tailwind utilities;
 
 /* =====================================================================
-   AssetX Design System Tokens
-   Reference: UI-UX/UI_UX_Specification.md §3.1
-   Colors: primary, secondary, success, warning, danger, neutral, dark.
-   Typography: type scale + Arabic font support.
-   Spacing scale: 4 / 8 / 12 / 16 / 24.
+   AssetX Enterprise Design System
+   Phase 3: Elevated Arabic-first design with warm, sophisticated palette
    ===================================================================== */
+
 :root {
-  /* Brand */
-  --ax-primary: 29 78 216;            /* blue-700 */
-  --ax-primary-soft: 219 234 254;     /* blue-100 */
+  /* ========== Warm Sophisticated Palette ========== */
+  /* Primary: Caramel/Amber — warm, elegant, professional */
+  --ax-primary: 200 133 63;           /* #C8853F caramel */
+  --ax-primary-hover: 168 107 44;     /* #A86B2C darker caramel */
+  --ax-primary-soft: 240 227 208;     /* #F0E3D0 tint */
   --ax-primary-fg: 255 255 255;
 
-  /* Surfaces */
-  --ax-surface: 255 255 255;
-  --ax-surface-raised: 250 250 250;
-  --ax-surface-overlay: 255 255 255;
-  --ax-surface-muted: 243 244 246;
+  /* Surfaces: Warm paper tones */
+  --ax-surface: 251 247 239;          /* #FBF7EF warm white */
+  --ax-surface-raised: 246 241 232;   /* #F6F1E8 warm paper */
+  --ax-surface-overlay: 255 255 255;  /* pure white for modals */
+  --ax-surface-muted: 242 236 225;    /* #F2ECE1 */
 
-  /* Text */
-  --ax-ink: 17 24 39;                 /* gray-900 */
-  --ax-ink-muted: 107 114 128;        /* gray-500 */
-  --ax-ink-faint: 156 163 175;        /* gray-400 */
+  /* Text: Rich ink with warmth */
+  --ax-ink: 31 36 33;                 /* #1F2421 warm black */
+  --ax-ink-muted: 138 138 128;        /* #8A8A80 warm gray */
+  --ax-ink-faint: 180 177 168;        /* #B4B1A8 */
 
-  /* Lines */
-  --ax-line: 229 231 235;             /* gray-200 */
+  /* Lines: Warm borders */
+  --ax-line: 226 217 200;             /* #E2D9C8 */
+  --ax-line-subtle: 235 229 220;      /* lighter */
 
-  /* Semantic status */
-  --ax-success: 22 163 74;            /* green-600 */
-  --ax-warning: 217 119 6;            /* amber-600 */
-  --ax-danger: 220 38 38;             /* red-600 */
-  --ax-info: 2 132 199;               /* sky-600 */
+  /* Accent: Dark charcoal for contrast */
+  --ax-accent-dark: 42 39 35;         /* #2A2723 warm charcoal */
 
-  /* Radii & shadow */
-  --ax-radius: 8px;
-  --ax-radius-lg: 12px;
-  --ax-radius-xl: 16px;
-  --ax-shadow-card: 0 1px 2px rgb(17 24 39 / 0.06), 0 1px 3px rgb(17 24 39 / 0.08);
-  --ax-shadow-pop: 0 8px 24px rgb(17 24 39 / 0.12);
+  /* Semantic status — warm tones */
+  --ax-success: 34 139 34;            /* warm green */
+  --ax-warning: 217 119 6;            /* amber */
+  --ax-danger: 185 28 28;             /* warm red */
+  --ax-info: 41 98 255;               /* blue kept for info */
 
-  /* Typography — Latin + Arabic */
-  --ax-font-sans: 'Inter', 'Segoe UI', 'Tajawal', 'Cairo', system-ui, sans-serif;
-  --ax-font-display: 'Inter', 'Segoe UI', 'Tajawal', 'Cairo', system-ui, sans-serif;
+  /* Gradients */
+  --ax-gradient-warm: linear-gradient(135deg, rgb(var(--ax-primary)) 0%, rgb(var(--ax-primary-hover)) 100%);
+  --ax-gradient-surface: linear-gradient(180deg, rgb(var(--ax-surface)) 0%, rgb(var(--ax-surface-raised)) 100%);
+
+  /* Shadows — warm and soft */
+  --ax-shadow-card: 0 1px 3px rgba(200, 133, 63, 0.08), 0 2px 8px rgba(31, 36, 33, 0.06);
+  --ax-shadow-card-hover: 0 4px 12px rgba(200, 133, 63, 0.12), 0 8px 24px rgba(31, 36, 33, 0.08);
+  --ax-shadow-pop: 0 12px 32px rgba(200, 133, 63, 0.16), 0 4px 12px rgba(31, 36, 33, 0.12);
+  --ax-shadow-button: 0 1px 2px rgba(31, 36, 33, 0.1);
+
+  /* Radii — sophisticated curves */
+  --ax-radius: 10px;
+  --ax-radius-lg: 14px;
+  --ax-radius-xl: 18px;
+  --ax-radius-2xl: 24px;
+  --ax-radius-button: 8px;
+  --ax-radius-pill: 999px;
+
+  /* Typography */
+  --ax-font-sans: var(--font-plex-arabic), var(--font-inter), 'Segoe UI', 'Tajawal', system-ui, sans-serif;
+  --ax-font-display: var(--font-plex-arabic), var(--font-inter), 'Segoe UI', 'Tajawal', system-ui, sans-serif;
+  --ax-font-mono: 'Consolas', 'Monaco', monospace;
+
+  /* Spacing scale */
+  --ax-space-xs: 0.25rem;  /* 4px */
+  --ax-space-sm: 0.5rem;   /* 8px */
+  --ax-space-md: 0.75rem;  /* 12px */
+  --ax-space-lg: 1rem;     /* 16px */
+  --ax-space-xl: 1.5rem;   /* 24px */
+  --ax-space-2xl: 2rem;    /* 32px */
+  --ax-space-3xl: 3rem;    /* 48px */
 }
 
 .dark {
-  --ax-primary: 96 165 250;           /* blue-400 */
-  --ax-primary-soft: 30 58 138;       /* blue-900 */
-  --ax-primary-fg: 15 23 42;
-  --ax-surface: 17 24 39;
-  --ax-surface-raised: 24 33 50;
-  --ax-surface-overlay: 30 41 59;
-  --ax-surface-muted: 31 41 55;
-  --ax-ink: 243 244 246;
-  --ax-ink-muted: 156 163 175;
-  --ax-ink-faint: 107 114 128;
-  --ax-line: 55 65 81;
+  /* Dark mode: deep warm tones */
+  --ax-primary: 200 133 63;           /* caramel stays vibrant */
+  --ax-primary-hover: 220 153 83;
+  --ax-primary-soft: 50 40 30;        /* dark warm tint */
+  --ax-primary-fg: 31 36 33;
+
+  --ax-surface: 26 28 25;             /* #1A1C19 deep warm black */
+  --ax-surface-raised: 34 37 32;      /* #222520 */
+  --ax-surface-overlay: 42 45 40;     /* #2A2D28 */
+  --ax-surface-muted: 38 41 36;
+
+  --ax-ink: 246 241 232;              /* warm white */
+  --ax-ink-muted: 180 177 168;
+  --ax-ink-faint: 138 138 128;
+
+  --ax-line: 60 62 58;                /* warm dark borders */
+  --ax-line-subtle: 50 52 48;
+
+  --ax-accent-dark: 240 227 208;      /* inverted for dark */
+
+  --ax-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(200, 133, 63, 0.1);
+  --ax-shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(200, 133, 63, 0.15);
+  --ax-shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(200, 133, 63, 0.2);
 }
 
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
+
   body {
     @apply bg-surface-raised text-ink font-sans;
     font-feature-settings: 'cv11', 'ss01';
+    font-weight: 400;
+    line-height: 1.6;
   }
-  /* Arabic support */
+
+  /* Arabic typography enhancements */
   [dir='rtl'] body {
     letter-spacing: 0;
+    font-weight: 500; /* IBM Plex Arabic looks better at 500 */
+  }
+
+  /* Headings — bold and punchy */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  [dir='rtl'] h1,
+  [dir='rtl'] h2,
+  [dir='rtl'] h3 {
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+
+  /* Links */
+  a {
+    @apply text-brand transition-colors duration-200;
+  }
+
+  a:hover {
+    @apply text-brand/80;
   }
 }
 
 @layer components {
+  /* ========== Cards ========== */
   .ax-card {
     @apply bg-surface border border-line rounded-xl shadow-card;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .ax-workspace {
-    @apply bg-surface-raised/70;
+
+  .ax-card-hover:hover {
+    @apply shadow-card-hover;
+    transform: translateY(-2px);
   }
+
+  .ax-card-elevated {
+    @apply bg-surface border-0 shadow-pop;
+  }
+
+  /* Accent card with dark background */
+  .ax-card-accent {
+    background: rgb(var(--ax-accent-dark));
+    @apply text-surface border-0 shadow-card;
+  }
+
+  /* ========== Buttons ========== */
+  .ax-btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-button
+           font-medium text-sm transition-all duration-200 shadow-button
+           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:ring-offset-2;
+  }
+
+  .ax-btn-primary {
+    @apply ax-btn bg-brand text-white hover:bg-brand/90;
+  }
+
+  .ax-btn-secondary {
+    @apply ax-btn bg-surface border border-line hover:bg-surface-muted;
+  }
+
+  .ax-btn-accent {
+    background: rgb(var(--ax-accent-dark));
+    @apply ax-btn text-surface hover:opacity-90;
+  }
+
+  /* ========== Inputs ========== */
   .ax-input {
-    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink
-      placeholder:text-ink-faint focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand;
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink
+           placeholder:text-ink-faint transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand;
   }
+
   .ax-label {
-    @apply block text-xs font-medium text-ink-muted mb-1;
+    @apply block text-xs font-semibold text-ink-muted mb-1.5;
+  }
+
+  /* ========== Badges & Pills ========== */
+  .ax-badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-pill text-xs font-medium;
+  }
+
+  .ax-badge-primary {
+    @apply ax-badge bg-brand-soft text-brand;
+  }
+
+  .ax-badge-accent {
+    background: rgb(var(--ax-primary-soft));
+    color: rgb(var(--ax-primary));
+    @apply ax-badge;
+  }
+
+  /* ========== Workspace ========== */
+  .ax-workspace {
+    background: rgb(var(--ax-surface-raised));
+  }
+
+  /* ========== Dividers ========== */
+  .ax-divider {
+    @apply border-t border-line;
+  }
+
+  /* ========== Gradients ========== */
+  .ax-gradient-warm {
+    background: var(--ax-gradient-warm);
+  }
+
+  /* ========== Metric Cards ========== */
+  .ax-metric-card {
+    @apply ax-card p-6 flex flex-col gap-3;
+  }
+
+  .ax-metric-value {
+    @apply text-3xl font-bold text-ink;
+  }
+
+  .ax-metric-label {
+    @apply text-sm font-medium text-ink-muted;
+  }
+
+  /* ========== Tables ========== */
+  .ax-table-header {
+    @apply bg-surface-muted border-b border-line text-xs font-semibold text-ink-muted;
+  }
+
+  .ax-table-row {
+    @apply border-b border-line hover:bg-surface-muted transition-colors;
   }
 }
 
+/* ========== Print Styles ========== */
 .report-print-only,
 .report-print-footer {
   display: none;
@@ -166,26 +324,44 @@
   }
 }
 
-/* =====================================================================
-   Runtime themes — presentation-only tokens. Business logic and API
-   contracts remain unchanged. ThemeProvider applies data-theme on <html>.
-   ===================================================================== */
-[data-theme='enterprise'] {
-  --ax-primary: 29 78 216;
-  --ax-primary-soft: 219 234 254;
-  --ax-primary-fg: 255 255 255;
-  --ax-surface: 255 255 255;
-  --ax-surface-raised: 250 250 250;
-  --ax-surface-overlay: 255 255 255;
-  --ax-surface-muted: 243 244 246;
-  --ax-ink: 17 24 39;
-  --ax-ink-muted: 107 114 128;
-  --ax-ink-faint: 156 163 175;
-  --ax-line: 229 231 235;
+/* ========== RTL Utilities ========== */
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
 }
 
+/* ========== Animations ========== */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* =====================================================================
+   Runtime themes — presentation-only tokens. ThemeProvider applies
+   data-theme on <html>. "enterprise" is the default caramel palette from
+   :root; the others override palette + the derived tokens.
+   ===================================================================== */
 [data-theme='midnight'] {
   --ax-primary: 96 165 250;
+  --ax-primary-hover: 147 197 253;
   --ax-primary-soft: 30 58 138;
   --ax-primary-fg: 15 23 42;
   --ax-surface: 15 23 42;
@@ -196,14 +372,20 @@
   --ax-ink-muted: 148 163 184;
   --ax-ink-faint: 100 116 139;
   --ax-line: 51 65 85;
+  --ax-line-subtle: 40 52 70;
+  --ax-accent-dark: 226 232 240;
   --ax-success: 74 222 128;
   --ax-warning: 251 191 36;
   --ax-danger: 248 113 113;
   --ax-info: 56 189 248;
+  --ax-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --ax-shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ax-shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
 [data-theme='emerald'] {
   --ax-primary: 5 150 105;
+  --ax-primary-hover: 4 120 87;
   --ax-primary-soft: 209 250 229;
   --ax-primary-fg: 255 255 255;
   --ax-surface: 255 255 255;
@@ -214,10 +396,16 @@
   --ax-ink-muted: 71 85 105;
   --ax-ink-faint: 148 163 184;
   --ax-line: 226 232 240;
+  --ax-line-subtle: 238 242 247;
+  --ax-accent-dark: 6 78 59;
+  --ax-shadow-card: 0 1px 3px rgba(5, 150, 105, 0.08), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --ax-shadow-card-hover: 0 4px 12px rgba(5, 150, 105, 0.12), 0 8px 24px rgba(15, 23, 42, 0.08);
+  --ax-shadow-pop: 0 12px 32px rgba(5, 150, 105, 0.16), 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 [data-theme='graphite'] {
   --ax-primary: 167 139 250;
+  --ax-primary-hover: 196 181 253;
   --ax-primary-soft: 55 48 163;
   --ax-primary-fg: 24 24 27;
   --ax-surface: 24 24 27;
@@ -228,10 +416,15 @@
   --ax-ink-muted: 161 161 170;
   --ax-ink-faint: 113 113 122;
   --ax-line: 63 63 70;
+  --ax-line-subtle: 52 52 58;
+  --ax-accent-dark: 228 228 231;
   --ax-success: 74 222 128;
   --ax-warning: 251 191 36;
   --ax-danger: 248 113 113;
   --ax-info: 103 232 249;
+  --ax-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --ax-shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --ax-shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.6);
 }
 
 .theme-preview-enterprise,
@@ -240,7 +433,7 @@
 .theme-preview-graphite {
   background-image: linear-gradient(135deg, rgb(var(--preview-primary) / 1) 0 28%, rgb(var(--preview-surface) / 1) 28% 100%);
 }
-.theme-preview-enterprise { --preview-primary: 29 78 216; --preview-surface: 248 250 252; }
+.theme-preview-enterprise { --preview-primary: 200 133 63; --preview-surface: 251 247 239; }
 .theme-preview-midnight { --preview-primary: 96 165 250; --preview-surface: 15 23 42; }
 .theme-preview-emerald { --preview-primary: 5 150 105; --preview-surface: 236 253 245; }
 .theme-preview-graphite { --preview-primary: 167 139 250; --preview-surface: 39 39 42; }

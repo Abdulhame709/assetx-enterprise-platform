@@ -13,6 +13,7 @@ const config: Config = {
       colors: {
         brand: {
           DEFAULT: 'rgb(var(--ax-primary) / <alpha-value>)',
+          hover: 'rgb(var(--ax-primary-hover) / <alpha-value>)',
           soft: 'rgb(var(--ax-primary-soft) / <alpha-value>)',
           fg: 'rgb(var(--ax-primary-fg) / <alpha-value>)',
         },
@@ -29,6 +30,10 @@ const config: Config = {
         },
         line: {
           DEFAULT: 'rgb(var(--ax-line) / <alpha-value>)',
+          subtle: 'rgb(var(--ax-line-subtle) / <alpha-value>)',
+        },
+        accent: {
+          dark: 'rgb(var(--ax-accent-dark) / <alpha-value>)',
         },
         success: 'rgb(var(--ax-success) / <alpha-value>)',
         warning: 'rgb(var(--ax-warning) / <alpha-value>)',
@@ -38,6 +43,7 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--ax-font-sans)'],
         display: ['var(--ax-font-display)'],
+        mono: ['var(--ax-font-mono)'],
       },
       spacing: {
         1: '4px',
@@ -53,10 +59,15 @@ const config: Config = {
         DEFAULT: 'var(--ax-radius)',
         lg: 'var(--ax-radius-lg)',
         xl: 'var(--ax-radius-xl)',
+        '2xl': 'var(--ax-radius-2xl)',
+        button: 'var(--ax-radius-button)',
+        pill: 'var(--ax-radius-pill)',
       },
       boxShadow: {
         card: 'var(--ax-shadow-card)',
+        'card-hover': 'var(--ax-shadow-card-hover)',
         pop: 'var(--ax-shadow-pop)',
+        button: 'var(--ax-shadow-button)',
       },
     },
   },

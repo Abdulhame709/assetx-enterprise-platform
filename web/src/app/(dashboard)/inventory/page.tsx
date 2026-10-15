@@ -1,4 +1,5 @@
 'use client';
+import { MetricCard } from '@/components/ui/MetricCard';
 
 import { intlLocale } from '@/lib/format';
 import Link from 'next/link';
@@ -76,4 +77,3 @@ export default function InventoryPage() {
 }
 
 function MiniMetric({ label, value, tone = 'default' }: { label: string; value: string; tone?: 'default' | 'danger' }) { return <div className="rounded-lg border border-line bg-surface px-3 py-2"><p className="text-xs text-ink-faint">{label}</p><p className={tone === 'danger' ? 'mt-1 text-sm font-semibold tabular-nums text-danger' : 'mt-1 text-sm font-semibold tabular-nums text-ink'}>{value}</p></div>; }
-function MetricCard({ icon: Icon, label, value, tone }: { icon: typeof ClipboardList; label: string; value: string; tone: 'brand' | 'success' | 'warning' | 'danger' }) { const toneClass = { brand: 'bg-brand-soft text-brand', success: 'bg-success-soft text-success', warning: 'bg-warning-soft text-warning', danger: 'bg-danger-soft text-danger' }[tone]; return <div className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4"><div className="flex items-start justify-between gap-3"><span className={`grid h-9 w-9 place-items-center rounded-lg ${toneClass}`}><Icon className="h-4 w-4" /></span><span className="text-2xl font-semibold tabular-nums text-ink">{value}</span></div><p className="mt-3 text-xs font-medium text-ink-muted">{label}</p></div>; }

@@ -5,6 +5,11 @@ import { I18nProvider } from '@/lib/i18n';
 import { ToastProvider } from '@/components/ui/Toast';
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 import { ThemeProvider } from '@/lib/theme';
+import { IBM_Plex_Sans_Arabic, Inter } from 'next/font/google';
+
+// Self-hosted by Next at build time (no runtime request to Google).
+const plexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic', 'latin'], weight: ['300', '400', '500', '600', '700'], variable: '--font-plex-arabic', display: 'swap' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'AssetX — إدارة الأصول المؤسسية',
@@ -25,7 +30,7 @@ d.dataset.theme=t;d.classList.toggle('dark',dark);d.style.colorScheme=dark?'dark
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" className={`${plexArabic.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PRE_PAINT_SCRIPT }} />
       </head>

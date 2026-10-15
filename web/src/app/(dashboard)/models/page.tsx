@@ -1,4 +1,5 @@
 'use client';
+import { MetricCard } from '@/components/ui/MetricCard';
 
 import { intlLocale } from '@/lib/format';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
@@ -57,9 +58,9 @@ export default function ModelsPage() {
       />
 
       <section aria-label={t('models.metrics')} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <MetricCard icon={Box} label={t('models.total')} value={models.length.toLocaleString(intlLocale(locale))} />
-        <MetricCard icon={Box} label={t('models.categorized')} value={categorizedCount.toLocaleString(intlLocale(locale))} />
-        <MetricCard icon={Search} label={t('models.visible')} value={filteredModels.length.toLocaleString(intlLocale(locale))} />
+        <MetricCard icon={Box} tone="brand" label={t('models.total')} value={models.length.toLocaleString(intlLocale(locale))} />
+        <MetricCard icon={Box} tone="brand" label={t('models.categorized')} value={categorizedCount.toLocaleString(intlLocale(locale))} />
+        <MetricCard icon={Search} tone="info" label={t('models.visible')} value={filteredModels.length.toLocaleString(intlLocale(locale))} />
       </section>
 
       <Card className="overflow-hidden p-0 shadow-card">
@@ -162,8 +163,4 @@ function ModelFormModal({ model, categories, onClose, onSaved }: { model: Refere
       </form>
     </Modal>
   );
-}
-
-function MetricCard({ icon: Icon, label, value }: { icon: typeof Box; label: string; value: string }) {
-  return <div className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4"><div className="flex items-start justify-between gap-3"><span className="grid h-9 w-9 place-items-center rounded-lg bg-brand-soft text-brand"><Icon className="h-4 w-4" /></span><span className="text-2xl font-semibold tabular-nums text-ink">{value}</span></div><p className="mt-3 text-xs font-medium text-ink-muted">{label}</p></div>;
 }
