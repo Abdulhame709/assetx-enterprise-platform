@@ -67,6 +67,39 @@ const MESSAGES: Record<string, string> = {
   UNAUTHORIZED: 'You are not authorized to perform this action.',
   FORBIDDEN: 'You do not have permission for this action.',
   SESSION_EXPIRED: 'Your session expired. Please sign in again.',
+  ACCOUNT_LOCKED: 'Too many failed attempts. The account is temporarily locked; try again later.',
+  PASSWORD_TOO_WEAK: 'The password is too weak.',
+  TENANT_REQUIRED: 'The organization is required.',
+  USERNAME_EXISTS: 'This username is already taken.',
+  ROLE_NOT_FOUND: 'Role not found.',
+  USER_NOT_FOUND: 'User not found.',
+  TENANT_NOT_FOUND: 'Organization not found.',
+  SESSION_REVOKED: 'Your session was ended. Please sign in again.',
+  PASSWORD_RESET_TOKEN_INVALID: 'The password reset link is invalid or expired.',
+  PERMISSIONS_STALE: 'Your permissions changed. Please sign in again.',
+  COMPLIANCE_VIEW_DENIED: 'You do not have permission to view compliance data.',
+  SYNC_BATCH_TOO_LARGE: 'The upload is too large. Send fewer records at a time.',
+  ASSET_BULK_EMPTY: 'Select at least one asset.',
+  ASSET_BULK_FIELDS_REQUIRED: 'Choose at least one field to update.',
+  ASSET_HAS_REFERENCES: 'This asset has linked records and cannot be deleted.',
+  DUPLICATE_MODEL: 'A model with this name already exists.',
+  MODEL_NOT_FOUND: 'Model not found.',
+  EMPLOYEE_NOT_FOUND: 'Employee not found.',
+  LOCATION_HAS_ASSETS: 'Cannot delete a location that has assets.',
+  EMPLOYEE_HAS_ASSETS: 'Cannot delete an employee who has assets assigned.',
+  INVALID_AUDIT_ACTION: 'The selected audit action is not valid.',
+  TEMPLATE_NOT_FOUND: 'Report template not found.',
+  NOTIFICATION_NOT_FOUND: 'Notification not found.',
+  UNSUPPORTED_EXPORT_FORMAT: 'This export format is not supported.',
+  UNSUPPORTED_EXPORT_RESOURCE: 'This report cannot be exported.',
+  UNSUPPORTED_SEARCH_RESOURCE: 'This search type is not supported.',
+  INVALID_SAVED_SEARCH_NAME: 'The saved search name is not valid.',
+  INVALID_SAVED_SEARCH_RESOURCE: 'The saved search type is not valid.',
+  SAVED_SEARCH_PAYLOAD_TOO_LARGE: 'The saved search is too large.',
+  SAVED_SEARCH_NAME_EXISTS: 'A saved search with this name already exists.',
+  SAVED_SEARCH_LIMIT_EXCEEDED: 'You have reached the maximum number of saved searches.',
+  SAVED_SEARCH_NOT_FOUND: 'Saved search not found.',
+  INVALID_UUID: 'One of the selected values is not valid.',
 };
 
 const MESSAGES_AR: Record<string, string> = {
@@ -83,6 +116,101 @@ const MESSAGES_AR: Record<string, string> = {
   LOCATION_TYPE_NAME_EN_INVALID: 'يجب أن يتكون الاسم الإنجليزي من حرفين إلى 120 حرفاً.',
   LOCATION_TYPE_ICON_INVALID: 'اختر رمزاً مدعوماً.',
   LOCATION_TYPE_SORT_INVALID: 'يجب أن يكون الترتيب رقماً صحيحاً من 0 إلى 9999.',
+  NAME_INVALID: 'يجب ألا يقل الاسم عن حرفين.',
+  COLOR_INVALID: 'يجب أن يكون اللون بصيغة سداسية عشرية مثل #27ae60.',
+  DUPLICATE_LOCATION: 'يوجد موقع بهذا الاسم مسبقاً ضمن نفس الموقع الأب.',
+  DUPLICATE_CATEGORY: 'يوجد نوع أصل بهذا الاسم مسبقاً ضمن نفس النوع الأب.',
+  CATEGORY_CYCLE: 'لا يمكن نقل نوع الأصل تحت نفسه أو تحت أحد فروعه.',
+  DUPLICATE_STATUS: 'توجد حالة بهذا الاسم مسبقاً.',
+  LOCATION_NOT_FOUND: 'الموقع غير موجود.',
+  CATEGORY_NOT_FOUND: 'نوع الأصل غير موجود.',
+  STATUS_NOT_FOUND: 'الحالة غير موجودة.',
+  PARENT_NOT_FOUND: 'العنصر الأب المحدد لم يعد موجوداً.',
+  LOCATION_HAS_CHILDREN: 'لا يمكن حذف موقع يحتوي على مواقع فرعية.',
+  LOCATION_TYPE_HAS_LOCATIONS: 'نوع الموقع مستخدم في مواقع نشطة ولا يمكن تعطيله.',
+  CATEGORY_HAS_CHILDREN: 'لا يمكن تعطيل نوع الأصل لأنه ما زال مرتبطاً بسجلات.',
+  CATEGORY_HAS_ASSETS: 'لا يمكن تعطيل نوع الأصل لأن أصولاً نشطة تستخدمه.',
+  STATUS_HAS_ASSETS: 'لا يمكن تعطيل حالة الأصل لأن أصولاً نشطة تستخدمها.',
+  ASSET_NAME_INVALID: 'يجب ألا يقل اسم الأصل عن حرفين.',
+  ASSET_NOT_FOUND: 'الأصل غير موجود.',
+  CATEGORY_REQUIRED: 'اختر نوع الأصل.',
+  LOCATION_REQUIRED: 'اختر الموقع.',
+  STATUS_REQUIRED: 'اختر الحالة.',
+  QUANTITY_INVALID: 'يجب أن تكون الكمية أكبر من صفر.',
+  PRICE_INVALID: 'لا يمكن أن يكون السعر سالباً.',
+  DEPRECIATION_RATE_INVALID: 'يجب أن تكون نسبة الإهلاك بين 0 و100.',
+  MOVEMENT_NOT_FOUND: 'الحركة غير موجودة.',
+  MOVEMENT_NOT_PENDING: 'تمت معالجة هذه الحركة مسبقاً.',
+  TRANSFER_TARGET_REQUIRED: 'اختر موقع الوجهة أو المستلم لعملية النقل.',
+  SAME_LOCATION: 'الأصل موجود في هذا الموقع بالفعل.',
+  DUPLICATE_PENDING: 'توجد حركة معلّقة من هذا النوع لهذا الأصل.',
+  EMPLOYEE_INACTIVE: 'الموظف المحدد غير نشط.',
+  ASSET_INACTIVE: 'هذا الأصل غير نشط ولا يمكن نقله.',
+  INVALID_TRANSITION: 'هذا الإجراء غير مسموح في الحالة الحالية للأصل.',
+  INVALID_YEAR: 'يجب أن تكون السنة بين 2000 و2100.',
+  CYCLE_YEAR_EXISTS: 'توجد دورة جرد لهذه السنة مسبقاً. افتحها، أو احذفها أولاً إن أُنشئت بالخطأ.',
+  CYCLE_CLOSED_CANNOT_DELETE: 'الدورة المغلقة سجل دائم ولا يمكن حذفها.',
+  CYCLE_NOT_FOUND: 'دورة الجرد غير موجودة.',
+  CYCLE_CLOSED: 'هذه الدورة مغلقة — السجلات مقفلة.',
+  INVALID_CYCLE_TRANSITION: 'هذا الإجراء غير مسموح في الحالة الحالية للدورة.',
+  RECORD_NOT_FOUND: 'سجل الجرد غير موجود.',
+  ASSET_NOT_IN_CYCLE: 'هذا الأصل ليس ضمن لقطة الدورة.',
+  CANNOT_VERIFY_UNINVENTORIED: 'لا يمكن اعتماد إلا السجلات التي تم عدّها.',
+  INVALID_CREDENTIALS: 'اسم المستخدم أو كلمة المرور غير صحيحة.',
+  UNAUTHORIZED: 'غير مصرّح لك بتنفيذ هذا الإجراء.',
+  FORBIDDEN: 'لا تملك صلاحية تنفيذ هذا الإجراء.',
+  SESSION_EXPIRED: 'انتهت جلستك. سجّل الدخول مرة أخرى.',
+  ACCOUNT_LOCKED: 'محاولات فاشلة كثيرة. الحساب مقفل مؤقتاً، حاول لاحقاً.',
+  PASSWORD_TOO_WEAK: 'كلمة المرور ضعيفة جداً.',
+  TENANT_REQUIRED: 'الجهة مطلوبة.',
+  USERNAME_EXISTS: 'اسم المستخدم مستخدم مسبقاً.',
+  ROLE_NOT_FOUND: 'الدور غير موجود.',
+  USER_NOT_FOUND: 'المستخدم غير موجود.',
+  TENANT_NOT_FOUND: 'الجهة غير موجودة.',
+  SESSION_REVOKED: 'تم إنهاء جلستك. سجّل الدخول مرة أخرى.',
+  PASSWORD_RESET_TOKEN_INVALID: 'رابط إعادة تعيين كلمة المرور غير صالح أو منتهي.',
+  PERMISSIONS_STALE: 'تغيّرت صلاحياتك. سجّل الدخول مرة أخرى.',
+  COMPLIANCE_VIEW_DENIED: 'لا تملك صلاحية عرض بيانات الامتثال.',
+  SYNC_BATCH_TOO_LARGE: 'حجم الرفع كبير جداً. أرسل عدداً أقل من السجلات في كل مرة.',
+  ASSET_BULK_EMPTY: 'اختر أصلاً واحداً على الأقل.',
+  ASSET_BULK_FIELDS_REQUIRED: 'اختر حقلاً واحداً على الأقل للتحديث.',
+  ASSET_HAS_REFERENCES: 'هذا الأصل مرتبط بسجلات ولا يمكن حذفه.',
+  DUPLICATE_MODEL: 'يوجد موديل بهذا الاسم مسبقاً.',
+  MODEL_NOT_FOUND: 'الموديل غير موجود.',
+  EMPLOYEE_NOT_FOUND: 'الموظف غير موجود.',
+  LOCATION_HAS_ASSETS: 'لا يمكن حذف موقع يحتوي على أصول.',
+  EMPLOYEE_HAS_ASSETS: 'لا يمكن حذف موظف لديه أصول مسلّمة.',
+  INVALID_AUDIT_ACTION: 'إجراء التدقيق المحدد غير صحيح.',
+  TEMPLATE_NOT_FOUND: 'قالب التقرير غير موجود.',
+  NOTIFICATION_NOT_FOUND: 'الإشعار غير موجود.',
+  UNSUPPORTED_EXPORT_FORMAT: 'صيغة التصدير هذه غير مدعومة.',
+  UNSUPPORTED_EXPORT_RESOURCE: 'لا يمكن تصدير هذا التقرير.',
+  UNSUPPORTED_SEARCH_RESOURCE: 'نوع البحث هذا غير مدعوم.',
+  INVALID_SAVED_SEARCH_NAME: 'اسم البحث المحفوظ غير صحيح.',
+  INVALID_SAVED_SEARCH_RESOURCE: 'نوع البحث المحفوظ غير صحيح.',
+  SAVED_SEARCH_PAYLOAD_TOO_LARGE: 'البحث المحفوظ كبير جداً.',
+  SAVED_SEARCH_NAME_EXISTS: 'يوجد بحث محفوظ بهذا الاسم مسبقاً.',
+  SAVED_SEARCH_LIMIT_EXCEEDED: 'وصلت إلى الحد الأقصى لعدد عمليات البحث المحفوظة.',
+  SAVED_SEARCH_NOT_FOUND: 'البحث المحفوظ غير موجود.',
+  INVALID_UUID: 'إحدى القيم المحددة غير صحيحة.',
+};
+
+const FALLBACK = {
+  en: 'Something went wrong. Please try again.',
+  ar: 'حدث خطأ ما. حاول مرة أخرى.',
+};
+
+const GENERIC_CODES_AR: Record<string, string> = {
+  CONFLICT: 'تعذّر تنفيذ الطلب بسبب تعارض مع بيانات موجودة.',
+  VALIDATION_ERROR: 'بعض البيانات المدخلة غير صحيحة.',
+  NOT_FOUND: 'السجل المطلوب غير موجود.',
+  PAYLOAD_TOO_LARGE: 'حجم البيانات المرسلة كبير جداً.',
+};
+const GENERIC_CODES_EN: Record<string, string> = {
+  CONFLICT: 'The request conflicts with existing data.',
+  VALIDATION_ERROR: 'Some of the entered data is not valid.',
+  NOT_FOUND: 'The requested record was not found.',
+  PAYLOAD_TOO_LARGE: 'The submitted data is too large.',
 };
 
 type ErrorDetails = { asset_count?: unknown; child_category_count?: unknown; location_count?: unknown };
@@ -124,17 +252,27 @@ function protectedDeactivationMessage(code: string, details: ErrorDetails, local
   return `This asset type cannot be deactivated because it is linked to ${blockers}.`;
 }
 
-export function humanError(err: unknown, fallback = 'Something went wrong. Please try again.', locale?: SupportedLocale): string {
+export function humanError(err: unknown, fallback?: string, locale?: SupportedLocale): string {
+  const ar = isArabic(locale);
+  const fallbackText = fallback ?? (ar ? FALLBACK.ar : FALLBACK.en);
   const anyErr = err as { message?: string; code?: string; status?: number; details?: ErrorDetails };
-  if (anyErr?.status === 404) return isArabic(locale) ? 'السجل المطلوب غير موجود.' : 'The requested record was not found.';
-  if (anyErr?.status === 403) return isArabic(locale) ? 'لا تملك صلاحية تنفيذ هذا الإجراء.' : MESSAGES.FORBIDDEN;
-  if (anyErr?.status === 401) return isArabic(locale) ? 'انتهت جلستك. سجّل الدخول مرة أخرى.' : MESSAGES.SESSION_EXPIRED;
   // The API envelope carries an HTTP-level code (for example CONFLICT) and a
   // domain-level message (for example STATUS_HAS_ASSETS). The latter is what
   // drives actionable, count-aware user feedback.
   const raw = typeof anyErr?.message === 'string' ? anyErr.message : typeof anyErr?.code === 'string' ? anyErr.code : null;
-  if (!raw) return fallback;
-  const protectedMessage = protectedDeactivationMessage(raw, anyErr?.details ?? {}, locale);
-  if (protectedMessage) return protectedMessage;
-  return (isArabic(locale) ? MESSAGES_AR[raw] : MESSAGES[raw]) ?? MESSAGES[raw] ?? raw;
+  if (raw) {
+    const protectedMessage = protectedDeactivationMessage(raw, anyErr?.details ?? {}, locale);
+    if (protectedMessage) return protectedMessage;
+    const known = (ar ? MESSAGES_AR[raw] : MESSAGES[raw]) ?? MESSAGES[raw];
+    if (known) return known;
+  }
+  if (anyErr?.status === 404) return ar ? GENERIC_CODES_AR.NOT_FOUND : GENERIC_CODES_EN.NOT_FOUND;
+  if (anyErr?.status === 403) return ar ? MESSAGES_AR.FORBIDDEN : MESSAGES.FORBIDDEN;
+  if (anyErr?.status === 401) return ar ? MESSAGES_AR.SESSION_EXPIRED : MESSAGES.SESSION_EXPIRED;
+  if (!raw) return fallbackText;
+  const generic = (ar ? GENERIC_CODES_AR : GENERIC_CODES_EN)[raw];
+  if (generic) return generic;
+  // An unmapped internal code never reaches the screen, and in Arabic neither does raw English text.
+  if (ar || /^[A-Z][A-Z0-9_]+$/.test(raw)) return fallbackText;
+  return raw;
 }

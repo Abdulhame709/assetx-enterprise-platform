@@ -23,7 +23,7 @@ import {
 
 export default function AdministrationPage() {
   const { session, can } = useSession();
-  const { t, locale } = useI18n();
+  const { t, locale, label } = useI18n();
   const { confirm } = useConfirm();
   const toast = useToast();
   const canManageUsers = can(PERMISSIONS.ADMIN_USER);
@@ -64,7 +64,7 @@ export default function AdministrationPage() {
   const filteredUsers = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return users;
-    return users.filter((user) => user.username.toLowerCase().includes(needle) || (user.email ?? '').toLowerCase().includes(needle) || user.roles.some((role) => role.name.toLowerCase().includes(needle)));
+    return users.filter((user) => user.username.toLowerCase().includes(needle) || (user.email ?? '').toLowerCase().includes(needle) || user.roles.some((role) => `${role.name} ${label(role.name)}`.toLowerCase().includes(needle)));
   }, [query, users]);
 
   const activeUsers = users.filter((user) => user.is_active).length;
@@ -151,7 +151,7 @@ export default function AdministrationPage() {
                               <p className="font-semibold text-ink">{user.username}</p>
                               <p className="text-xs text-ink-muted">{user.email ?? t('module.adminNoEmail')} · {t('module.adminLastLogin')}: {formatDate(user.last_login)}</p>
                               <div className="mt-2 flex flex-wrap gap-1.5">
-                                {user.roles.length ? user.roles.map((role) => <span key={role.id} className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-medium text-brand">{role.name}</span>) : <span className="text-xs text-ink-faint">{t('module.adminNoRoles')}</span>}
+                                {user.roles.length ? user.roles.map((role) => <span key={role.id} className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-medium text-brand">{label(role.name)}</span>) : <span className="text-xs text-ink-faint">{t('module.adminNoRoles')}</span>}
                               </div>
                             </div>
                             <div className="flex shrink-0 flex-wrap gap-2">
@@ -166,7 +166,7 @@ export default function AdministrationPage() {
                                 {roles.map((role) => (
                                   <label key={role.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm text-ink hover:bg-surface-muted">
                                     <input type="checkbox" checked={draftRoleIds.includes(role.id)} onChange={() => toggleDraftRole(role.id)} className="h-4 w-4 accent-brand" />
-                                    <span>{role.name}</span>
+                                    <span>{label(role.name)}</span>
                                   </label>
                                 ))}
                               </div>
@@ -192,7 +192,7 @@ export default function AdministrationPage() {
                     <div className="space-y-2">
                       {roles.map((role) => (
                         <div key={role.id} className="rounded-xl border border-line bg-surface-muted/35 p-3">
-                          <p className="font-medium text-ink">{role.name}</p>
+                          <p className="font-medium text-ink">{label(role.name)}</p>
                           {role.description && <p className="mt-1 text-xs text-ink-muted">{role.description}</p>}
                           {role.role_type && <p className="mt-2 text-[11px] text-ink-faint">{role.role_type}</p>}
                         </div>

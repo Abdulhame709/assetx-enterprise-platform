@@ -30,7 +30,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
         <div className="min-w-0">
           <span className="block truncate text-lg font-bold tracking-tight text-ink">{branding?.organization_name || 'AssetX'}</span>
-          <span className="block truncate text-[11px] font-medium text-ink-faint">{branding?.organization_name ? 'AssetX' : 'Enterprise Asset Operations'}</span>
+          <span className="block truncate text-[11px] font-medium text-ink-faint">{branding?.organization_name ? 'AssetX' : t('shell.tagline')}</span>
         </div>
       </div>
 

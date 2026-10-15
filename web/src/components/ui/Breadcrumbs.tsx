@@ -11,10 +11,10 @@ export interface Crumb {
 
 /** Breadcrumbs — logical-prop aware, reflects the current dir. */
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
-  const { dir } = useI18n();
+  const { dir, t } = useI18n();
   const Separator = dir === 'rtl' ? ChevronLeft : ChevronRight;
   return (
-    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-sm">
+    <nav aria-label={t('common.breadcrumb')} className="flex flex-wrap items-center gap-1 text-sm">
       <ol className="flex flex-wrap items-center gap-1">
         {items.map((c, i) => {
           const last = i === items.length - 1;

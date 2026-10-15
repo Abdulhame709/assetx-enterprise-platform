@@ -2,17 +2,20 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Boxes } from 'lucide-react';
+import { Boxes, Languages } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Field, Input } from '@/components/ui/form';
 import { Button } from '@/components/ui/Button';
 import { useSession } from '@/lib/auth/session-context';
 import { MOCK_ACCOUNTS } from '@/lib/auth/mock-session';
 import { AUTH_MODE } from '@/lib/auth/auth-service';
+import { useI18n } from '@/lib/i18n';
+import { humanError } from '@/lib/api/errors';
 
 export default function LoginPage() {
   const { login } = useSession();
   const router = useRouter();
+  const { t, locale, setLocale } = useI18n();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +29,7 @@ export default function LoginPage() {
       await login({ username, password });
       router.replace('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed');
+      setError(humanError(err, t('login.failed'), locale));
     } finally {
       setLoading(false);
     }
@@ -34,30 +37,41 @@ export default function LoginPage() {
 
   return (
     <Card>
+      <div className="mb-2 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink-muted hover:bg-surface-muted hover:text-ink"
+          aria-label={t('login.language')}
+        >
+          <Languages className="h-4 w-4" aria-hidden />
+          {locale === 'ar' ? t('common.english') : t('common.arabic')}
+        </button>
+      </div>
       <div className="mb-6 flex flex-col items-center gap-2 text-center">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-brand text-white">
           <Boxes className="h-6 w-6" />
         </span>
-        <h1 className="text-xl font-semibold text-ink">Sign in to AssetX</h1>
-        <p className="text-sm text-ink-muted">Enterprise Asset Management Platform</p>
+        <h1 className="text-xl font-semibold text-ink">{t('login.title')}</h1>
+        <p className="text-sm text-ink-muted">{t('login.subtitle')}</p>
       </div>
 
       <form onSubmit={submit} className="space-y-4">
-        <Field label="Username">
-          <Input autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="admin" required />
+        <Field label={t('login.username')}>
+          <Input autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} dir="ltr" required />
         </Field>
-        <Field label="Password">
+        <Field label={t('login.password')}>
           <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
         </Field>
         {error && <p className="text-sm text-danger">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>
-          Sign in
+          {t('login.signIn')}
         </Button>
       </form>
 
       {AUTH_MODE === 'mock' && (
         <div className="mt-6 rounded-lg bg-surface-muted p-3 text-xs text-ink-muted">
-          <p className="mb-1 font-medium text-ink">Demo accounts (mock mode — development only)</p>
+          <p className="mb-1 font-medium text-ink">{t('login.demoAccounts')}</p>
           <ul className="space-y-0.5">
             {Object.entries(MOCK_ACCOUNTS).map(([u, a]) => (
               <li key={u}>

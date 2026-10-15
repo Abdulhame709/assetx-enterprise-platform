@@ -36,7 +36,10 @@ const ACTION_KEYS = [
   'PERMISSION_GRANTED', 'PERMISSION_DENIED', 'PERMISSION_CHANGED',
   'ASSET_CREATED', 'ASSET_UPDATED', 'ASSET_DELETED', 'ASSET_STATUS_CHANGED',
   'MOVEMENT_CREATED', 'MOVEMENT_APPROVED', 'MOVEMENT_REJECTED',
-  'INVENTORY_CREATED', 'INVENTORY_STARTED', 'INVENTORY_CLOSED', 'INVENTORY_RECORD_VERIFIED',
+  'INVENTORY_CREATED', 'INVENTORY_STARTED', 'INVENTORY_CLOSED', 'INVENTORY_DELETED', 'INVENTORY_RECORD_VERIFIED',
+  'CATEGORY_DEACTIVATED', 'STATUS_DEACTIVATED', 'LOCATION_TYPE_DEACTIVATED',
+  'MAINTENANCE_CREATED', 'MAINTENANCE_STARTED', 'MAINTENANCE_COMPLETED',
+  'REPORT_TEMPLATE_CREATED', 'REPORT_TEMPLATE_UPDATED', 'REPORT_TEMPLATE_DELETED', 'AI_REPORT_SUMMARY_GENERATED',
   'COMPLIANCE_WARNING',
   'EXPORT_STARTED', 'EXPORT_COMPLETED', 'EXPORT_FAILED',
   'SAVED_SEARCH_CREATED', 'SAVED_SEARCH_UPDATED', 'SAVED_SEARCH_DELETED', 'SAVED_SEARCH_EXECUTED',
@@ -44,7 +47,10 @@ const ACTION_KEYS = [
 ];
 
 /** Entity (table_name) domains observed in the live stream. */
-const ENTITY_KEYS = ['auth', 'permission', 'asset', 'movement', 'inventory', 'compliance', 'export', 'saved_search'];
+const ENTITY_KEYS = [
+  'auth', 'permission', 'asset', 'asset_category', 'status', 'location_type', 'movement', 'inventory',
+  'maintenance_order', 'compliance', 'export', 'report_template', 'saved_search',
+];
 
 const PAGE_SIZE = 25;
 
@@ -82,7 +88,7 @@ export default function AuditPage() {
     },
     {
       key: 'table_name', header: t('audit.entity'), width: '110px',
-      render: (r) => r.table_name ? <Badge tone="neutral">{r.table_name}</Badge> : <span className="text-ink-faint">—</span>,
+      render: (r) => r.table_name ? <Badge tone="neutral">{label(r.table_name)}</Badge> : <span className="text-ink-faint">—</span>,
     },
     {
       key: 'record_id', header: t('audit.record'),
@@ -173,7 +179,7 @@ export default function AuditPage() {
             </div>
             <div className="w-full sm:w-44">
               <SearchableSelect
-                options={ENTITY_KEYS.map((k) => ({ value: k, label: k }))}
+                options={ENTITY_KEYS.map((k) => ({ value: k, label: label(k) }))}
                 value={entity}
                 onChange={(v) => setFilter(() => setEntity(v))}
                 placeholder={t('audit.allEntities')}

@@ -7,6 +7,7 @@
  * so all pages render identical Loading/Empty/Error/Retry states with no code dup.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { humanError } from '@/lib/api/errors';
 
 export type AsyncStatus = 'loading' | 'empty' | 'success' | 'error';
 
@@ -50,7 +51,7 @@ export function useAsync<T>(
       })
       .catch((e) => {
         if (!active) return;
-        setError(e instanceof Error ? e.message : 'Something went wrong');
+        setError(humanError(e));
         setStatus('error');
       });
     return () => { active = false; };
