@@ -5,6 +5,7 @@
  */
 import { ReactNode, useRef } from 'react';
 import { cn } from '@/lib/cn';
+import { useI18n } from '@/lib/i18n';
 
 export interface TabItem<T extends string = string> {
   id: T;
@@ -19,13 +20,17 @@ interface TabsProps<T extends string> {
 }
 
 export function Tabs<T extends string>({ items, value, onChange, className }: TabsProps<T>) {
+  const { dir } = useI18n();
   const refs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const onKeyDown = (e: React.KeyboardEvent, index: number) => {
-    const dir = (e.key === 'ArrowRight' && 1) || (e.key === 'ArrowLeft' && -1) || 0;
-    if (!dir) return;
+    // Arrow keys follow the visual direction: in RTL, ArrowLeft moves to the next tab.
+    const forward = dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+    const backward = dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+    const step = (e.key === forward && 1) || (e.key === backward && -1) || 0;
+    if (!step) return;
     e.preventDefault();
-    const next = (index + dir + items.length) % items.length;
+    const next = (index + step + items.length) % items.length;
     onChange(items[next].id);
     refs.current[items[next].id]?.focus();
   };

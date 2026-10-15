@@ -175,9 +175,9 @@ export function EnterpriseTable<T>({
       ) : displayRows.length === 0 ? (
         empty ?? <EmptyState />
       ) : (
-        <div className="overflow-x-auto">
+        <div className="max-h-[75vh] overflow-auto">
           <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-xs uppercase tracking-wide text-ink-muted">
+            <thead className="sticky top-0 z-10 bg-surface-muted text-xs text-ink-muted shadow-[0_1px_0_rgb(var(--ax-line))]">
               <tr>
                 {selectable && onSelectionChange && selectedKeys && (
                   <th className="w-10 px-3 py-2.5">
@@ -196,7 +196,7 @@ export function EnterpriseTable<T>({
                     >
                       {c.sortable ? (
                         <button
-                          className="inline-flex items-center gap-1 uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                          className="inline-flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                           onClick={() => {
                             if (!onSortChange) return;
                             const dir = active && sortDir === 'asc' ? 'desc' : 'asc';
@@ -246,10 +246,10 @@ export function EnterpriseTable<T>({
           </span>
           <div className="flex gap-1">
             <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)} aria-label={t('table.previous')}>
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
             </Button>
             <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)} aria-label={t('table.next')}>
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 rtl:rotate-180" />
             </Button>
           </div>
         </div>

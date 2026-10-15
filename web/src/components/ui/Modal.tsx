@@ -45,6 +45,14 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', clo
     };
   }, [open]);
 
+  // Lock background scroll while the dialog is open.
+  useEffect(() => {
+    if (!open) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previous; };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
@@ -78,14 +86,14 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', clo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-2 sm:p-4">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 animate-fade-in bg-black/40 backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={cn('ax-card relative z-10 my-auto flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden p-5 shadow-pop sm:max-h-[calc(100dvh-2rem)]', sizes[size])}
+        className={cn('ax-card relative z-10 my-auto animate-modal-in flex max-h-[calc(100dvh-1rem)] w-full flex-col overflow-hidden p-5 shadow-pop sm:max-h-[calc(100dvh-2rem)]', sizes[size])}
       >
         <div className="mb-4 flex shrink-0 items-center justify-between">
           <h2 id={titleId} className="text-base font-semibold text-ink">{title}</h2>

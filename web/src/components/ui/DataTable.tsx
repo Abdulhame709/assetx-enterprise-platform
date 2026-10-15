@@ -42,7 +42,7 @@ export function DataTable<T>({
   return (
     <div className={cn('overflow-x-auto rounded-xl border border-line', className)}>
       <table className="w-full text-sm">
-        <thead className="bg-surface-muted text-left text-xs uppercase tracking-wide text-ink-muted">
+        <thead className="bg-surface-muted text-start text-xs font-semibold text-ink-muted">
           <tr>
             {columns.map((c) => (
               <th

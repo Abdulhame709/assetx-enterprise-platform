@@ -10,7 +10,7 @@ import { intlLocale } from '@/lib/format';
 import { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Play, Lock, Trash2, CheckCheck, Undo2, ClipboardCheck,
+  ArrowLeft, ArrowRight, Play, Lock, Trash2, CheckCheck, Undo2, ClipboardCheck,
   Boxes, ScanSearch, TrendingUp, ArrowLeftRight, PackageX, Printer, RefreshCw, Download, CloudUpload, FileWarning,
 } from 'lucide-react';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
@@ -239,7 +239,7 @@ export default function InventoryCyclePage() {
               <CommandToolbar
                 label={t('inventory.commandToolbar')}
                 actions={[
-                  { id: 'back', label: t('inventory.backToCycles'), icon: ArrowLeft, href: '/inventory', separated: true },
+                  { id: 'back', label: t('inventory.backToCycles'), icon: locale === 'ar' ? ArrowRight : ArrowLeft, href: '/inventory', separated: true },
                   { id: 'refresh', label: t('common.refresh'), icon: RefreshCw, onClick: state.reload, loading: state.status === 'loading' },
                   { id: 'print', label: t('common.print'), icon: Printer, onClick: () => window.print() },
                   { id: 'snapshot', label: t('inventory.downloadSnapshot'), icon: Download, onClick: () => void onDownloadSnapshot(), separated: true },
