@@ -9,6 +9,7 @@ import { CrumbTitleProvider } from '@/lib/crumb-title';
 import { Topbar } from './Topbar';
 import { Spinner } from '@/components/ui/Button';
 import { SkipLink } from '@/components/ui/SkipLink';
+import { Drawer } from '@/components/ui/Drawer';
 import { useI18n } from '@/lib/i18n';
 
 /** AppShell — authenticated application layout: sidebar + topbar + content. */
@@ -33,11 +34,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   if (status === 'unauthenticated') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-muted p-4" dir="rtl">
+      <div className="flex min-h-screen items-center justify-center bg-surface-muted p-4">
         <div className="w-full max-w-md rounded-2xl border border-line bg-surface-raised p-6 text-center shadow-card">
           <h1 className="text-lg font-semibold text-ink">{t('session.requiredTitle')}</h1>
           <p className="mt-2 text-sm text-ink-muted">{t('session.requiredDescription')}</p>
-          <Link href="/login" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/40">
+          <Link href="/login" className="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-brand-fg transition hover:bg-brand-hover focus:outline-none focus:ring-2 focus:ring-brand/40">
             {t('session.openLogin')}
           </Link>
         </div>
@@ -54,14 +55,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Sidebar />
       </div>
       {/* Mobile sidebar */}
-      {mobileNav && (
-        <div className="print-hide fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileNav(false)} />
-          <div className="absolute inset-y-0 start-0">
-            <Sidebar onNavigate={() => setMobileNav(false)} />
-          </div>
-        </div>
-      )}
+      <div className="lg:hidden">
+        <Drawer open={mobileNav} onClose={() => setMobileNav(false)} label={t('common.mainNavigation')}>
+          <Sidebar onNavigate={() => setMobileNav(false)} />
+        </Drawer>
+      </div>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobileNav(true)} />

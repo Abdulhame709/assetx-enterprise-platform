@@ -10,8 +10,8 @@
 :root {
   /* ========== Warm Sophisticated Palette ========== */
   /* Primary: Caramel/Amber — warm, elegant, professional */
-  --ax-primary: 200 133 63;           /* #C8853F caramel */
-  --ax-primary-hover: 168 107 44;     /* #A86B2C darker caramel */
+  --ax-primary: 164 104 38;            /* #A46826 bronze caramel (white text AA) */
+  --ax-primary-hover: 138 86 28;       /* #8A561C */
   --ax-primary-soft: 240 227 208;     /* #F0E3D0 tint */
   --ax-primary-fg: 255 255 255;
 
@@ -38,6 +38,13 @@
   --ax-warning: 217 119 6;            /* amber */
   --ax-danger: 185 28 28;             /* warm red */
   --ax-info: 41 98 255;               /* blue kept for info */
+
+  /* Sidebar: deep warm charcoal */
+  --ax-sidebar: 38 35 31;
+  --ax-sidebar-ink: 246 241 232;
+  --ax-sidebar-muted: 176 170 158;
+  --ax-sidebar-line: 62 58 52;
+  --ax-sidebar-hover: 56 52 46;
 
   /* Gradients */
   --ax-gradient-warm: linear-gradient(135deg, rgb(var(--ax-primary)) 0%, rgb(var(--ax-primary-hover)) 100%);
@@ -93,6 +100,12 @@
 
   --ax-accent-dark: 240 227 208;      /* inverted for dark */
 
+  --ax-sidebar: 20 22 19;
+  --ax-sidebar-ink: 246 241 232;
+  --ax-sidebar-muted: 160 158 148;
+  --ax-sidebar-line: 46 48 44;
+  --ax-sidebar-hover: 40 43 38;
+
   --ax-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(200, 133, 63, 0.1);
   --ax-shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(200, 133, 63, 0.15);
   --ax-shadow-pop: 0 16px 48px rgba(0, 0, 0, 0.6), 0 8px 24px rgba(200, 133, 63, 0.2);
@@ -126,21 +139,73 @@
     line-height: 1.2;
   }
 
+  /* Arabic: never letter-space (it breaks joining) and give tall glyphs room */
   [dir='rtl'] h1,
   [dir='rtl'] h2,
-  [dir='rtl'] h3 {
+  [dir='rtl'] h3,
+  [dir='rtl'] h4,
+  [dir='rtl'] h5,
+  [dir='rtl'] h6 {
     letter-spacing: 0;
     font-weight: 700;
+    line-height: 1.4;
   }
 
-  /* Links */
-  a {
-    @apply text-brand transition-colors duration-200;
+  /* Native checkbox / radio, restyled once for the whole app */
+  input[type='checkbox'],
+  input[type='radio'] {
+    @apply relative h-4 w-4 shrink-0 cursor-pointer appearance-none border border-line bg-surface align-middle transition-colors duration-150;
+    border-color: rgb(var(--ax-ink-faint));
+    margin: 0;
   }
 
-  a:hover {
-    @apply text-brand/80;
+  input[type='checkbox'] {
+    border-radius: 5px;
   }
+
+  input[type='radio'] {
+    border-radius: 999px;
+  }
+
+  input[type='checkbox']:checked,
+  input[type='checkbox']:indeterminate {
+    @apply border-brand bg-brand;
+  }
+
+  input[type='checkbox']:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 8.5 3 3 6-7'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+  }
+
+  input[type='checkbox']:indeterminate {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+  }
+
+  input[type='radio']:checked {
+    @apply border-brand bg-brand;
+    background-image: radial-gradient(circle, white 0 28%, transparent 32%);
+  }
+
+  input[type='checkbox']:hover:not(:disabled),
+  input[type='radio']:hover:not(:disabled) {
+    border-color: rgb(var(--ax-primary));
+  }
+
+  input[type='checkbox']:focus-visible,
+  input[type='radio']:focus-visible {
+    @apply outline-none ring-2 ring-brand/40 ring-offset-1 ring-offset-surface;
+  }
+
+  input[type='checkbox']:disabled,
+  input[type='radio']:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  ::selection {
+    background: rgb(var(--ax-primary) / 0.25);
+  }
+
 }
 
 @layer components {
@@ -173,7 +238,7 @@
   }
 
   .ax-btn-primary {
-    @apply ax-btn bg-brand text-white hover:bg-brand/90;
+    @apply ax-btn bg-brand text-brand-fg hover:bg-brand-hover;
   }
 
   .ax-btn-secondary {
@@ -375,12 +440,50 @@
   animation: fade-in 0.2s ease-out;
 }
 
+/* Drawer: slides from the inline-start edge (left in LTR, right in RTL) */
+@keyframes drawer-from-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes drawer-from-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.animate-drawer-start,
+.animate-drawer-end {
+  animation-duration: 0.26s;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-drawer-start { animation-name: drawer-from-left; }
+.animate-drawer-end { animation-name: drawer-from-right; }
+[dir='rtl'] .animate-drawer-start { animation-name: drawer-from-right; }
+[dir='rtl'] .animate-drawer-end { animation-name: drawer-from-left; }
+
+/* Slim scrollbar inside the dark sidebar */
+.ax-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--ax-sidebar-line)) transparent;
+}
+
+/* Arabic letters must stay joined: never apply letter-spacing in RTL */
+[dir='rtl'] [class*='tracking-'] {
+  letter-spacing: 0;
+}
+
 /* =====================================================================
    Runtime themes — presentation-only tokens. ThemeProvider applies
    data-theme on <html>. "enterprise" is the default caramel palette from
    :root; the others override palette + the derived tokens.
    ===================================================================== */
 [data-theme='midnight'] {
+  --ax-sidebar: 9 14 28;
+  --ax-sidebar-ink: 241 245 249;
+  --ax-sidebar-muted: 148 163 184;
+  --ax-sidebar-line: 30 41 59;
+  --ax-sidebar-hover: 24 33 52;
   --ax-primary: 96 165 250;
   --ax-primary-hover: 147 197 253;
   --ax-primary-soft: 30 58 138;
@@ -405,6 +508,11 @@
 }
 
 [data-theme='emerald'] {
+  --ax-sidebar: 6 62 48;
+  --ax-sidebar-ink: 236 253 245;
+  --ax-sidebar-muted: 167 210 192;
+  --ax-sidebar-line: 12 88 68;
+  --ax-sidebar-hover: 10 78 60;
   --ax-primary: 5 150 105;
   --ax-primary-hover: 4 120 87;
   --ax-primary-soft: 209 250 229;
@@ -425,6 +533,11 @@
 }
 
 [data-theme='graphite'] {
+  --ax-sidebar: 12 12 14;
+  --ax-sidebar-ink: 244 244 245;
+  --ax-sidebar-muted: 161 161 170;
+  --ax-sidebar-line: 39 39 42;
+  --ax-sidebar-hover: 30 30 34;
   --ax-primary: 167 139 250;
   --ax-primary-hover: 196 181 253;
   --ax-primary-soft: 55 48 163;

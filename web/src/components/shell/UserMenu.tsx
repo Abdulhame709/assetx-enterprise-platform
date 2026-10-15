@@ -5,6 +5,7 @@ import { LogOut, User as UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/auth/session-context';
 import { cn } from '@/lib/cn';
+import { Avatar } from '@/components/ui/Avatar';
 import { useI18n } from '@/lib/i18n';
 
 /** UserMenu — profile menu (roles + logout). */
@@ -19,8 +20,15 @@ export function UserMenu() {
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -28,29 +36,29 @@ export function UserMenu() {
     router.push('/login');
   };
 
-  const initials = (session?.user.displayName ?? 'U').split(' ').map((s) => s[0]).slice(0, 2).join('').toUpperCase();
-
   return (
     <div className="relative" ref={ref}>
       <button
-        className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-surface-muted"
+        className="flex items-center gap-2 rounded-lg p-1 hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+        title={session?.user.displayName}
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
-          {initials}
-        </span>
+        <Avatar name={session?.user.displayName} size="md" />
       </button>
       {open && (
-        <div role="menu" className="absolute end-0 z-30 mt-2 w-60 overflow-hidden rounded-xl border border-line bg-surface-overlay shadow-pop">
-          <div className="border-b border-line px-4 py-3">
-            <p className="text-sm font-medium text-ink">{session?.user.displayName}</p>
-            <p className="text-xs text-ink-muted">@{session?.user.username}</p>
+        <div role="menu" className="animate-modal-in absolute end-0 z-30 mt-2 w-60 overflow-hidden rounded-xl border border-line bg-surface-overlay shadow-pop">
+          <div className="flex items-start gap-3 border-b border-line px-4 py-3">
+            <Avatar name={session?.user.displayName} size="lg" />
+            <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-ink">{session?.user.displayName}</p>
+            <p className="truncate text-xs text-ink-muted" dir="ltr"><bdi>@{session?.user.username}</bdi></p>
             <div className="mt-1.5 flex flex-wrap gap-1">
               {session?.user.roles.map((r) => (
                 <span key={r} className="rounded bg-surface-muted px-1.5 py-0.5 text-[11px] text-ink-muted">{label(r)}</span>
               ))}
+            </div>
             </div>
           </div>
           <button

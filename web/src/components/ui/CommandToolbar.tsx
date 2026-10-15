@@ -40,7 +40,7 @@ interface CommandToolbarProps {
 const variants: Record<CommandToolbarVariant, string> = {
   default: 'text-ink-muted hover:bg-surface-muted hover:text-ink',
   // Primary commands keep the same dimensions as every other icon; colour is the only emphasis.
-  primary: 'bg-brand text-white shadow-sm hover:bg-brand-hover',
+  primary: 'bg-brand text-brand-fg shadow-sm hover:bg-brand-hover',
   danger: 'text-danger hover:bg-danger/10',
   ghost: 'text-ink-faint hover:bg-surface-muted hover:text-ink',
 };
@@ -248,7 +248,7 @@ export function CommandToolbar({
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {filteredSections.map((section) => (
             <section key={section.title} aria-label={t(section.title)}>
-              <h3 className="mb-2 text-xs font-bold uppercase tracking-[0.12em] text-ink-faint">{t(section.title)}</h3>
+              <h3 className="mb-2 text-xs font-semibold text-ink-faint">{t(section.title)}</h3>
               <div className="grid gap-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
@@ -260,7 +260,7 @@ export function CommandToolbar({
                       onClick={() => setModuleNavigatorOpen(false)}
                       className={cn(
                         'flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40',
-                        active ? 'bg-brand text-white' : 'text-ink-muted hover:bg-surface-muted hover:text-ink',
+                        active ? 'bg-brand text-brand-fg' : 'text-ink-muted hover:bg-surface-muted hover:text-ink',
                       )}
                     >
                       <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

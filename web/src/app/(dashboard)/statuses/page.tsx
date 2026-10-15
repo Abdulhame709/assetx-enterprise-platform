@@ -147,7 +147,7 @@ export default function StatusesPage() {
 function StatusModal({ mode, status, onClose, onSaved }: { mode: 'create' | 'edit'; status: ReferenceStatus | null; onClose: () => void; onSaved: (mode: 'create' | 'edit') => void }) {
   const { t } = useI18n();
   const [name, setName] = useState(status?.name ?? '');
-  const [color, setColor] = useState(status?.color ?? '#2563eb');
+  const [color, setColor] = useState(status?.color ?? '#C8853F');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const submit = async (event: FormEvent) => {
@@ -170,7 +170,7 @@ function StatusModal({ mode, status, onClose, onSaved }: { mode: 'create' | 'edi
       <form onSubmit={submit} className="space-y-4">
         <Field label={t('statuses.name')}><Input value={name} onChange={(event) => setName(event.target.value)} minLength={2} autoFocus required /></Field>
         <Field label={t('statuses.color')} hint={t('statuses.colorHint')}>
-          <div className="flex items-center gap-2"><input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : '#2563eb'} onChange={(event) => setColor(event.target.value)} className="h-10 w-12 cursor-pointer rounded border border-line bg-surface p-1" /><Input value={color} onChange={(event) => setColor(event.target.value)} dir="ltr" placeholder="#2563eb" /></div>
+          <div className="flex items-center gap-2"><input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : '#C8853F'} onChange={(event) => setColor(event.target.value)} className="h-10 w-12 cursor-pointer rounded border border-line bg-surface p-1" /><Input value={color} onChange={(event) => setColor(event.target.value)} dir="ltr" placeholder="#C8853F" /></div>
         </Field>
         {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" size="sm" loading={saving}>{mode === 'create' ? t('statuses.create') : t('statuses.save')}</Button></div>

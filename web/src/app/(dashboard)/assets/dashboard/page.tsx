@@ -25,7 +25,7 @@ export default function AssetDashboardPage() {
         subtitle={t('assetDashboard.subtitle')}
         actions={
           <PermissionGate permission={PERMISSIONS.ASSET_VIEW}>
-            <Link href="/assets" className="inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-medium text-white hover:bg-brand/90">
+            <Link href="/assets" className="inline-flex h-9 items-center rounded-lg bg-brand px-4 text-sm font-medium text-brand-fg hover:bg-brand/90">
               {t('assetDashboard.viewAll')}
             </Link>
           </PermissionGate>

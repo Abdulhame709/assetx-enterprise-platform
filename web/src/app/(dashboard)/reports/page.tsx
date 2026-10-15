@@ -878,11 +878,11 @@ export default function ReportsPage() {
                 </div>
               )}
 
-              <Card className="border-brand/20 bg-gradient-to-br from-violet-500/10 via-surface to-surface print-hide" aria-live="polite">
+              <Card className="border-brand/20 bg-gradient-to-br from-info/10 via-surface to-surface print-hide" aria-live="polite">
                 <CardBody className="space-y-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <span className="rounded-xl bg-violet-500/10 p-2.5 text-violet-600"><BrainCircuit className="h-5 w-5" aria-hidden="true" /></span>
+                      <span className="rounded-xl bg-info/10 p-2.5 text-info"><BrainCircuit className="h-5 w-5" aria-hidden="true" /></span>
                       <div>
                         <p className="font-semibold text-ink">{t('module.reportsAiTitle')}</p>
                         <p className="mt-1 text-sm text-ink-muted">{t('module.reportsAiDescription')}</p>
@@ -899,9 +899,9 @@ export default function ReportsPage() {
                     <p className="rounded-lg border border-dashed border-line px-3 py-3 text-sm text-ink-muted">{t('module.reportsAiUnavailable')}</p>
                   ) : aiSummary ? (
                     <div className="space-y-4">
-                      <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-3">
+                      <div className="rounded-xl border border-info/20 bg-info/5 p-3">
                         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-xs font-semibold text-violet-700">{aiSummary.source === 'llm' ? t('module.reportsAiLlm') : t('module.reportsAiDeterministic')}</span>
+                          <span className="text-xs font-semibold text-info">{aiSummary.source === 'llm' ? t('module.reportsAiLlm') : t('module.reportsAiDeterministic')}</span>
                           <span className="text-xs text-ink-muted">{t('module.reportsAiConfidence')}: {Math.round(aiSummary.confidence * 100).toLocaleString(intlLocale(locale))}%</span>
                         </div>
                         <p className="text-sm leading-7 text-ink">{aiSummary.summary}</p>
