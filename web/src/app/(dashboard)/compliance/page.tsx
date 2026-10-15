@@ -14,7 +14,7 @@ import { EmptyState } from '@/components/ui/states';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
-import { toTitle } from '@/lib/format';
+import { toTitle, intlLocale } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useCompliance } from '@/features/compliance/use-compliance';
 import { ComplianceCheck, IntegrityCheck } from '@/features/compliance/api';
@@ -66,7 +66,7 @@ function HealthCard({ c, text, locale }: { c: ComplianceCheck; text: (key: strin
           : <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />}
         <div>
           <p className="text-sm font-medium text-ink">{text(`compliance.check.${c.check}`, toTitle(c.check))}</p>
-          <p className="text-xs text-ink-faint">{c.count.toLocaleString(locale)} {text('compliance.items')}</p>
+          <p className="text-xs text-ink-faint">{c.count.toLocaleString(intlLocale(locale))} {text('compliance.items')}</p>
         </div>
       </div>
       <StatusBadge status={c.status} text={text} />
@@ -79,7 +79,7 @@ function IntegrityRow({ c, text, locale }: { c: IntegrityCheck; text: (key: stri
     <div className="flex items-center justify-between gap-3 border-b border-line/60 py-2 last:border-0">
       <span className="text-sm text-ink">{text(`compliance.check.${c.check}`, toTitle(c.check))}</span>
       <div className="flex items-center gap-2 text-xs text-ink-faint">
-        <span>{text('compliance.count')} {c.count.toLocaleString(locale)}</span>
+        <span>{text('compliance.count')} {c.count.toLocaleString(intlLocale(locale))}</span>
         <span>·</span>
         <span>{text('compliance.weight')} {c.weight}</span>
         <StatusBadge status={c.status} text={text} />

@@ -5,6 +5,7 @@
  * Real workflow: list (GET /locations) → create root/child (POST) → edit (PATCH)
  * → delete (DELETE, guarded by backend when children exist). All via real API.
  */
+import { intlLocale } from '@/lib/format';
 import { useRef, useState } from 'react';
 import { FileSpreadsheet, Plus, Printer, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -63,7 +64,7 @@ export default function LocationsPage() {
     <div>
       <PageHeader
         title={t('locationPage.title')}
-        subtitle={t('locationPage.summary').replace('{total}', total.toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
+        subtitle={t('locationPage.summary').replace('{total}', total.toLocaleString(intlLocale(locale))).replace('{roots}', roots.toLocaleString(intlLocale(locale)))}
       />
 
       <CommandToolbar

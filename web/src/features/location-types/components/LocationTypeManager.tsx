@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { FormEvent, useState } from 'react';
 import { Check, Edit3, Power, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -153,7 +154,7 @@ export function LocationTypeManager() {
                     <Badge tone={item.is_active ? 'success' : 'warning'}>{item.is_active ? t('common.active') : t('common.inactive')}</Badge>
                     {item.is_system && <Badge tone="neutral">{t('settings.systemType')}</Badge>}
                   </div>
-                  <p className="mt-1 text-xs text-ink-muted"><code>{item.code}</code> · {t('settings.sortOrder')}: {item.sort_order.toLocaleString(locale)}</p>
+                  <p className="mt-1 text-xs text-ink-muted"><code>{item.code}</code> · {t('settings.sortOrder')}: {item.sort_order.toLocaleString(intlLocale(locale))}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {canUpdate && <Button variant="ghost" size="sm" onClick={() => openEdit(item)} title={t('common.edit')} aria-label={t('common.edit')}><Edit3 className="h-4 w-4" aria-hidden="true" /></Button>}

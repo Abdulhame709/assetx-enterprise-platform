@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Edit3, RefreshCw, ShieldCheck, UserRound, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -68,7 +69,7 @@ export default function AdministrationPage() {
   }, [query, users]);
 
   const activeUsers = users.filter((user) => user.is_active).length;
-  const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA' : 'en-US', { dateStyle: 'medium' }).format(new Date(value)) : '—';
+  const formatDate = (value: string | null) => value ? new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: 'medium' }).format(new Date(value)) : '—';
 
   const beginRoleEdit = (user: AdminUser) => {
     setEditingUserId(user.id);
@@ -131,9 +132,9 @@ export default function AdministrationPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SummaryCard icon={Users} label={t('module.adminUsersCount')} value={users.length.toLocaleString(locale)} />
-            <SummaryCard icon={UserRound} label={t('module.adminActiveUsers')} value={activeUsers.toLocaleString(locale)} />
-            <SummaryCard icon={ShieldCheck} label={t('module.adminRolesCount')} value={roles.length.toLocaleString(locale)} />
+            <SummaryCard icon={Users} label={t('module.adminUsersCount')} value={users.length.toLocaleString(intlLocale(locale))} />
+            <SummaryCard icon={UserRound} label={t('module.adminActiveUsers')} value={activeUsers.toLocaleString(intlLocale(locale))} />
+            <SummaryCard icon={ShieldCheck} label={t('module.adminRolesCount')} value={roles.length.toLocaleString(intlLocale(locale))} />
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]">

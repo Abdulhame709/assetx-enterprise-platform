@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AlertTriangle, Download, FileSpreadsheet, RefreshCw, Upload } from 'lucide-react';
@@ -54,7 +55,7 @@ export default function ImportDataPage() {
     try {
       const result = await executeDataImport(resource, file);
       setPreview(result);
-      toast.success(t('importData.completeTitle'), `${(result.imported ?? 0).toLocaleString(locale)} ${t('importData.recordsImported')}`);
+      toast.success(t('importData.completeTitle'), `${(result.imported ?? 0).toLocaleString(intlLocale(locale))} ${t('importData.recordsImported')}`);
     } catch (error) { toast.error(t('importData.executeFailed'), humanError(error, t('common.genericError'), locale)); }
     finally { setExecuting(false); }
   };

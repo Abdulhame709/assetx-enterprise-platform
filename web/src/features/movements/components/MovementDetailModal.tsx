@@ -13,7 +13,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge, BadgeTone } from '@/components/ui/Badge';
 import { useI18n, formatDateTime } from '@/lib/i18n';
-import { shortRef } from '@/lib/format';
+import { shortRef, intlLocale } from '@/lib/format';
 import { MovementRow, MovementStatus } from '../api';
 
 export const STATUS_TONE: Record<MovementStatus, BadgeTone> = {
@@ -94,7 +94,7 @@ export function MovementDetailModal({ open, movement, onClose, canApprove, canRe
         <Row label={t('movements.location')} value={(m.from_location_id || m.to_location_id) ? transfer(m._fromLocation, m._toLocation) : null} />
         <Row label={t('movements.custodian')} value={(m.from_employee_id || m.to_employee_id) ? transfer(m._fromEmployee, m._toEmployee) : null} />
         <Row label={t('movements.statusChange')} value={(m.from_status_id || m.to_status_id) ? transfer(m._fromStatus, m._toStatus) : null} />
-        <Row label={t('movements.quantity')} value={m.quantity != null ? m.quantity.toLocaleString(locale) : null} />
+        <Row label={t('movements.quantity')} value={m.quantity != null ? m.quantity.toLocaleString(intlLocale(locale)) : null} />
         <Row label={t('movements.reason')} value={m.reason} />
         <Row label={t('movements.notes')} value={m.notes} />
         <Row label={t('movements.requestedBy')} value={m.performed_by ? shortRef(t('movements.requestedBy'), m.performed_by) : null} />

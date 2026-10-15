@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, ClipboardList, PlayCircle, Printer, RefreshCw, Search, Undo2, Wrench } from 'lucide-react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
@@ -17,7 +18,7 @@ export default function MaintenancePage() {
   const [query, setQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [workflow, setWorkflow] = useState<'all' | 'open' | 'in_progress' | 'completed' | 'cancelled'>('all');
-  const formatMessage = (key: string, values: Record<string, number>) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(locale)), t(key));
+  const formatMessage = (key: string, values: Record<string, number>) => Object.entries(values).reduce((text, [name, value]) => text.replace(`{${name}}`, value.toLocaleString(intlLocale(locale))), t(key));
 
   return <div className="space-y-4">
     <PageHeader title={t('nav.maintenance')} subtitle={t('module.maintenanceSubtitle')} />
@@ -47,10 +48,10 @@ export default function MaintenancePage() {
       const filtered = Boolean(query.trim() || workflow !== 'all');
       return <div className="space-y-4">
         <section aria-label={t('maintenance.metrics')} className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCard icon={ClipboardList} label={t('maintenance.totalOrders')} value={orders.length.toLocaleString(locale)} tone="brand" />
-          <MetricCard icon={Wrench} label={t('maintenance.openCount')} value={openOrders.toLocaleString(locale)} tone="warning" />
-          <MetricCard icon={PlayCircle} label={t('maintenance.inProgressCount')} value={inProgressOrders.toLocaleString(locale)} tone="brand" />
-          <MetricCard icon={AlertTriangle} label={t('maintenance.highPriorityCount')} value={highPriorityOrders.toLocaleString(locale)} tone="danger" />
+          <MetricCard icon={ClipboardList} label={t('maintenance.totalOrders')} value={orders.length.toLocaleString(intlLocale(locale))} tone="brand" />
+          <MetricCard icon={Wrench} label={t('maintenance.openCount')} value={openOrders.toLocaleString(intlLocale(locale))} tone="warning" />
+          <MetricCard icon={PlayCircle} label={t('maintenance.inProgressCount')} value={inProgressOrders.toLocaleString(intlLocale(locale))} tone="brand" />
+          <MetricCard icon={AlertTriangle} label={t('maintenance.highPriorityCount')} value={highPriorityOrders.toLocaleString(intlLocale(locale))} tone="danger" />
         </section>
 
         <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-label={t('maintenance.queueTitle')}>

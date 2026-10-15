@@ -30,16 +30,28 @@ export function shortRef(kind: string, value?: string | null, fallback = '—'):
   return value;
 }
 
-export function formatCurrency(value?: string | number | null, locale = 'en'): string {
+/**
+ * One display policy for the whole UI: Latin digits (0-9) and the Gregorian
+ * calendar in every language. Never pass the bare Arabic locale (or a Saudi
+ * regional one) to Intl — those can switch to Arabic-Indic digits or Hijri.
+ */
+export function intlLocale(locale: string = 'en'): string {
+  return locale === 'ar' ? 'ar-u-nu-latn-ca-gregory' : 'en-US-u-nu-latn-ca-gregory';
+}
+
+/** ISO 4217 code used when a caller does not pass one (set per deployment). */
+export const DEFAULT_CURRENCY = (process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'USD').toUpperCase();
+
+export function formatCurrency(value?: string | number | null, locale = 'en', currency: string = DEFAULT_CURRENCY): string {
   if (value === null || value === undefined || value === '') return '—';
   const n = Number(value);
   if (Number.isNaN(n)) return String(value);
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+  return new Intl.NumberFormat(intlLocale(locale), { style: 'currency', currency, maximumFractionDigits: 2 }).format(n);
 }
 
 export function formatNumber(value?: number | null, locale = 'en'): string {
   if (value === null || value === undefined) return '—';
-  return new Intl.NumberFormat(locale).format(value);
+  return new Intl.NumberFormat(intlLocale(locale)).format(value);
 }
 
 /** Locale-aware date-only rendering (e.g. "Mar 1, 2025") — for pure date
@@ -47,7 +59,15 @@ export function formatNumber(value?: number | null, locale = 'en'): string {
 export function formatDate(iso?: string | null, locale = 'en'): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleDateString(locale === 'ar' ? 'ar' : 'en', { dateStyle: 'medium' });
+    return new Date(iso).toLocaleDateString(intlLocale(locale), { dateStyle: 'medium' });
+  } catch { return iso; }
+}
+
+/** Date + time in the same policy (replaces ad-hoc toLocaleString calls). */
+export function formatDateTimeStamp(iso?: string | null, locale = 'en'): string {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString(intlLocale(locale), { dateStyle: 'medium', timeStyle: 'short' });
   } catch { return iso; }
 }
 

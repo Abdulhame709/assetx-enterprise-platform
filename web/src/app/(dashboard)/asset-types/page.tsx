@@ -5,6 +5,7 @@
  * Create root/child + rename/reparent — the backend exposes soft deactivation
  * rather than hard delete, so no hard-delete action is offered (contract parity).
  */
+import { intlLocale } from '@/lib/format';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, FileSpreadsheet, Pencil, Plus, Power, Printer, RefreshCw, Search, Tag, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -132,7 +133,7 @@ export default function AssetTypesPage() {
     <div>
       <PageHeader
         title={t('assetTypes.title')}
-        subtitle={t('assetTypes.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale)).replace('{roots}', roots.toLocaleString(locale))}
+        subtitle={t('assetTypes.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(intlLocale(locale))).replace('{roots}', roots.toLocaleString(intlLocale(locale)))}
       />
 
       <CommandToolbar

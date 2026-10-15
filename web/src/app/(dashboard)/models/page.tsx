@@ -1,5 +1,6 @@
 'use client';
 
+import { intlLocale } from '@/lib/format';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Box, Pencil, Plus, RefreshCw, Search, Undo2 } from 'lucide-react';
 import { useAsync } from '@/lib/use-async';
@@ -56,9 +57,9 @@ export default function ModelsPage() {
       />
 
       <section aria-label={t('models.metrics')} className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <MetricCard icon={Box} label={t('models.total')} value={models.length.toLocaleString(locale)} />
-        <MetricCard icon={Box} label={t('models.categorized')} value={categorizedCount.toLocaleString(locale)} />
-        <MetricCard icon={Search} label={t('models.visible')} value={filteredModels.length.toLocaleString(locale)} />
+        <MetricCard icon={Box} label={t('models.total')} value={models.length.toLocaleString(intlLocale(locale))} />
+        <MetricCard icon={Box} label={t('models.categorized')} value={categorizedCount.toLocaleString(intlLocale(locale))} />
+        <MetricCard icon={Search} label={t('models.visible')} value={filteredModels.length.toLocaleString(intlLocale(locale))} />
       </section>
 
       <Card className="overflow-hidden p-0 shadow-card">

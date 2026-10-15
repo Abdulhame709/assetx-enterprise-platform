@@ -31,7 +31,7 @@ import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS, type PermissionKey } from '@/lib/auth/permissions';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { useToast } from '@/components/ui/Toast';
-import { shortRef } from '@/lib/format';
+import { shortRef, formatDateTimeStamp, intlLocale } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 
 const SEARCH_RESOURCES: Array<{ value: SearchResource; permission: PermissionKey; labelKey: string }> = [
@@ -86,28 +86,28 @@ function renderAssetResult(item: SearchItem, t: (key: string, fallback?: string)
   );
 }
 
-function renderMovementResult(item: SearchItem, t: (key: string, fallback?: string) => string) {
+function renderMovementResult(item: SearchItem, t: (key: string, fallback?: string) => string, locale: string) {
   if (!('movement_type' in item)) return null;
   const movement = item as MovementSearchItem;
   return (
     <Link key={movement.id} href="/movements" className="block rounded-lg px-2 py-3 transition-colors hover:bg-surface-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <p className="font-medium text-brand">{t(`movementType.${movement.movement_type}`, movement.movement_type)}</p>
-        <p className="text-xs text-ink-muted">{t(`movementStatus.${movement.status}`, movement.status)} · {movement.created_at ? new Date(movement.created_at).toLocaleString() : '—'}</p>
+        <p className="text-xs text-ink-muted">{t(`movementStatus.${movement.status}`, movement.status)} · {formatDateTimeStamp(movement.created_at, locale)}</p>
       </div>
       <p className="text-xs text-ink-muted">{t('module.searchReference')}: {movement.reference_number ?? shortRef(movement.id)} · {t('module.searchReason')}: {movement.reason ?? '—'}</p>
     </Link>
   );
 }
 
-function renderAuditResult(item: SearchItem, t: (key: string, fallback?: string) => string) {
+function renderAuditResult(item: SearchItem, t: (key: string, fallback?: string) => string, locale: string) {
   if (!('action_type' in item)) return null;
   const audit = item as AuditSearchItem;
   return (
     <Link key={audit.id} href="/audit" className="block rounded-lg px-2 py-3 transition-colors hover:bg-surface-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <p className="font-medium text-brand">{t(`auditAction.${audit.action_type}`, audit.action_type)}</p>
-        <p className="text-xs text-ink-muted">{audit.created_at ? new Date(audit.created_at).toLocaleString() : '—'}</p>
+        <p className="text-xs text-ink-muted">{formatDateTimeStamp(audit.created_at, locale)}</p>
       </div>
       <p className="text-xs text-ink-muted">{t('module.searchEntity')}: {audit.entity || '—'} · {t('module.searchRecord')}: {audit.entity_id ? shortRef(audit.entity_id) : '—'}</p>
     </Link>
@@ -115,7 +115,7 @@ function renderAuditResult(item: SearchItem, t: (key: string, fallback?: string)
 }
 
 export default function SearchPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const toast = useToast();
   const { confirm } = useConfirm();
   const can = useCan();
@@ -477,9 +477,9 @@ export default function SearchPage() {
               <EmptyState title={t('module.searchNoResults')} description={t('module.searchNoResultsDesc')} />
             ) : (
               <>
-                <CardHeader title={t('module.searchResults')} subtitle={`${data.total.toLocaleString()} ${t('module.searchResultCount')} · ${t('module.searchPage')} ${data.page}`} />
+                <CardHeader title={t('module.searchResults')} subtitle={`${data.total.toLocaleString(intlLocale(locale))} ${t('module.searchResultCount')} · ${t('module.searchPage')} ${data.page}`} />
                 <div className="divide-y divide-line" aria-live="polite">
-                  {data.items.map((item) => resource === 'assets' ? renderAssetResult(item, t) : resource === 'movements' ? renderMovementResult(item, t) : renderAuditResult(item, t))}
+                  {data.items.map((item) => resource === 'assets' ? renderAssetResult(item, t) : resource === 'movements' ? renderMovementResult(item, t, locale) : renderAuditResult(item, t, locale))}
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
                   <span className="text-xs text-ink-muted">{t('module.searchPageSummary').replace('{page}', String(data.page)).replace('{limit}', String(data.limit))}</span>

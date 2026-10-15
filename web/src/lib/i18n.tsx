@@ -1038,7 +1038,7 @@ export function useI18n(): I18nContextValue {
 export function formatDateTime(iso?: string | null, locale: Locale = 'en'): string {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar' : 'en', {
+    return new Date(iso).toLocaleString(locale === 'ar' ? 'ar-u-nu-latn-ca-gregory' : 'en-US-u-nu-latn-ca-gregory', {
       dateStyle: 'medium', timeStyle: 'short',
     });
   } catch { return iso; }

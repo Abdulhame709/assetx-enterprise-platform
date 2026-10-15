@@ -14,7 +14,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { ActionMenu } from '@/components/ui/ActionMenu';
 import { useAsset360, Asset360Data } from '@/features/assets/use-assets';
 import { useI18n, relativeTime } from '@/lib/i18n';
-import { humanId, formatCurrency, formatDate } from '@/lib/format';
+import { humanId, formatCurrency, formatDate, formatDateTimeStamp } from '@/lib/format';
 import { useToast } from '@/components/ui/Toast';
 import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
@@ -215,7 +215,7 @@ export default function AssetDetailPage() {
                           id: e.id,
                           title: label(e.action_type),
                           meta: <span className="text-ink-faint">{relativeTime(e.created_at, locale)}</span>,
-                          time: new Date(e.created_at).toLocaleString(),
+                          time: formatDateTimeStamp(e.created_at, locale),
                         }))}
                       />
                     )}

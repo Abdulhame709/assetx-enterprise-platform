@@ -1,6 +1,7 @@
 'use client';
 
 /** Asset statuses — governed master data with StatusColor support (README §13.9). */
+import { intlLocale } from '@/lib/format';
 import { FormEvent, useMemo, useRef, useState } from 'react';
 import { CircleDot, FileSpreadsheet, Pencil, Plus, Printer, RefreshCw, Search, Trash2, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -59,7 +60,7 @@ export default function StatusesPage() {
     <div>
       <PageHeader
         title={t('statuses.title')}
-        subtitle={t('statuses.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(locale))}
+        subtitle={t('statuses.summary').replace('{count}', (state.data?.length ?? 0).toLocaleString(intlLocale(locale)))}
       />
       <CommandToolbar
         label={t('statuses.commandToolbar')}

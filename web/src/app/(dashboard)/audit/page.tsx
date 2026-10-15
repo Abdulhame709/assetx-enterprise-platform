@@ -21,7 +21,7 @@ import { PermissionGate } from '@/components/auth/PermissionGate';
 import { useToast } from '@/components/ui/Toast';
 import { PERMISSIONS } from '@/lib/auth/permissions';
 import { useI18n, formatDateTime } from '@/lib/i18n';
-import { shortRef } from '@/lib/format';
+import { shortRef, intlLocale } from '@/lib/format';
 import { humanError } from '@/lib/api/errors';
 import { AuditEventRow, AuditTab } from '@/features/audit/types';
 import { useAuditEvents } from '@/features/audit/use-audit';
@@ -143,7 +143,7 @@ export default function AuditPage() {
     >
       <PageHeader
         title={t('audit.title')}
-        subtitle={t('audit.eventsRecorded').replace('{count}', state.data?.total?.toLocaleString(locale) ?? '—')}
+        subtitle={t('audit.eventsRecorded').replace('{count}', state.data?.total?.toLocaleString(intlLocale(locale)) ?? '—')}
       />
       <CommandToolbar
         label={t('audit.commandToolbar')}

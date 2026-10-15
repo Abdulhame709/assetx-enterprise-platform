@@ -21,7 +21,7 @@ import { getLocationsTree } from '@/features/assets/components/reference-selects
 import { getEmployees, getStatuses, type ReferenceEmployee, type ReferenceStatus } from '@/features/reference/api';
 import { AssetFormModal } from '@/features/assets/components/AssetFormModal';
 import { AssetBulkEditModal } from '@/features/assets/components/AssetBulkEditModal';
-import { formatCurrency } from '@/lib/format';
+import { formatCurrency, intlLocale } from '@/lib/format';
 import { humanError } from '@/lib/api/errors';
 import { useI18n } from '@/lib/i18n';
 
@@ -63,7 +63,7 @@ export default function AssetsPage() {
 
   const formatMessage = (key: string, values: Record<string, string | number>) =>
     Object.entries(values).reduce((message, [name, value]) => message.replace(`{${name}}`, String(value)), t(key));
-  const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(locale);
+  const metricValue = (value: number | undefined) => value === undefined ? '—' : value.toLocaleString(intlLocale(locale));
   const activeAsset = useMemo(() => data?.items.find((asset) => asset.id === activeId) ?? data?.items[0] ?? null, [activeId, data?.items]);
   const hasActiveFilters = Boolean(q.trim() || category || location || statusId || employeeId);
   const activeIndex = data?.items.findIndex((asset) => asset.id === activeAsset?.id) ?? -1;
