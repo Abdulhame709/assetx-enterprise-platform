@@ -119,6 +119,7 @@ export default function AssetDetailPage() {
                     <InfoRow label={t('assetDetail.serialNumber')} value={humanId(detail.serial_number)} />
                     <InfoRow label={t('assetDetail.barcode')} value={humanId(detail.barcode)} />
                     <InfoRow label={t('assetDetail.reference')} value={humanId(detail.reference_number)} />
+                    {detail.legacy_code ? <InfoRow label={t('assetDetail.legacyCode')} value={humanId(detail.legacy_code)} /> : null}
                     <InfoRow label={t('assetDetail.description')} value={detail.description || '—'} />
                   </CardBody>
                 </Card>

@@ -24,16 +24,28 @@ test('same folded name adopts the oldest base code; differing records stay separ
   assert.equal(changes.has(a.id), false);
 });
 
-test('legacy code leaves the name and is kept in notes; identical twin is merged with summed quantity', () => {
+test('legacy code leaves the name and goes to its own column (not notes); identical twin is merged with summed quantity', () => {
   const twin = row({ name: 'كاميرا مراقبة', base_asset_code: '2026-0025', quantity: 2 });
   const coded = row({ name: 'كاميرا مراقبة (2025-0038-13@موقع)', base_asset_code: '2026-0032', quantity: 3 });
   const { changes, stats } = plan([twin, coded]);
   assert.equal(stats.merged, 1);
   assert.equal(changes.get(twin.id).after.quantity, 5);
-  assert.ok(changes.get(twin.id).after.notes.includes('2025-0038-13@موقع'));
+  assert.equal(changes.get(twin.id).after.legacy_code, '2025-0038-13@موقع');
+  assert.equal(changes.get(twin.id).after.notes, null);
   assert.equal(changes.get(coded.id).after.is_active, false);
   assert.equal(changes.get(coded.id).after.name, 'كاميرا مراقبة');
   assert.equal(changes.get(coded.id).after.base_asset_code, '2026-0025');
+});
+
+test('an existing legacy code is never overwritten; records with different legacy codes stay separate', () => {
+  const a = row({ name: 'مكتب', base_asset_code: '2026-0020', legacy_code: '2024-0001' });
+  const b = row({ name: 'مكتب', base_asset_code: '2026-0021', legacy_code: '2024-0002' });
+  assert.equal(plan([a, b]).stats.merged, 0);
+  const kept = row({ name: 'مكتب', base_asset_code: '2026-0030', legacy_code: '2024-0001' });
+  const twin = row({ name: 'مكتب (2025-0099-1)', base_asset_code: '2026-0031', legacy_code: '2024-0001' });
+  const { changes, stats } = plan([kept, twin]);
+  assert.equal(stats.merged, 1);
+  assert.equal(changes.get(kept.id).after.legacy_code, '2024-0001 — 2025-0099-1');
 });
 
 test('identical records with history, or differing in notes/status/holder, are never merged', () => {

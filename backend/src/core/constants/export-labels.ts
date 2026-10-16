@@ -55,6 +55,7 @@ export const COLUMN_LABELS: Record<string, Record<ReportLang, string>> = {
   reference_number: { ar: 'الرقم المرجعي', en: 'Reference number' },
   is_active: { ar: 'نشط', en: 'Active' },
   notes: { ar: 'ملاحظات', en: 'Notes' },
+  legacy_code: { ar: 'الكود القديم', en: 'Legacy Code' },
   // movements
   asset_name: { ar: 'الأصل', en: 'Asset' },
   asset_code: { ar: 'رمز الأصل', en: 'Asset Code' },

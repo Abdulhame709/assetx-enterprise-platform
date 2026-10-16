@@ -115,6 +115,7 @@ const REPORT_COLUMN_CATALOG: Record<ReportResource, ReportColumnOption[]> = {
     { key: 'useful_life', label: '', labelKey: 'module.reportsColumnUsefulLife', order: 14 },
     { key: 'is_active', label: '', labelKey: 'module.reportsColumnActive', order: 15 },
     { key: 'notes', label: '', labelKey: 'module.reportsColumnNotes', order: 16 },
+    { key: 'legacy_code', label: '', labelKey: 'module.reportsColumnLegacyCode', order: 17 },
   ],
   movements: [
     { key: 'asset_name', label: '', labelKey: 'module.reportsColumnAssetName', order: 1 },

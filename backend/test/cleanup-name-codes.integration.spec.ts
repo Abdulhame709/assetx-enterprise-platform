@@ -22,7 +22,7 @@ describe('cleanup-name-codes — integration', () => {
     ids[key] = r.rows[0].id;
   };
   const row = async (key: string) =>
-    (await h.db.query<any>(`SELECT name, base_asset_code, full_asset_code, quantity, notes, is_active FROM assets WHERE id=$1`, [ids[key]])).rows[0];
+    (await h.db.query<any>(`SELECT name, base_asset_code, full_asset_code, quantity, notes, legacy_code, is_active FROM assets WHERE id=$1`, [ids[key]])).rows[0];
 
   beforeAll(async () => {
     h = await createHarness();
@@ -50,13 +50,15 @@ describe('cleanup-name-codes — integration', () => {
 
     const a = await row('a'); const b = await row('b'); const c = await row('c'); const d = await row('d');
     expect(a.quantity).toBe(5); // 2 + 3 merged (4 is a different record)
-    expect(a.notes).toContain('الكود القديم: 2025-0038-13@موقع');
+    expect(a.legacy_code).toBe('2025-0038-13@موقع');
+    expect(a.notes).toBeNull(); // the old code never goes into the notes
     expect(b.is_active).toBe(false);
     expect(b.name).toBe('كراسي أبو يدين');
     expect([a, b, c].every((r) => r.base_asset_code === '2099-0001')).toBe(true);
     expect(c.is_active).toBe(true);
     expect(c.quantity).toBe(4);
     expect(c.notes).toBe('ملاحظة');
+    expect(c.legacy_code).toBeNull();
     expect(d.base_asset_code).toBe('2099-0004');
     const fulls = (await h.db.query<{ f: string }>(`SELECT full_asset_code AS f FROM assets WHERE base_asset_code='2099-0001'`)).rows.map((r) => r.f);
     expect(new Set(fulls).size).toBe(fulls.length);
@@ -71,6 +73,7 @@ describe('cleanup-name-codes — integration', () => {
     expect((await row('c')).base_asset_code).toBe('2099-0003');
     expect((await row('a')).quantity).toBe(2);
     expect((await row('a')).notes).toBeNull();
+    expect((await row('a')).legacy_code).toBeNull();
   });
 
   it('apply (owner): also creates a backup table and restores from it', async () => {

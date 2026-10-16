@@ -75,8 +75,8 @@ export class AssetRepository implements AssetPort {
          (tenant_id, name, base_asset_code, full_asset_code, description,
           category_id, sub_type_id, model_id, location_id, quantity, status_id,
           employee_id, purchase_price, purchase_date, depreciation_rate, useful_life,
-          serial_number, barcode, reference_number, inventory_year, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+          serial_number, barcode, reference_number, inventory_year, notes, legacy_code)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)
        RETURNING *`,
       [
         input.tenant_id, input.name, base_asset_code, full_asset_code,
@@ -87,6 +87,7 @@ export class AssetRepository implements AssetPort {
         input.purchase_date ?? null, input.depreciation_rate ?? null,
         input.useful_life ?? null, input.serial_number ?? null, input.barcode ?? null,
         input.reference_number ?? null, input.inventory_year ?? null, input.notes ?? null,
+        input.legacy_code ?? null,
       ],
     );
     return this.toSummary(rows[0]);

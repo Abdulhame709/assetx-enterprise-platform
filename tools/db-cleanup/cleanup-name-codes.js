@@ -8,9 +8,11 @@
  *   2. Every record of a name adopts ONE base code — the oldest (lowest) one.
  *      The internal full code is regenerated so it stays unique.
  *   3. A legacy "(code)" suffix is removed from the name and the old code is kept
- *      in the notes ("الكود القديم: ...").
+ *      in its own column  assets.legacy_code  ("الكود القديم") — NOT in the notes —
+ *      so it takes no space in reports unless that column is chosen.
+ *      Needs migration 016_asset_legacy_code.sql to be applied first.
  *   4. ONLY records that are identical in name, location, type, sub-type, model,
- *      status, holder, notes, price, serial and barcode AND have no movements /
+ *      status, holder, notes, legacy code, price, serial and barcode AND have no movements /
  *      inventory / maintenance history are merged: quantities are added to the
  *      oldest record and the other one is deactivated (soft delete).
  *      Records that differ in anything above stay separate. Identical records
@@ -24,8 +26,8 @@
  *     assets and a backup TABLE inside the database, then commits only if all
  *     verification checks pass (counts, quantities, one code per name, no codes
  *     left in names). Any failure rolls everything back.
- *   - --restore <backup_table | backup.json>  puts name / codes / notes / quantity / active
- *     flag back from a backup table created by --apply.
+ *   - --restore <backup_table | backup.json>  puts name / codes / notes / legacy code / quantity /
+ *     active flag back from a backup table created by --apply.
  *
  * Usage (from the project root):
  *   node tools/db-cleanup/cleanup-name-codes.js                    dry run
@@ -99,7 +101,7 @@ const keyOf = (v) => (v === null || v === undefined ? '' : String(v));
 function identitySignature(a) {
   return [
     fold(cleanName(a.name)), keyOf(a.location_id), keyOf(a.category_id), keyOf(a.sub_type_id), keyOf(a.model_id),
-    keyOf(a.status_id), keyOf(a.employee_id), fold(a.notes), Number(a.purchase_price || 0),
+    keyOf(a.status_id), keyOf(a.employee_id), fold(a.notes), fold(a.legacy_code), Number(a.purchase_price || 0),
     keyOf(a.serial_number).trim(), keyOf(a.barcode).trim(),
   ].join('|');
 }
@@ -124,17 +126,18 @@ function planCleanup(rows, usedFullCodes, refIds, opts = {}) {
     if (!changes.has(r.id)) {
       changes.set(r.id, {
         before: r,
-        after: { name: r.name, base_asset_code: r.base_asset_code, full_asset_code: r.full_asset_code, notes: r.notes ?? null, quantity: Number(r.quantity), is_active: r.is_active },
+        after: { name: r.name, base_asset_code: r.base_asset_code, full_asset_code: r.full_asset_code, notes: r.notes ?? null, legacy_code: r.legacy_code ?? null, quantity: Number(r.quantity), is_active: r.is_active },
         actions: [],
       });
     }
     return changes.get(r.id);
   };
-  const addNote = (r, text) => {
+  // The old code goes to its own column (several codes are joined, never overwritten).
+  const addLegacy = (r, code) => {
     const c = change(r);
-    if (String(c.after.notes || '').includes(text)) return;
-    c.after.notes = [c.after.notes, text].filter(Boolean).join(' — ');
-    if (!c.actions.includes('note')) c.actions.push('note');
+    if (String(c.after.legacy_code || '').split(' — ').includes(code)) return;
+    c.after.legacy_code = [c.after.legacy_code, code].filter(Boolean).join(' — ');
+    if (!c.actions.includes('legacy')) c.actions.push('legacy');
   };
 
   const groups = new Map();
@@ -177,11 +180,11 @@ function planCleanup(rows, usedFullCodes, refIds, opts = {}) {
         gone.add(dup.id);
         stats.merged += 1;
         const legacy = legacyCodeOf(dup.name);
-        if (legacy) addNote(keeper, `الكود القديم: ${legacy}`);
+        if (legacy) addLegacy(keeper, legacy);
       }
     }
 
-    // 2) names: strip legacy code (kept in notes), optionally unify spelling
+    // 2) names: strip legacy code (kept in legacy_code), optionally unify spelling
     let target = null;
     if (opts.unifySpelling) {
       const pool = (g.some((x) => x.is_active) ? g.filter((x) => x.is_active) : g).map((x) => spaced(cleanName(x.name)));
@@ -198,7 +201,7 @@ function planCleanup(rows, usedFullCodes, refIds, opts = {}) {
       if (legacy) {
         stats.namesCleaned += 1;
         c.actions.push('name-cleaned');
-        if (!gone.has(r.id)) addNote(r, `الكود القديم: ${legacy}`);
+        if (!gone.has(r.id)) addLegacy(r, legacy);
       } else {
         stats.spellingUnified += 1;
         c.actions.push('spelling');
@@ -222,7 +225,7 @@ function planCleanup(rows, usedFullCodes, refIds, opts = {}) {
 // ───────────────────────────── database side ─────────────────────────────
 
 const ASSETS_SQL = `
-  SELECT a.id, a.tenant_id, a.name, a.base_asset_code, a.full_asset_code, a.notes, a.quantity, a.is_active, a.created_at,
+  SELECT a.id, a.tenant_id, a.name, a.base_asset_code, a.full_asset_code, a.notes, a.legacy_code, a.quantity, a.is_active, a.created_at,
          a.location_id, a.category_id, a.sub_type_id, a.model_id, a.status_id, a.employee_id,
          a.purchase_price, a.serial_number, a.barcode, l.full_path AS location_path
   FROM assets a
@@ -257,7 +260,7 @@ const csvCell = (v) => {
 
 const ACTION_AR = {
   recoded: 'توحيد الكود', 'name-cleaned': 'حذف الكود من الاسم', spelling: 'توحيد الإملاء',
-  note: 'إضافة الكود القديم للملاحظات', 'merge-target': 'استلم كمية مدموجة', 'merged-away': 'دُمج وتم تعطيله',
+  legacy: 'نقل الكود القديم إلى عمود «الكود القديم»', 'merge-target': 'استلم كمية مدموجة', 'merged-away': 'دُمج وتم تعطيله',
 };
 
 function verify(before, after, plan, label) {
@@ -279,7 +282,21 @@ function verify(before, after, plan, label) {
   if (multi) problems.push(`بقي ${multi} اسماً بأكثر من كود`);
   const coded = after.filter((r) => CODED_SUFFIX.test(String(r.name))).length;
   if (coded) problems.push(`بقي ${coded} سجلاً فيه كود داخل الاسم`);
+  // no old code may be lost: every code removed from a name must now sit in a legacy_code column
+  const kept = new Set(after.flatMap((r) => String(r.legacy_code || '').split(' — ')).filter(Boolean));
+  const lost = before.map((r) => legacyCodeOf(r.name)).filter((code) => code && !kept.has(code)).length;
+  if (lost) problems.push(`فُقد ${lost} كوداً قديماً`);
   if (problems.length) throw new Error(`فشل التحقق (${label}): ${problems.join(' | ')}`);
+}
+
+/** The legacy code has its own column (migration 016); stop with a clear message if it is missing. */
+async function requireLegacyColumn(client) {
+  const { rows } = await client.query(
+    "SELECT 1 FROM information_schema.columns WHERE table_name = 'assets' AND column_name = 'legacy_code' LIMIT 1",
+  );
+  if (!rows.length) {
+    throw new Error('عمود «الكود القديم» (legacy_code) غير موجود في قاعدة البيانات. طبّق الترحيل db/migrations/016_asset_legacy_code.sql أولاً (scripts/db-add-legacy-code.ps1) ثم أعد التشغيل.');
+  }
 }
 
 /**
@@ -289,6 +306,7 @@ function verify(before, after, plan, label) {
  */
 async function runTenant(client, tenant, opts, io = {}) {
   const log = io.log || (() => {});
+  await requireLegacyColumn(client);
   await client.query('BEGIN');
   try {
     await client.query('SELECT set_config($1, $2, true)', ['app.tenant_id', tenant.id]);
@@ -328,9 +346,9 @@ async function runTenant(client, tenant, opts, io = {}) {
     for (const c of plan.changes.values()) {
       const a = c.after;
       await client.query(
-        `UPDATE assets SET name = $2, base_asset_code = $3, full_asset_code = $4, notes = $5, quantity = $6, is_active = $7
-         WHERE id = $1 AND tenant_id = $8`,
-        [c.before.id, a.name, a.base_asset_code, a.full_asset_code, a.notes, a.quantity, a.is_active, tenant.id],
+        `UPDATE assets SET name = $2, base_asset_code = $3, full_asset_code = $4, notes = $5, legacy_code = $6, quantity = $7, is_active = $8
+         WHERE id = $1 AND tenant_id = $9`,
+        [c.before.id, a.name, a.base_asset_code, a.full_asset_code, a.notes, a.legacy_code, a.quantity, a.is_active, tenant.id],
       );
     }
 
@@ -367,9 +385,9 @@ async function restoreRows(client, rows) {
       }
       for (const r of list) {
         await client.query(
-          `UPDATE assets SET name = $2, base_asset_code = $3, full_asset_code = $4, notes = $5, quantity = $6, is_active = $7
-           WHERE id = $1 AND tenant_id = $8`,
-          [r.id, r.name, r.base_asset_code, r.full_asset_code, r.notes, r.quantity, r.is_active, tid],
+          `UPDATE assets SET name = $2, base_asset_code = $3, full_asset_code = $4, notes = $5, legacy_code = $6, quantity = $7, is_active = $8
+           WHERE id = $1 AND tenant_id = $9`,
+          [r.id, r.name, r.base_asset_code, r.full_asset_code, r.notes, r.legacy_code ?? null, r.quantity, r.is_active, tid],
         );
         restored += 1;
       }
@@ -411,16 +429,16 @@ const ask = (question) => new Promise((resolve) => {
 });
 
 function writePlanCsv(outDir, tenant, plan) {
-  const rows = [['الإجراءات', 'الاسم قبل', 'الاسم بعد', 'الكود قبل', 'الكود بعد', 'الكمية قبل', 'الكمية بعد', 'نشط قبل', 'نشط بعد', 'الموقع', 'الملاحظات بعد']];
+  const rows = [['الإجراءات', 'الاسم قبل', 'الاسم بعد', 'الكود قبل', 'الكود بعد', 'الكمية قبل', 'الكمية بعد', 'نشط قبل', 'نشط بعد', 'الموقع', 'الملاحظات بعد', 'الكود القديم بعد']];
   for (const c of plan.changes.values()) {
     rows.push([
       c.actions.map((a) => ACTION_AR[a] || a).join(' + '), c.before.name, c.after.name, c.before.base_asset_code, c.after.base_asset_code,
       c.before.quantity, c.after.quantity, c.before.is_active ? 'نعم' : 'لا', c.after.is_active ? 'نعم' : 'لا',
-      c.before.location_path || '', c.after.notes || '',
+      c.before.location_path || '', c.after.notes || '', c.after.legacy_code || '',
     ]);
   }
   for (const s of plan.skipped) {
-    rows.push(['متطابق لكن له سجل حركات/جرد/صيانة — لم يُدمج', s.dup.name, '', s.dup.base_asset_code, s.keeper.base_asset_code, s.dup.quantity, '', 'نعم', 'نعم', s.dup.location_path || '', '']);
+    rows.push(['متطابق لكن له سجل حركات/جرد/صيانة — لم يُدمج', s.dup.name, '', s.dup.base_asset_code, s.keeper.base_asset_code, s.dup.quantity, '', 'نعم', 'نعم', s.dup.location_path || '', '', '']);
   }
   const file = path.join(outDir, `cleanup-plan-${String(tenant.tenant_code).replace(/[^a-zA-Z0-9_-]+/g, '_')}.csv`);
   fs.writeFileSync(file, '﻿' + rows.map((r) => r.map(csvCell).join(',')).join('\r\n'), 'utf8');
@@ -449,7 +467,7 @@ async function main() {
   try {
     if (restoreIdx !== -1) {
       const table = args[restoreIdx + 1] || '';
-      const answer = await ask(`سيتم إرجاع الأسماء والأكواد والملاحظات والكميات من النسخة (جدول أو ملف JSON) "${table}". اكتب YES للمتابعة: `);
+      const answer = await ask(`سيتم إرجاع الأسماء والأكواد والكود القديم والملاحظات والكميات من النسخة (جدول أو ملف JSON) "${table}". اكتب YES للمتابعة: `);
       if (answer !== 'YES') { console.log('أُلغي — لم يتغيّر شيء.'); return; }
       const n = table.toLowerCase().endsWith('.json')
         ? await restoreRows(client, JSON.parse(fs.readFileSync(table, 'utf8')))
@@ -483,7 +501,7 @@ async function main() {
       const s = plan.stats;
       console.log(`  السجلات: ${s.records} (منها غير نشطة: ${s.inactiveIncluded}) — أسماء نظيفة: ${s.names}`);
       console.log(`  أسماء كانت بأكثر من كود: ${s.multiCode} — سجلات سيُوحَّد كودها: ${s.recoded}`);
-      console.log(`  أسماء سيُحذف منها الكود القديم (ويُحفظ في الملاحظات): ${s.namesCleaned}`);
+      console.log(`  أسماء سيُحذف منها الكود القديم (ويُحفظ في عمود «الكود القديم»): ${s.namesCleaned}`);
       console.log(`  سجلات متطابقة تماماً ستُدمج (تُجمع كمياتها): ${s.merged}`);
       console.log(`  متطابقة لكن لها حركات/جرد/صيانة فلن تُدمج: ${s.mergeSkippedHistory}`);
       console.log(opts.unifySpelling
@@ -504,7 +522,7 @@ async function main() {
   }
 }
 
-module.exports = { restoreRows, fold, cleanName, legacyCodeOf, cleanLocationName, generateFullCode, identitySignature, planCleanup, runTenant, restoreTenant, verify };
+module.exports = { requireLegacyColumn, restoreRows, fold, cleanName, legacyCodeOf, cleanLocationName, generateFullCode, identitySignature, planCleanup, runTenant, restoreTenant, verify };
 
 if (require.main === module) {
   main().catch((err) => {

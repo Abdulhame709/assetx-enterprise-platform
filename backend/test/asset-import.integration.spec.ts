@@ -46,4 +46,23 @@ describe('Asset Excel import — one name = one base code', () => {
     expect(new Set(saved.rows.map((r) => r.base_asset_code)).size).toBe(1);
     expect(new Set(saved.rows.map((r) => r.full_asset_code)).size).toBe(2);
   });
+
+  it('the legacy-code column keeps same-name rows apart and is stored in its own column, not the notes', async () => {
+    const withLegacy = ['اسم الأصل', 'نوع الأصل', 'الموقع', 'الحالة', 'الكمية', 'ملاحظات', 'الكود القديم'];
+    const rows = [
+      ['مكاتب إدارة', category, location, status, '1', '', ''],
+      ['مكاتب إدارة', category, location, status, '1', '', '2025-0038-13'],
+      ['مكاتب إدارة', category, location, status, '1', '', '2025-0038-13'],
+    ];
+    const upload = async (r: string[][]) => ({ originalname: 'assets.xlsx', buffer: await workbook(withLegacy, r) });
+    const inspected = await importer.preview(await upload(rows), h.tenantA);
+    expect(inspected.valid_rows).toBe(2);
+    expect(inspected.errors.filter((issue) => issue.code === 'IMPORT_DUPLICATE')).toHaveLength(1);
+    await importer.importSelected(await upload(rows.slice(0, 2)), h.tenantA);
+    await h.db.setTenant(h.tenantA);
+    const saved = await h.db.query<{ notes: string | null; legacy_code: string | null }>(
+      `SELECT notes, legacy_code FROM assets WHERE tenant_id = $1 AND name = 'مكاتب إدارة' ORDER BY legacy_code NULLS FIRST`, [h.tenantA]);
+    expect(saved.rows.map((r) => r.legacy_code)).toEqual([null, '2025-0038-13']);
+    expect(saved.rows.every((r) => !r.notes)).toBe(true);
+  });
 });

@@ -67,6 +67,8 @@ export async function initLocalDatabase(pg: PGlite): Promise<void> {
   await db.exec(migration014);
   const migration015 = fs.readFileSync(path.join(migrationsDir, '015_sync_mutations_cascade.sql'), 'utf8');
   await db.exec(migration015);
+  const migration016 = fs.readFileSync(path.join(migrationsDir, '016_asset_legacy_code.sql'), 'utf8');
+  await db.exec(migration016);
   await db.exec(`
     GRANT SELECT, INSERT, UPDATE, DELETE ON
       tenants, organizations, employees, users, roles, permissions, role_permissions,

@@ -24,6 +24,7 @@ export interface CreateAssetInput {
   reference_number?: string | null;
   inventory_year?: number | null;
   notes?: string | null;
+  legacy_code?: string | null;
 }
 
 export interface UpdateAssetInput {

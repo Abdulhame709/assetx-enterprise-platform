@@ -48,7 +48,7 @@ describe('Report export content — integration', () => {
     await h.assets.create({
       tenant_id: h.tenantA, name: 'Laptop X1', category_id: h.refA.category, location_id: h.refA.location,
       status_id: h.refA.status, serial_number: 'SN-12345', barcode: 'BC-98765', purchase_date: '2024-03-15',
-      purchase_price: 1200, depreciation_rate: 20, useful_life: 5,
+      purchase_price: 1200, depreciation_rate: 20, useful_life: 5, legacy_code: '2025-0038-13@HQ',
     });
     await h.assets.create({
       tenant_id: h.tenantA, name: EVIL, category_id: h.refA.category, location_id: h.refA.location, status_id: h.refA.status,
@@ -84,6 +84,23 @@ describe('Report export content — integration', () => {
     expect(Number(laptop[header.indexOf('Depreciation Rate')])).toBe(20);
     expect(Number(laptop[header.indexOf('Useful Life')])).toBe(5);
     expect(Number(laptop[header.indexOf('Purchase Price')])).toBe(1200);
+  });
+
+  it('assets — legacy code is an optional column: hidden by default, shown when chosen, never in notes', async () => {
+    const plain = await csv('assets', { profile: 'auditor' });
+    expect(plain[0]).not.toContain('Legacy Code');
+    expect(plain.flat()).not.toContain('2025-0038-13@HQ');
+
+    const chosen = await csv('assets', {
+      columns: [
+        { key: 'name', label: 'Asset', order: 1 },
+        { key: 'legacy_code', label: 'Legacy Code', order: 2 },
+        { key: 'notes', label: 'Notes', order: 3 },
+      ],
+    });
+    const laptop = chosen.find((r) => r.includes('Laptop X1'))!;
+    expect(laptop[chosen[0].indexOf('Legacy Code')]).toBe('2025-0038-13@HQ');
+    expect(laptop[chosen[0].indexOf('Notes')]).toBe('');
   });
 
   it('CSV — a cell that starts with = is neutralised (formula injection)', async () => {

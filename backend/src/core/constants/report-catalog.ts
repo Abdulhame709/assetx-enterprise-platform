@@ -17,7 +17,7 @@ export const REPORT_CATALOG: Partial<Record<ExportResource, ReportCatalogEntry>>
     columns: [
       'base_asset_code', 'name', 'category_name', 'status_name', 'location_name', 'employee_name', 'quantity',
       'purchase_price', 'purchase_date', 'serial_number', 'barcode', 'reference_number', 'depreciation_rate',
-      'useful_life', 'notes',
+      'useful_life', 'notes', 'legacy_code',
     ],
     defaults: ['base_asset_code', 'name', 'category_name', 'status_name', 'location_name', 'employee_name', 'quantity', 'purchase_price'],
   },
