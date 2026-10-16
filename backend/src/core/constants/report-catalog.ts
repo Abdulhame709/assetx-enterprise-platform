@@ -15,11 +15,11 @@ export interface ReportCatalogEntry {
 export const REPORT_CATALOG: Partial<Record<ExportResource, ReportCatalogEntry>> = {
   assets: {
     columns: [
-      'full_asset_code', 'name', 'category_name', 'status_name', 'location_name', 'employee_name', 'quantity',
+      'base_asset_code', 'name', 'category_name', 'status_name', 'location_name', 'employee_name', 'quantity',
       'purchase_price', 'purchase_date', 'serial_number', 'barcode', 'reference_number', 'depreciation_rate',
       'useful_life', 'notes',
     ],
-    defaults: ['full_asset_code', 'name', 'category_name', 'status_name', 'location_name', 'employee_name', 'quantity', 'purchase_price'],
+    defaults: ['base_asset_code', 'name', 'category_name', 'status_name', 'location_name', 'employee_name', 'quantity', 'purchase_price'],
   },
   'asset-locations': {
     columns: ['location_name', 'parent_name', 'level', 'direct_count', 'total_count', 'total_value'],
@@ -31,18 +31,18 @@ export const REPORT_CATALOG: Partial<Record<ExportResource, ReportCatalogEntry>>
   },
   duplicates: {
     columns: [
-      'group_no', 'reason', 'full_asset_code', 'name', 'serial_number', 'barcode', 'category_name', 'location_name',
+      'group_no', 'reason', 'base_asset_code', 'name', 'serial_number', 'barcode', 'category_name', 'location_name',
       'employee_name', 'status_name', 'purchase_price',
     ],
-    defaults: ['group_no', 'reason', 'full_asset_code', 'name', 'serial_number', 'category_name', 'location_name', 'employee_name'],
+    defaults: ['group_no', 'reason', 'base_asset_code', 'name', 'serial_number', 'category_name', 'location_name', 'employee_name'],
   },
   'inventory-form': {
     columns: [
-      'row_no', 'full_asset_code', 'name', 'category_name', 'location_name', 'employee_name', 'expected_quantity',
+      'row_no', 'base_asset_code', 'name', 'category_name', 'location_name', 'employee_name', 'expected_quantity',
       'actual_quantity', 'actual_status', 'checked', 'notes',
     ],
     defaults: [
-      'row_no', 'full_asset_code', 'name', 'location_name', 'employee_name', 'expected_quantity',
+      'row_no', 'base_asset_code', 'name', 'location_name', 'employee_name', 'expected_quantity',
       'actual_quantity', 'actual_status', 'checked', 'notes',
     ],
   },

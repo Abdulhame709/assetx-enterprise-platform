@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { AssetService } from './asset.service';
+import { foldAssetName } from './asset-algorithms';
 import { DATABASE_PORT } from '../core/ports/tokens';
 import { DatabasePort } from '../core/ports/database.port';
 
@@ -118,7 +119,7 @@ export class AssetImportService {
       this.db.query<{ id: string; name: string }>('SELECT id, name FROM statuses WHERE tenant_id = $1 AND is_active = true', [tenantId]),
       this.db.query<{ id: string; name: string }>('SELECT id, name FROM employees WHERE tenant_id = $1 AND is_active = true', [tenantId]),
       this.db.query<{ id: string; name: string }>('SELECT id, name FROM asset_models WHERE tenant_id = $1 AND is_active = true', [tenantId]),
-      this.db.query<{ name: string; location_id: string }>('SELECT name, location_id FROM assets WHERE tenant_id = $1 AND is_active = true', [tenantId]),
+      this.db.query<{ name: string; location_id: string; category_id: string | null; status_id: string | null; employee_id: string | null; notes: string | null }>('SELECT name, location_id, category_id, status_id, employee_id, notes FROM assets WHERE tenant_id = $1 AND is_active = true', [tenantId]),
     ]);
     const lookup = (items: Array<{ id: string; name: string }>, includePath = false) => {
       const map = new Map<string, string[]>();
@@ -132,7 +133,11 @@ export class AssetImportService {
       return map;
     };
     const categoryMap = lookup(categories.rows); const locationMap = lookup(locations.rows, true); const statusMap = lookup(statuses.rows); const employeeMap = lookup(employees.rows); const modelMap = lookup(models.rows);
-    const duplicateKeys = new Set(existing.rows.map((asset) => `${key(asset.name)}|${asset.location_id}`));
+    // Same name is fine (one name = one base code); a row is a duplicate only when EVERYTHING that
+    // distinguishes an asset record matches: name, location, type, status, holder and notes.
+    const identityKey = (name: string, locationId: string, categoryId: string | null, statusId: string | null, employeeId: string | null, notes: string | null) =>
+      [foldAssetName(name), locationId, categoryId ?? '', statusId ?? '', employeeId ?? '', foldAssetName(notes)].join('|');
+    const duplicateKeys = new Set(existing.rows.map((asset) => identityKey(asset.name, asset.location_id, asset.category_id, asset.status_id, asset.employee_id, asset.notes)));
     const fileKeys = new Set<string>();
     const resolve = (map: Map<string, string[]>, value: string, label: string, row: number, required: boolean): string | undefined => {
       if (!value && !required) return undefined;
@@ -166,8 +171,8 @@ export class AssetImportService {
       if (value('purchase_date') && !purchaseDate) errors.push({ row: rowNumber, code: 'IMPORT_DATE_INVALID', message: 'تاريخ الشراء غير صالح.' });
       const employeeId = resolve(employeeMap, value('employee'), 'الموظف', rowNumber, false);
       const modelId = resolve(modelMap, value('model'), 'الموديل', rowNumber, false);
-      const duplicateKey = locationId ? `${key(name)}|${locationId}` : '';
-      if (duplicateKey && (duplicateKeys.has(duplicateKey) || fileKeys.has(duplicateKey))) errors.push({ row: rowNumber, code: 'IMPORT_DUPLICATE', message: 'يوجد أصل نشط بالاسم والموقع نفسيهما.' });
+      const duplicateKey = locationId && categoryId && statusId ? identityKey(name, locationId, categoryId, statusId, employeeId ?? null, value('notes')) : '';
+      if (duplicateKey && (duplicateKeys.has(duplicateKey) || fileKeys.has(duplicateKey))) errors.push({ row: rowNumber, code: 'IMPORT_DUPLICATE', message: 'يوجد أصل نشط مطابق تماماً (الاسم والموقع والنوع والحالة والمستلم والملاحظات).' });
       if (errors.length > before || !categoryId || !locationId || !statusId || quantity === null || purchasePrice === null || !purchaseDate && value('purchase_date')) continue;
       fileKeys.add(duplicateKey);
       rows.push({ row: rowNumber, name, category_id: categoryId, location_id: locationId, status_id: statusId, employee_id: employeeId, model_id: modelId, quantity, purchase_price: purchasePrice || undefined, purchase_date: purchaseDate, serial_number: value('serial_number') || undefined, barcode: value('barcode') || undefined, description: value('description') || undefined, notes: value('notes') || undefined, category, location, status });

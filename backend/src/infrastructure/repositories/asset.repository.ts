@@ -13,7 +13,12 @@ import {
 } from '../../core/ports/asset.port';
 import { DATABASE_PORT } from '../../core/ports/tokens';
 import { PLACEHOLDER_EMPLOYEE_PATTERN } from '../../core/constants/placeholder-employee';
-import { generateBaseAssetCode, generateFullAssetCode } from '../../application/asset-algorithms';
+import {
+  findBaseCodeForName,
+  foldAssetName,
+  generateBaseAssetCode,
+  generateFullAssetCode,
+} from '../../application/asset-algorithms';
 
 @Injectable()
 export class AssetRepository implements AssetPort {
@@ -29,23 +34,41 @@ export class AssetRepository implements AssetPort {
     return generateBaseAssetCode(year, rows.map((row) => row.base_asset_code));
   }
 
-  async create(input: CreateAssetInput): Promise<AssetSummary> {
-    const year = new Date().getFullYear();
-    const base_asset_code = await this.nextBaseCode(year);
-    // full code = base@location-slug (BR-CODE-001)
+  /**
+   * One name = one base code. Looks up the code already carried by this name
+   * (spacing, hamza/alef, ya, ta-marbuta differences are ignored) so every
+   * record of the same asset shares it; null when the name is new.
+   * `excludeId` skips the record being renamed.
+   */
+  async baseCodeForName(name: string, excludeId?: string): Promise<string | null> {
+    if (!foldAssetName(name)) return null;
+    const { rows } = await this.db.query<{ id: string; name: string; base_asset_code: string }>(
+      `SELECT id, name, base_asset_code FROM assets WHERE base_asset_code IS NOT NULL`,
+    );
+    return findBaseCodeForName(name, rows.filter((row) => row.id !== excludeId));
+  }
+
+  private async fullCodeFor(baseCode: string, locationId: string | null, excludeId?: string): Promise<string> {
     const loc = await this.db.query<{ full_path: string }>(
       `SELECT full_path FROM locations WHERE id = $1 LIMIT 1`,
-      [input.location_id],
+      [locationId],
     );
-    const usedFullCodes = await this.db.query<{ full_asset_code: string }>(
-      `SELECT full_asset_code FROM assets WHERE base_asset_code = $1`,
-      [base_asset_code],
+    const used = await this.db.query<{ id: string; full_asset_code: string }>(
+      `SELECT id, full_asset_code FROM assets WHERE base_asset_code = $1`,
+      [baseCode],
     );
-    const full_asset_code = generateFullAssetCode(
-      base_asset_code,
+    return generateFullAssetCode(
+      baseCode,
       loc.rows[0]?.full_path ?? 'location',
-      usedFullCodes.rows.map((row) => row.full_asset_code),
+      used.rows.filter((row) => row.id !== excludeId).map((row) => row.full_asset_code),
     );
+  }
+
+  async create(input: CreateAssetInput): Promise<AssetSummary> {
+    const year = new Date().getFullYear();
+    const base_asset_code = (await this.baseCodeForName(input.name)) ?? (await this.nextBaseCode(year));
+    // full code = base@location-slug (BR-CODE-001): unique per record, internal key
+    const full_asset_code = await this.fullCodeFor(base_asset_code, input.location_id ?? null);
 
     const { rows } = await this.db.query<Asset>(
       `INSERT INTO assets
@@ -69,6 +92,37 @@ export class AssetRepository implements AssetPort {
     return this.toSummary(rows[0]);
   }
 
+  /**
+   * A rename can move a record to another asset identity: it adopts the base
+   * code already used by the new name, or — if it was sharing its old code with
+   * other names — receives a fresh one. Returns null when the code stays.
+   */
+  private async recodeForRename(
+    id: string,
+    newName: string,
+    newLocationId: string | null | undefined,
+  ): Promise<{ base_asset_code: string; full_asset_code: string } | null> {
+    const cur = await this.db.query<{ name: string; base_asset_code: string; location_id: string | null }>(
+      `SELECT name, base_asset_code, location_id FROM assets WHERE id = $1 LIMIT 1`,
+      [id],
+    );
+    const row = cur.rows[0];
+    if (!row || foldAssetName(row.name) === foldAssetName(newName)) return null;
+
+    let base = await this.baseCodeForName(newName, id);
+    if (!base) {
+      const siblings = await this.db.query<{ c: string }>(
+        `SELECT count(*) AS c FROM assets WHERE base_asset_code = $1 AND id <> $2`,
+        [row.base_asset_code, id],
+      );
+      if (Number(siblings.rows[0]?.c ?? 0) === 0) return null;
+      base = await this.nextBaseCode(new Date().getFullYear());
+    }
+    if (base === row.base_asset_code) return null;
+    const locationId = newLocationId === undefined ? row.location_id : newLocationId;
+    return { base_asset_code: base, full_asset_code: await this.fullCodeFor(base, locationId, id) };
+  }
+
   async update(id: string, input: UpdateAssetInput): Promise<AssetSummary | null> {
     const values: unknown[] = [id];
     const assignments: string[] = [];
@@ -80,6 +134,14 @@ export class AssetRepository implements AssetPort {
     };
 
     add('name', 'name', input.name ?? null);
+    if (has('name') && input.name) {
+      const recoded = await this.recodeForRename(id, input.name, has('location_id') ? input.location_id ?? null : undefined);
+      if (recoded) {
+        add('name', 'base_asset_code', recoded.base_asset_code);
+        assignments.push(`full_asset_code = $${values.length + 1}`);
+        values.push(recoded.full_asset_code);
+      }
+    }
     add('description', 'description', input.description ?? null);
     add('category_id', 'category_id', input.category_id ?? null);
     add('model_id', 'model_id', input.model_id ?? null);
@@ -120,7 +182,7 @@ export class AssetRepository implements AssetPort {
 
     if (filter.q) {
       where += ` AND (
-        name ILIKE $${idx} OR full_asset_code ILIKE $${idx} OR serial_number ILIKE $${idx}
+        name ILIKE $${idx} OR base_asset_code ILIKE $${idx} OR full_asset_code ILIKE $${idx} OR serial_number ILIKE $${idx}
         OR barcode ILIKE $${idx} OR reference_number ILIKE $${idx}
       )`;
       params.push(`%${filter.q}%`);
@@ -209,7 +271,7 @@ export class AssetRepository implements AssetPort {
   }
 
   private safeSort(field: string): string {
-    const allowed = ['name', 'full_asset_code', 'purchase_date', 'purchase_price', 'created_at', 'quantity'];
+    const allowed = ['name', 'base_asset_code', 'full_asset_code', 'purchase_date', 'purchase_price', 'created_at', 'quantity'];
     return allowed.includes(field) ? field : 'name';
   }
 

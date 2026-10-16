@@ -40,7 +40,7 @@ export const COLUMN_LABELS: Record<string, Record<ReportLang, string>> = {
   // assets
   name: { ar: 'اسم الأصل', en: 'Asset' },
   full_asset_code: { ar: 'رمز الأصل', en: 'Asset Code' },
-  base_asset_code: { ar: 'الرمز الأساسي', en: 'Base Code' },
+  base_asset_code: { ar: 'رمز الأصل', en: 'Asset Code' },
   category_name: { ar: 'الفئة', en: 'Category' },
   status_name: { ar: 'الحالة', en: 'Status' },
   location_name: { ar: 'الموقع', en: 'Location' },

@@ -344,7 +344,7 @@ function AssetListItem({ asset, active, checked, statusName, tone, onOpen, onTog
         <input type="checkbox" aria-label={asset.name} checked={checked} onChange={onToggle} className="mt-1 h-4 w-4 rounded border-line text-brand focus:ring-brand" />
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
           <div className="flex items-start justify-between gap-2"><span className="truncate text-sm font-semibold text-ink">{asset.name}</span><Badge tone={tone}>{statusName}</Badge></div>
-          <p className="mt-1 truncate text-xs font-medium text-brand">{asset.full_asset_code}</p>
+          <p className="mt-1 truncate text-xs font-medium text-brand">{asset.base_asset_code}</p>
           <p className="mt-1 truncate text-xs text-ink-muted">{asset._locationName ?? '—'} <span className="px-1 text-ink-faint">·</span> {asset.quantity}</p>
         </button>
       </div>
@@ -358,7 +358,7 @@ function AssetPreview({ asset, statusName, statusTone, locale, t, onEdit, onCopy
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-semibold text-ink">{asset.name}</h2><Badge tone={statusTone}>{statusName}</Badge></div>
-          <p className="mt-2 font-mono text-sm text-brand">{asset.full_asset_code}</p>
+          <p className="mt-2 font-mono text-sm text-brand">{asset.base_asset_code}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <PermissionGate permission={PERMISSIONS.ASSET_UPDATE}><Button variant="secondary" size="sm" className="h-8 w-8 p-0" aria-label={t('assetActions.edit')} title={t('assetActions.edit')} onClick={onEdit}><Pencil className="h-4 w-4" /></Button><Button variant="secondary" size="sm" className="h-8 w-8 p-0" aria-label={t('assetActions.copy')} title={t('assetActions.copy')} onClick={onCopy}><Copy className="h-4 w-4" /></Button></PermissionGate>

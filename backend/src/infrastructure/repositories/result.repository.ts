@@ -54,7 +54,7 @@ export class ResultRepository implements ResultPort {
          es.name AS expected_status_name,
          ast.name AS actual_status_name,
          a.name AS asset_name,
-         a.full_asset_code AS asset_code,
+         a.base_asset_code AS asset_code,
          el.name AS expected_location_name,
          el.full_path AS expected_location_path,
          al.name AS actual_location_name,

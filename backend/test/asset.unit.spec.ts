@@ -26,6 +26,28 @@ describe('AssetService — unit: validation + lifecycle', () => {
     expect(a.is_active).toBe(true);
   });
 
+  it('create — one name = one base code, even when spelling/location differ', async () => {
+    const base = { tenant_id: h.tenantA, category_id: h.refA.category, location_id: h.refA.location, status_id: h.refA.status };
+    const first = await h.assets.create({ ...base, name: 'كراسي أبو يدين' });
+    const second = await h.assets.create({ ...base, name: 'كراسي  ابو يدين' });
+    const other = await h.assets.create({ ...base, name: 'طاولة اجتماعات' });
+    expect(second.base_asset_code).toBe(first.base_asset_code);
+    expect(second.full_asset_code).not.toBe(first.full_asset_code);
+    expect(other.base_asset_code).not.toBe(first.base_asset_code);
+  });
+
+  it('update — renaming to an existing name adopts its code; renaming one of a shared code gets a new one', async () => {
+    const base = { tenant_id: h.tenantA, category_id: h.refA.category, location_id: h.refA.location, status_id: h.refA.status };
+    const chair = await h.assets.create({ ...base, name: 'كرسي مكتب دوار' });
+    const stray = await h.assets.create({ ...base, name: 'كرسي مكتب دوّار جديد' });
+    expect(stray.base_asset_code).not.toBe(chair.base_asset_code);
+    const renamed = await h.assets.update(stray.id, h.tenantA, { name: 'كرسي مكتب دوار' });
+    expect(renamed!.base_asset_code).toBe(chair.base_asset_code);
+    expect(renamed!.full_asset_code.startsWith(chair.base_asset_code + '@')).toBe(true);
+    const detached = await h.assets.update(renamed!.id, h.tenantA, { name: 'خزانة ملفات' });
+    expect(detached!.base_asset_code).not.toBe(chair.base_asset_code);
+  });
+
   it('create — rejects missing category (BR-ASSET-002)', async () => {
     await expect(
       h.assets.create({

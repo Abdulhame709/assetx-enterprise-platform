@@ -41,6 +41,7 @@ export interface AssetAgingItem {
   id: string;
   name: string;
   full_asset_code: string;
+  base_asset_code: string;
   purchase_date: string | null;
   purchase_price: string;
   depreciation_rate: string | null;

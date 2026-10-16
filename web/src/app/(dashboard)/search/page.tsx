@@ -43,7 +43,7 @@ const SEARCH_RESOURCES: Array<{ value: SearchResource; permission: PermissionKey
 const SORT_OPTIONS: Record<SearchResource, Array<{ value: string; labelKey: string }>> = {
   assets: [
     { value: 'name', labelKey: 'module.searchSortName' },
-    { value: 'full_asset_code', labelKey: 'module.searchSortCode' },
+    { value: 'base_asset_code', labelKey: 'module.searchSortCode' },
     { value: 'purchase_date', labelKey: 'module.searchSortPurchaseDate' },
     { value: 'purchase_price', labelKey: 'module.searchSortPurchasePrice' },
     { value: 'created_at', labelKey: 'module.searchSortCreatedAt' },
@@ -81,7 +81,7 @@ function renderAssetResult(item: SearchItem, t: (key: string, fallback?: string)
         <p className="font-medium text-brand">{item.name}</p>
         <p className="text-xs text-ink-muted">{label(item._statusName)} · {item._employeeName ?? t('module.searchUnassigned')}</p>
       </div>
-      <p className="text-xs text-ink-muted">{t('module.searchCode')}: {item.full_asset_code} · {t('module.searchLocation')}: {item._locationName ?? '—'}</p>
+      <p className="text-xs text-ink-muted">{t('module.searchCode')}: {item.base_asset_code} · {t('module.searchLocation')}: {item._locationName ?? '—'}</p>
     </Link>
   );
 }

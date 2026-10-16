@@ -22,7 +22,7 @@ const MAX_LIMIT = 100;
 
 /** Per-resource allow-list of sortable fields (prevents SQL injection via columns). */
 const SORTABLE: Record<ResourceType, string[]> = {
-  assets: ['name', 'full_asset_code', 'purchase_date', 'purchase_price', 'created_at', 'quantity'],
+  assets: ['name', 'base_asset_code', 'full_asset_code', 'purchase_date', 'purchase_price', 'created_at', 'quantity'],
   movements: ['created_at', 'movement_type', 'status'],
   audit: ['created_at', 'action_type', 'table_name'],
 };

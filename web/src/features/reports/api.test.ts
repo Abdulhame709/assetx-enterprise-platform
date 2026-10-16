@@ -51,14 +51,14 @@ describe('report export API', () => {
       format: 'csv',
       profile: 'auditor',
       columns: [
-        { key: 'full_asset_code', label: 'Asset code', order: 1 },
+        { key: 'base_asset_code', label: 'Asset code', order: 1 },
         { key: 'name', label: 'Asset name', order: 2 },
       ],
     });
 
     const [url] = vi.mocked(fetch).mock.calls[0] ?? [];
     expect(String(url)).toContain('/api/exports/assets?format=csv&limit=10000&profile=auditor&columns=');
-    expect(decodeURIComponent(String(url))).toContain('"key":"full_asset_code"');
+    expect(decodeURIComponent(String(url))).toContain('"key":"base_asset_code"');
   });
 
   it('serializes sorting and grouping metadata for real aggregation exports', async () => {

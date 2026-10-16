@@ -4,7 +4,9 @@ import {
   calculateSimilarity,
   checkForDuplicates,
   cleanLocationName,
+  findBaseCodeForName,
   findSimilarAssetNames,
+  foldAssetName,
   generateBaseAssetCode,
   generateFullAssetCode,
   smartSearch,
@@ -14,6 +16,27 @@ describe('AssetX README algorithms', () => {
   it('normalizes Arabic text and calculates Levenshtein similarity', () => {
     expect(calculateSimilarity('حاسوب محمول', 'حاسوب-محمول')).toBe(1);
     expect(calculateSimilarity('حاسوب محمول', 'حاسوب مكتبي')).toBeGreaterThan(0.5);
+  });
+
+  it('folds names so spacing, hamza, ya and ta-marbuta variants share one identity', () => {
+    const same = ['كراسي أبو يدين', 'كراسي  ابو يدين', 'كراسى أبو يدين', 'كراسي أبو يدين.', 'كراسيأبويدين'];
+    for (const name of same) expect(foldAssetName(name)).toBe(foldAssetName('كراسي أبو يدين'));
+    expect(foldAssetName('طاولة اجتماعات')).toBe(foldAssetName('طاوله إجتماعات'));
+    expect(foldAssetName('جهاز ٢٠٢٥')).toBe(foldAssetName('جهاز 2025'));
+    expect(foldAssetName('Plastic  CHAIR')).toBe('plasticchair');
+    expect(foldAssetName('كراسي بلاستيك')).not.toBe(foldAssetName('كراسي حديد'));
+    expect(foldAssetName('  ')).toBe('');
+  });
+
+  it('reuses the oldest base code already used by the same folded name', () => {
+    const rows = [
+      { name: 'كراسي ابو يدين', base_asset_code: '2026-0136' },
+      { name: 'كراسي أبو يدين', base_asset_code: '2025-0038' },
+      { name: 'طاولة', base_asset_code: '2025-0001' },
+    ];
+    expect(findBaseCodeForName('كراسي أبو  يدين', rows)).toBe('2025-0038');
+    expect(findBaseCodeForName('مكتب', rows)).toBeNull();
+    expect(findBaseCodeForName('', rows)).toBeNull();
   });
 
   it('returns similar names at display and warning thresholds', () => {

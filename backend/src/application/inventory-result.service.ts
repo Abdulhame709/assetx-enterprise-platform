@@ -105,7 +105,7 @@ export class InventoryResultService {
       `SELECT
          ir.id AS record_id,
          ir.asset_id,
-         a.full_asset_code AS asset_code,
+         a.base_asset_code AS asset_code,
          a.name AS asset_name,
          ir.expected_location_id,
          expected_location.name AS expected_location,

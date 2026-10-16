@@ -100,7 +100,7 @@ type ReportColumnOption = ReportColumn & { labelKey: string };
 const REPORT_COLUMN_CATALOG: Record<ReportResource, ReportColumnOption[]> = {
   assets: [
     { key: 'name', label: '', labelKey: 'module.reportsColumnName', order: 1 },
-    { key: 'full_asset_code', label: '', labelKey: 'module.reportsColumnCode', order: 2 },
+    { key: 'base_asset_code', label: '', labelKey: 'module.reportsColumnCode', order: 2 },
     { key: 'category_name', label: '', labelKey: 'module.reportsColumnCategory', order: 3 },
     { key: 'quantity', label: '', labelKey: 'module.reportsColumnQuantity', order: 4 },
     { key: 'purchase_price', label: '', labelKey: 'module.reportsColumnPurchasePrice', order: 5 },
@@ -166,11 +166,11 @@ const REPORT_COLUMN_CATALOG: Record<ReportResource, ReportColumnOption[]> = {
 const REPORT_LAYOUT_STORAGE_KEY = 'assetx.report.layout.v1';
 
 const PROFILE_COLUMN_KEYS: Record<ReportProfileId, string[]> = {
-  executive: ['name', 'full_asset_code', 'quantity', 'purchase_price', 'is_active'],
-  finance: ['name', 'full_asset_code', 'purchase_price', 'purchase_date'],
-  auditor: ['full_asset_code', 'name', 'status_name', 'location_name', 'employee_name', 'serial_number', 'barcode'],
+  executive: ['name', 'base_asset_code', 'quantity', 'purchase_price', 'is_active'],
+  finance: ['name', 'base_asset_code', 'purchase_price', 'purchase_date'],
+  auditor: ['base_asset_code', 'name', 'status_name', 'location_name', 'employee_name', 'serial_number', 'barcode'],
   inventory: ['asset_code', 'asset_name', 'expected_quantity', 'actual_quantity', 'expected_location_path', 'actual_location_path', 'expected_employee_name', 'actual_employee_name', 'expected_status_name', 'actual_status_name', 'result', 'notes'],
-  compliance: ['full_asset_code', 'name', 'barcode', 'status_name', 'employee_name', 'location_name'],
+  compliance: ['base_asset_code', 'name', 'barcode', 'status_name', 'employee_name', 'location_name'],
 };
 
 /** Reports saved before names replaced raw ids still carry the old keys. */

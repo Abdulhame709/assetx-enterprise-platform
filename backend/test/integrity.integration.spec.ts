@@ -60,17 +60,17 @@ describe('Integrity Checker — integration (Task T2)', () => {
     expect(res.score).toBe(Math.max(0, 100 - expectedDeduction));
   });
 
-  it('detects duplicate assets (same base_asset_code)', async () => {
-    // full_asset_code is UNIQUE, so duplicates are detected via shared base_asset_code
+  it('detects one asset name carrying different base codes', async () => {
+    // spelling variants of one name (hamza, spacing) must share a single base code
     await h.db.setTenant(h.tenantA);
     await h.db.query(
       `INSERT INTO assets (tenant_id, name, base_asset_code, full_asset_code, quantity, status_id, location_id, is_active)
-       VALUES ($1,'Dup1','2099-0300','2099-0300@dup1',1,$2,$3,true)`,
+       VALUES ($1,'كراسي أبو يدين','2099-0300','2099-0300@dup1',1,$2,$3,true)`,
       [h.tenantA, h.refA.status, h.refA.location],
     );
     await h.db.query(
       `INSERT INTO assets (tenant_id, name, base_asset_code, full_asset_code, quantity, status_id, location_id, is_active)
-       VALUES ($1,'Dup2','2099-0300','2099-0300@dup2',1,$2,$3,true)`,
+       VALUES ($1,'كراسي ابو  يدين','2099-0301','2099-0301@dup2',1,$2,$3,true)`,
       [h.tenantA, h.refA.status, h.refA.location],
     );
     const res = await h.integrity.check(h.tenantA);
