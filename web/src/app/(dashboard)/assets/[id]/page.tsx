@@ -65,7 +65,7 @@ export default function AssetDetailPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl font-semibold text-ink">{detail.name}</h1>
-                    <Badge tone="neutral">{detail.full_asset_code}</Badge>
+                    <Badge tone="neutral">{detail.base_asset_code}</Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
                     <Meta label={t('assetDetail.category')} value={detail._categoryName ?? '—'} />
@@ -115,11 +115,11 @@ export default function AssetDetailPage() {
                 <Card>
                   <CardHeader title={t('assetDetail.basicInfo')} />
                   <CardBody>
-                    <InfoRow label={t('common.code')} value={detail.full_asset_code} />
-                    <InfoRow label={t('assetDetail.baseCode')} value={detail.base_asset_code} />
+                    <InfoRow label={t('common.code')} value={detail.base_asset_code} />
                     <InfoRow label={t('assetDetail.serialNumber')} value={humanId(detail.serial_number)} />
                     <InfoRow label={t('assetDetail.barcode')} value={humanId(detail.barcode)} />
                     <InfoRow label={t('assetDetail.reference')} value={humanId(detail.reference_number)} />
+                    {detail.legacy_code ? <InfoRow label={t('assetDetail.legacyCode')} value={humanId(detail.legacy_code)} /> : null}
                     <InfoRow label={t('assetDetail.description')} value={detail.description || '—'} />
                   </CardBody>
                 </Card>

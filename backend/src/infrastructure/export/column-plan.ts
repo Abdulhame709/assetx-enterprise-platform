@@ -16,10 +16,15 @@ export interface ColumnPlan {
   labels: string[];
 }
 
+/** Reports show the base code only; saved layouts that still name the full code get it. */
+const LEGACY_KEYS: Record<string, string> = { full_asset_code: 'base_asset_code' };
+
 export function resolveColumnPlan(data: unknown[], options?: ExportOptions): ColumnPlan {
   const cols: ExportColumn[] | undefined = options?.columns;
   if (cols && cols.length > 0) {
-    const ordered = cols.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const ordered = cols
+      .map((c) => (LEGACY_KEYS[c.key] ? { ...c, key: LEGACY_KEYS[c.key] } : c))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const keys = ordered.map((c) => c.key);
     const lang = options?.meta?.lang;
     const labels = ordered.map((c) => (lang ? columnLabel(c.key, c.label, lang) : c.label ?? c.key));

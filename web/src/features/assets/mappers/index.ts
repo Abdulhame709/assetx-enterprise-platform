@@ -102,6 +102,7 @@ export function mapAssetDetail(raw: unknown, names: NameLookup = EMPTY_NAMES): A
     useful_life: r.useful_life != null ? toNumber(r.useful_life, 0) : null,
     reference_number: r.reference_number != null ? String(r.reference_number) : null,
     notes: r.notes != null ? String(r.notes) : null,
+    legacy_code: r.legacy_code != null ? String(r.legacy_code) : null,
     created_at: String(r.created_at ?? ''),
     updated_at: String(r.updated_at ?? ''),
   };

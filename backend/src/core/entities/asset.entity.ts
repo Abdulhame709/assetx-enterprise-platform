@@ -26,6 +26,7 @@ export interface Asset {
   reference_number: string | null;
   inventory_year: number | null;
   notes: string | null;
+  legacy_code: string | null; // code used by the previous system (optional, never shown by default)
   is_active: boolean;        // soft delete (BR-ASSET-010)
   created_at: Date;
   updated_at: Date;

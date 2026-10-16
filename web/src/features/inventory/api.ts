@@ -422,7 +422,7 @@ export async function getInventoryLookups(): Promise<InventoryLookups> {
   ]);
   const assets = new Map<string, { name: string; code: string }>();
   for (const a of assetRows) {
-    assets.set(String(a.id), { name: String(a.name ?? ''), code: String(a.full_asset_code ?? '') });
+    assets.set(String(a.id), { name: String(a.name ?? ''), code: String(a.base_asset_code ?? '') });
   }
   return {
     assets,

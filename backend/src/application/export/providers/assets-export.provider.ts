@@ -22,6 +22,7 @@ interface AssetDetail {
   depreciation_rate: unknown;
   useful_life: unknown;
   notes: string | null;
+  legacy_code: string | null;
 }
 
 @Injectable()
@@ -45,7 +46,7 @@ export class AssetsExportProvider implements ExportProvider {
     });
     const names = await loadNameMaps(this.db, tenantId);
     const { rows: details } = await this.db.query<AssetDetail>(
-      `SELECT id, purchase_date, serial_number, barcode, reference_number, depreciation_rate, useful_life, notes
+      `SELECT id, purchase_date, serial_number, barcode, reference_number, depreciation_rate, useful_life, notes, legacy_code
        FROM assets WHERE tenant_id = $1`,
       [tenantId],
     );
@@ -66,6 +67,7 @@ export class AssetsExportProvider implements ExportProvider {
         depreciation_rate: d?.depreciation_rate ?? '',
         useful_life: d?.useful_life ?? '',
         notes: d?.notes ?? '',
+        legacy_code: d?.legacy_code ?? '',
       };
     });
     const sortBy = filters.sort_by;

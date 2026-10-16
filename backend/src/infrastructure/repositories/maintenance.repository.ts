@@ -94,7 +94,7 @@ export class MaintenanceRepository implements MaintenancePort {
   }
 
   private baseSelect(): string {
-    return `SELECT mo.*, a.name AS asset_name, a.full_asset_code AS asset_code
+    return `SELECT mo.*, a.name AS asset_name, a.base_asset_code AS asset_code
             FROM maintenance_orders mo
             JOIN assets a ON a.id = mo.asset_id AND a.tenant_id = mo.tenant_id`;
   }

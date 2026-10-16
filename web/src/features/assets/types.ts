@@ -34,6 +34,8 @@ export interface AssetDetail extends AssetSummary {
   useful_life: number | null;
   reference_number: string | null;
   notes: string | null;
+  /** code used by the previous system; shown only when present */
+  legacy_code?: string | null;
   created_at: string;
   updated_at: string;
 }

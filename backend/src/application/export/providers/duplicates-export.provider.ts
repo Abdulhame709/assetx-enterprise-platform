@@ -14,7 +14,7 @@ import { loadNameMaps, nameOf, statusName } from '../export-lookups';
 interface AssetRow {
   id: string;
   name: string;
-  full_asset_code: string;
+  base_asset_code: string;
   serial_number: string | null;
   barcode: string | null;
   category_id: string | null;
@@ -61,8 +61,8 @@ export class DuplicatesExportProvider implements ExportProvider {
       extra = ` AND category_id = $${params.length}`;
     }
     const { rows: assets } = await this.db.query<AssetRow>(
-      `SELECT id, name, full_asset_code, serial_number, barcode, category_id, location_id, employee_id, status_id, purchase_price
-       FROM assets WHERE tenant_id = $1 AND is_active = true${extra} ORDER BY name, full_asset_code`,
+      `SELECT id, name, base_asset_code, serial_number, barcode, category_id, location_id, employee_id, status_id, purchase_price
+       FROM assets WHERE tenant_id = $1 AND is_active = true${extra} ORDER BY name, base_asset_code`,
       params,
     );
 
@@ -95,7 +95,7 @@ export class DuplicatesExportProvider implements ExportProvider {
           out.push({
             group_no: groupNo,
             reason: REASONS[rule.reason][lang],
-            full_asset_code: a.full_asset_code,
+            base_asset_code: a.base_asset_code,
             name: a.name,
             serial_number: a.serial_number ?? '',
             barcode: a.barcode ?? '',

@@ -15,7 +15,7 @@ import { isAssetSortKey } from '../export-sort';
 export const MAX_BLANK_ROWS = 500;
 
 const BLANK = {
-  full_asset_code: '', name: '', category_name: '', location_name: '', employee_name: '',
+  base_asset_code: '', name: '', category_name: '', location_name: '', employee_name: '',
   expected_quantity: '', actual_quantity: '', actual_status: '', checked: '', notes: '',
 };
 
@@ -37,7 +37,7 @@ export class InventoryFormExportProvider implements ExportProvider {
     const { rows } = await this.assets.getData(tenantId, { ...options, filters: { ...filters, sort_by: sortBy } });
     const form = (rows as Array<Record<string, unknown>>).map((a, i) => ({
       row_no: i + 1,
-      full_asset_code: a.full_asset_code ?? '',
+      base_asset_code: a.base_asset_code ?? '',
       name: a.name ?? '',
       category_name: a.category_name ?? '',
       location_name: a.location_name ?? '',

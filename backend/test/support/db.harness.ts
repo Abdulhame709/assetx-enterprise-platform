@@ -193,7 +193,7 @@ export async function createHarness(): Promise<Harness> {
   `);
   const migration012 = fs.readFileSync(path.join(migrationsDir, '012_location_types_catalog.sql'), 'utf8');
   await db.exec(migration012);
-  for (const file of ['013_sync_mutations.sql', '015_sync_mutations_cascade.sql']) {
+  for (const file of ['013_sync_mutations.sql', '015_sync_mutations_cascade.sql', '016_asset_legacy_code.sql']) {
     await db.exec(fs.readFileSync(path.join(migrationsDir, file), 'utf8'));
   }
   await db.exec(`

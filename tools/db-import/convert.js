@@ -303,14 +303,14 @@ const XLSX_HEADERS = {
   categories: ['اسم النوع', 'النوع الأب'],
   statuses: ['اسم الحالة', 'اللون'],
   employees: ['اسم الموظف', 'القسم', 'الهاتف', 'البريد الإلكتروني'],
-  assets: ['اسم الأصل', 'نوع الأصل', 'الموقع', 'الحالة', 'الكمية', 'سعر الشراء', 'تاريخ الشراء', 'الموظف', 'الرقم التسلسلي', 'الباركود', 'الوصف', 'ملاحظات'],
+  assets: ['اسم الأصل', 'نوع الأصل', 'الموقع', 'الحالة', 'الكمية', 'سعر الشراء', 'تاريخ الشراء', 'الموظف', 'الرقم التسلسلي', 'الباركود', 'الوصف', 'ملاحظات', 'الكود القديم'],
 };
 const XLSX_WIDTHS = {
   locations: [34, 30, 14],
   categories: [36, 30],
   statuses: [26, 12],
   employees: [32, 24, 18, 30],
-  assets: [34, 30, 40, 18, 10, 14, 14, 26, 20, 18, 40, 46],
+  assets: [34, 30, 40, 18, 10, 14, 14, 26, 20, 18, 40, 46, 24],
 };
 const SHEET_NAMES = { locations: 'المواقع', categories: 'أنواع الأصول', statuses: 'الحالات', employees: 'الموظفون', assets: 'الأصول' };
 
@@ -495,25 +495,24 @@ function buildImportFiles(raw) {
   const fallbackStatus = 'غير محدد';
   if (missingStatus && !statusByName.has(norm(fallbackStatus))) statusRows.push([fallbackStatus, '#64748b']);
 
-  // Keep asset names unique per location: the platform skips duplicates.
+  // Names stay clean (one name = one base code in the platform). When the same
+  // name shows up again in the same location, its old code goes into the separate
+  // legacy-code column (not the notes) so the row is not treated as an exact
+  // duplicate and nothing is lost.
   const assetSeen = new Map();
   let renamedAssets = 0;
   for (const asset of assets) {
     const categoryName = asset.categoryName || fallbackCategory;
     const locationName = asset.locationPath || fallbackLocationPath || fallbackLocation;
     const statusName = asset.statusName || fallbackStatus;
-    let key = `${norm(asset.name)}|${norm(locationName)}`;
+    const key = `${norm(asset.name)}|${norm(locationName)}`;
     const count = (assetSeen.get(key) || 0) + 1;
     assetSeen.set(key, count);
     if (count > 1) {
-      asset.name = `${asset.name} (${asset.code})`;
+      asset.legacyCode = String(asset.code || '');
       renamedAssets += 1;
-      key = `${norm(asset.name)}|${norm(locationName)}`;
-      let attempt = 1;
-      while (assetSeen.has(key)) { attempt += 1; asset.name = `${asset.name.replace(/\s\(\d+\)$/, '')} (${attempt})`; key = `${norm(asset.name)}|${norm(locationName)}`; }
-      assetSeen.set(key, 1);
     }
-    asset.final = [asset.name, categoryName, locationName, statusName, asset.quantity, asset.price, asset.purchaseDate, asset.employeeName, asset.serial, asset.barcode, asset.description, asset.notes];
+    asset.final = [asset.name, categoryName, locationName, statusName, asset.quantity, asset.price, asset.purchaseDate, asset.employeeName, asset.serial, asset.barcode, asset.description, asset.notes, asset.legacyCode || ''];
   }
   report.renames.assets = renamedAssets;
 
@@ -594,7 +593,7 @@ function main() {
   summary.push(`- أسماء الأنواع المتكررة التي أُضيف لها رقم: ${report.renames.categories.length}`);
   summary.push(`- أسماء الحالات المتكررة التي أُضيف لها رقم: ${report.renames.statuses.length}`);
   summary.push(`- أسماء الموظفين المتكررة التي أُضيف لها رقم: ${report.renames.employees.length}`);
-  summary.push(`- أسماء أصول متكررة في نفس الموقع أُضيف لها رمز الأصل: ${report.counts.renamedAssets}`);
+  summary.push(`- أصول بنفس الاسم والموقع سُجّل رمزها القديم في عمود «الكود القديم» (الاسم بقي نظيفاً): ${report.counts.renamedAssets}`);
   summary.push(`- أصول بلا نوع (استُخدم "غير مصنف"): ${report.counts.missingCategory}`);
   summary.push(`- أصول بلا موقع (استُخدم "غير محدد"): ${report.counts.missingLocation}`);
   summary.push(`- أصول بلا حالة (استُخدم "غير محدد"): ${report.counts.missingStatus}`);

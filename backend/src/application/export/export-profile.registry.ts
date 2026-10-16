@@ -23,7 +23,7 @@ export class ExportProfileRegistry {
         pageSize: 1000,
         columns: [
           { key: 'name', label: 'Asset', order: 1 },
-          { key: 'full_asset_code', label: 'Asset Code', order: 2 },
+          { key: 'base_asset_code', label: 'Asset Code', order: 2 },
           { key: 'quantity', label: 'Qty', order: 3 },
           { key: 'purchase_price', label: 'Value', order: 4 },
           { key: 'is_active', label: 'Active', order: 5 },
@@ -37,7 +37,7 @@ export class ExportProfileRegistry {
         pageSize: 2000,
         columns: [
           { key: 'name', label: 'Asset', order: 1 },
-          { key: 'full_asset_code', label: 'Asset Code', order: 2 },
+          { key: 'base_asset_code', label: 'Asset Code', order: 2 },
           { key: 'purchase_price', label: 'Purchase Price', order: 3 },
           { key: 'purchase_date', label: 'Purchase Date', order: 4 },
           { key: 'depreciation_rate', label: 'Depreciation Rate', order: 5 },
@@ -51,14 +51,13 @@ export class ExportProfileRegistry {
         preferredFormat: 'xlsx',
         pageSize: 2000,
         columns: [
-          { key: 'full_asset_code', label: 'Asset Code', order: 1 },
+          { key: 'base_asset_code', label: 'Asset Code', order: 1 },
           { key: 'name', label: 'Asset', order: 2 },
-          { key: 'base_asset_code', label: 'Base Code', order: 3 },
-          { key: 'status_name', label: 'Status', order: 4 },
-          { key: 'location_name', label: 'Location', order: 5 },
-          { key: 'employee_name', label: 'Custodian', order: 6 },
-          { key: 'serial_number', label: 'Serial No', order: 7 },
-          { key: 'barcode', label: 'Barcode', order: 8 },
+          { key: 'status_name', label: 'Status', order: 3 },
+          { key: 'location_name', label: 'Location', order: 4 },
+          { key: 'employee_name', label: 'Custodian', order: 5 },
+          { key: 'serial_number', label: 'Serial No', order: 6 },
+          { key: 'barcode', label: 'Barcode', order: 7 },
         ],
       },
       inventory: {
@@ -89,7 +88,7 @@ export class ExportProfileRegistry {
         preferredFormat: 'pdf',
         pageSize: 1000,
         columns: [
-          { key: 'full_asset_code', label: 'Asset Code', order: 1 },
+          { key: 'base_asset_code', label: 'Asset Code', order: 1 },
           { key: 'name', label: 'Asset', order: 2 },
           { key: 'barcode', label: 'Barcode', order: 3 },
           { key: 'status_name', label: 'Status', order: 4 },

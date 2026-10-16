@@ -144,7 +144,7 @@ export class ReportingRepository implements ReportingPort {
   async getAssetAging(tenantId: string): Promise<AssetAging> {
     const { rows } = await this.db.query<AssetAgingItem>(
       `SELECT
-         a.id, a.name, a.full_asset_code, a.purchase_date,
+         a.id, a.name, a.full_asset_code, a.base_asset_code, a.purchase_date,
          a.purchase_price, a.depreciation_rate, a.useful_life,
          round(EXTRACT(EPOCH FROM (now() - a.purchase_date)) / 31557600, 2) AS age_years,
          s.name AS status_name

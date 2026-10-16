@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { AssetService } from './asset.service';
+import { foldAssetName } from './asset-algorithms';
 import { DATABASE_PORT } from '../core/ports/tokens';
 import { DatabasePort } from '../core/ports/database.port';
 
@@ -13,7 +14,7 @@ export interface AssetImportResult extends AssetImportPreview { imported: number
 interface AssetImportInput {
   row: number; name: string; category_id: string; location_id: string; status_id: string;
   employee_id?: string; model_id?: string; quantity: number; purchase_price?: number;
-  purchase_date?: string; serial_number?: string; barcode?: string; description?: string; notes?: string;
+  purchase_date?: string; serial_number?: string; barcode?: string; description?: string; notes?: string; legacy_code?: string;
   category: string; location: string; status: string;
 }
 
@@ -30,6 +31,7 @@ const HEADER_ALIASES: Record<string, string> = {
   serial_number: 'serial_number', serial: 'serial_number', 'الرقم التسلسلي': 'serial_number',
   barcode: 'barcode', الباركود: 'barcode',
   description: 'description', الوصف: 'description', notes: 'notes', ملاحظات: 'notes',
+  legacy_code: 'legacy_code', 'legacy code': 'legacy_code', 'الكود القديم': 'legacy_code',
 };
 
 function key(value: string): string { return value.trim().replace(/\s+/g, ' ').toLowerCase(); }
@@ -81,7 +83,7 @@ export class AssetImportService {
         await this.assets.create({
           tenant_id: tenantId, name: row.name, category_id: row.category_id, location_id: row.location_id, status_id: row.status_id,
           employee_id: row.employee_id, model_id: row.model_id, quantity: row.quantity, purchase_price: row.purchase_price,
-          purchase_date: row.purchase_date, serial_number: row.serial_number, barcode: row.barcode, description: row.description, notes: row.notes,
+          purchase_date: row.purchase_date, serial_number: row.serial_number, barcode: row.barcode, description: row.description, notes: row.notes, legacy_code: row.legacy_code,
         });
         imported += 1;
       } catch {
@@ -118,7 +120,7 @@ export class AssetImportService {
       this.db.query<{ id: string; name: string }>('SELECT id, name FROM statuses WHERE tenant_id = $1 AND is_active = true', [tenantId]),
       this.db.query<{ id: string; name: string }>('SELECT id, name FROM employees WHERE tenant_id = $1 AND is_active = true', [tenantId]),
       this.db.query<{ id: string; name: string }>('SELECT id, name FROM asset_models WHERE tenant_id = $1 AND is_active = true', [tenantId]),
-      this.db.query<{ name: string; location_id: string }>('SELECT name, location_id FROM assets WHERE tenant_id = $1 AND is_active = true', [tenantId]),
+      this.db.query<{ name: string; location_id: string; category_id: string | null; status_id: string | null; employee_id: string | null; notes: string | null; legacy_code: string | null }>('SELECT name, location_id, category_id, status_id, employee_id, notes, legacy_code FROM assets WHERE tenant_id = $1 AND is_active = true', [tenantId]),
     ]);
     const lookup = (items: Array<{ id: string; name: string }>, includePath = false) => {
       const map = new Map<string, string[]>();
@@ -132,7 +134,11 @@ export class AssetImportService {
       return map;
     };
     const categoryMap = lookup(categories.rows); const locationMap = lookup(locations.rows, true); const statusMap = lookup(statuses.rows); const employeeMap = lookup(employees.rows); const modelMap = lookup(models.rows);
-    const duplicateKeys = new Set(existing.rows.map((asset) => `${key(asset.name)}|${asset.location_id}`));
+    // Same name is fine (one name = one base code); a row is a duplicate only when EVERYTHING that
+    // distinguishes an asset record matches: name, location, type, status, holder, notes and legacy code.
+    const identityKey = (name: string, locationId: string, categoryId: string | null, statusId: string | null, employeeId: string | null, notes: string | null, legacyCode: string | null) =>
+      [foldAssetName(name), locationId, categoryId ?? '', statusId ?? '', employeeId ?? '', foldAssetName(notes), foldAssetName(legacyCode)].join('|');
+    const duplicateKeys = new Set(existing.rows.map((asset) => identityKey(asset.name, asset.location_id, asset.category_id, asset.status_id, asset.employee_id, asset.notes, asset.legacy_code)));
     const fileKeys = new Set<string>();
     const resolve = (map: Map<string, string[]>, value: string, label: string, row: number, required: boolean): string | undefined => {
       if (!value && !required) return undefined;
@@ -166,11 +172,11 @@ export class AssetImportService {
       if (value('purchase_date') && !purchaseDate) errors.push({ row: rowNumber, code: 'IMPORT_DATE_INVALID', message: 'تاريخ الشراء غير صالح.' });
       const employeeId = resolve(employeeMap, value('employee'), 'الموظف', rowNumber, false);
       const modelId = resolve(modelMap, value('model'), 'الموديل', rowNumber, false);
-      const duplicateKey = locationId ? `${key(name)}|${locationId}` : '';
-      if (duplicateKey && (duplicateKeys.has(duplicateKey) || fileKeys.has(duplicateKey))) errors.push({ row: rowNumber, code: 'IMPORT_DUPLICATE', message: 'يوجد أصل نشط بالاسم والموقع نفسيهما.' });
+      const duplicateKey = locationId && categoryId && statusId ? identityKey(name, locationId, categoryId, statusId, employeeId ?? null, value('notes'), value('legacy_code')) : '';
+      if (duplicateKey && (duplicateKeys.has(duplicateKey) || fileKeys.has(duplicateKey))) errors.push({ row: rowNumber, code: 'IMPORT_DUPLICATE', message: 'يوجد أصل نشط مطابق تماماً (الاسم والموقع والنوع والحالة والمستلم والملاحظات والكود القديم).' });
       if (errors.length > before || !categoryId || !locationId || !statusId || quantity === null || purchasePrice === null || !purchaseDate && value('purchase_date')) continue;
       fileKeys.add(duplicateKey);
-      rows.push({ row: rowNumber, name, category_id: categoryId, location_id: locationId, status_id: statusId, employee_id: employeeId, model_id: modelId, quantity, purchase_price: purchasePrice || undefined, purchase_date: purchaseDate, serial_number: value('serial_number') || undefined, barcode: value('barcode') || undefined, description: value('description') || undefined, notes: value('notes') || undefined, category, location, status });
+      rows.push({ row: rowNumber, name, category_id: categoryId, location_id: locationId, status_id: statusId, employee_id: employeeId, model_id: modelId, quantity, purchase_price: purchasePrice || undefined, purchase_date: purchaseDate, serial_number: value('serial_number') || undefined, barcode: value('barcode') || undefined, description: value('description') || undefined, notes: value('notes') || undefined, legacy_code: value('legacy_code') || undefined, category, location, status });
     }
     return { rows, errors, totalRows };
   }

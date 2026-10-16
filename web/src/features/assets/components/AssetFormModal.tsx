@@ -186,11 +186,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
             <p className="text-base font-semibold text-success">{createdAsset.name}</p>
             <p className="mt-1 text-sm text-ink-muted">{t('assetForm.createdDescription')}</p>
           </div>
-          <dl className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-line bg-surface-subtle p-3">
-              <dt className="text-xs font-medium text-ink-muted">{t('assetForm.fullCode')}</dt>
-              <dd className="mt-1 break-all font-mono text-sm font-semibold text-ink">{createdAsset.full_asset_code}</dd>
-            </div>
+          <dl className="grid gap-3">
             <div className="rounded-lg border border-line bg-surface-subtle p-3">
               <dt className="text-xs font-medium text-ink-muted">{t('assetForm.baseCode')}</dt>
               <dd className="mt-1 break-all font-mono text-sm font-semibold text-ink">{createdAsset.base_asset_code}</dd>

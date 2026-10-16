@@ -9,6 +9,8 @@
 assetx-backup-*.json
 *.bak
 StartX.bat
+# Local data reports (contain business data)
+tools/db-cleanup/out/
 
 # OS / editor
 .DS_Store

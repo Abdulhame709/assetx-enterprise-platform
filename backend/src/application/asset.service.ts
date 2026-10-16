@@ -73,14 +73,14 @@ export class AssetService {
     await this.audit.log({
       tenant_id: input.tenant_id, userId: null,
       action: AUDIT_EVENTS.ASSET_CREATED, entity: 'asset', entityId: created.id,
-      metadata: { name: created.name, code: created.full_asset_code },
+      metadata: { name: created.name, code: created.base_asset_code },
     }).catch(() => undefined);
     // Notify: asset created
     this.bus.publish({
       event: DOMAIN_EVENTS.ASSET_CREATED,
       tenant_id: input.tenant_id,
       entityId: created.id,
-      payload: { asset_name: created.name, asset_code: created.full_asset_code },
+      payload: { asset_name: created.name, asset_code: created.base_asset_code },
     });
     return created;
   }

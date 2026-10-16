@@ -92,6 +92,52 @@ export function normalizeText(value: string | null | undefined): string {
     .trim();
 }
 
+const ARABIC_INDIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+const EASTERN_ARABIC_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+
+/**
+ * Identity key of an asset NAME: two names that people would read as "the same
+ * asset" fold to the same key, so they share one base code.
+ * Ignores spaces and punctuation, diacritics/tatweel, hamza forms of alef
+ * (أ إ آ ٱ → ا), ya vs alef maqsura (ى → ي), ta marbuta vs ha (ة → ه),
+ * hamza on waw/ya (ؤ → و, ئ → ي), a lone hamza, Arabic-Indic digits, and case.
+ * It never changes the stored name.
+ */
+export function foldAssetName(value: string | null | undefined): string {
+  return text(value)
+    .normalize('NFKC')
+    .toLocaleLowerCase()
+    .replace(/[٠-٩]/g, (d) => String(ARABIC_INDIC_DIGITS.indexOf(d)))
+    .replace(/[۰-۹]/g, (d) => String(EASTERN_ARABIC_DIGITS.indexOf(d)))
+    .replace(/[ً-ٰٟـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/ؤ/g, 'و')
+    .replace(/ئ/g, 'ي')
+    .replace(/ء/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+/**
+ * One name = one base code. Returns the code already used by this name, or null
+ * when the name is new. When a name still carries several codes (legacy data)
+ * the oldest — lowest — one wins.
+ */
+export function findBaseCodeForName(
+  name: string,
+  existing: Iterable<{ name: string; base_asset_code: string | null }>,
+): string | null {
+  const key = foldAssetName(name);
+  if (!key) return null;
+  let found: string | null = null;
+  for (const row of existing) {
+    if (!row.base_asset_code || foldAssetName(row.name) !== key) continue;
+    if (found === null || row.base_asset_code < found) found = row.base_asset_code;
+  }
+  return found;
+}
+
 export function levenshteinDistance(first: string, second: string): number {
   const a = Array.from(first);
   const b = Array.from(second);

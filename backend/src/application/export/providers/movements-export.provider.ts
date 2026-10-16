@@ -27,8 +27,8 @@ export class MovementsExportProvider implements ExportProvider {
     const lang = options?.meta?.lang === 'en' ? 'en' : 'ar';
     const list = await this.movements.list(tenantId, filters);
     const names = await loadNameMaps(this.db, tenantId);
-    const { rows: assetRows } = await this.db.query<{ id: string; name: string; full_asset_code: string }>(
-      `SELECT id, name, full_asset_code FROM assets WHERE tenant_id = $1`,
+    const { rows: assetRows } = await this.db.query<{ id: string; name: string; base_asset_code: string }>(
+      `SELECT id, name, base_asset_code FROM assets WHERE tenant_id = $1`,
       [tenantId],
     );
     const assetById = new Map(assetRows.map((a) => [a.id, a]));
@@ -37,7 +37,7 @@ export class MovementsExportProvider implements ExportProvider {
       return {
         ...m,
         asset_name: asset?.name ?? '',
-        asset_code: asset?.full_asset_code ?? '',
+        asset_code: asset?.base_asset_code ?? '',
         from_location_name: nameOf(names.locations, m.from_location_id),
         to_location_name: nameOf(names.locations, m.to_location_id),
         from_employee_name: nameOf(names.employees, m.from_employee_id),

@@ -11,7 +11,7 @@ const FIELD_OF: Record<AssetSortKey, string> = {
   name: 'name',
   status: 'status_name',
   employee: 'employee_name',
-  code: 'full_asset_code',
+  code: 'base_asset_code',
   price: 'purchase_price',
 };
 
