@@ -63,6 +63,26 @@ export async function listAdminRoles(): Promise<AdminRole[]> {
   return asArray(raw).map(mapRole).filter((role) => role.id !== '');
 }
 
+export interface NewAdminUser {
+  username: string;
+  email?: string;
+  password: string;
+  role_ids?: string[];
+}
+
+export async function createAdminUser(input: NewAdminUser): Promise<{ id: string; username: string; role_ids: string[] }> {
+  const body: Record<string, unknown> = { username: input.username, password: input.password };
+  if (input.email) body.email = input.email;
+  if (input.role_ids?.length) body.role_ids = input.role_ids;
+  const raw = await http.post<unknown>('/users/admin/users', body);
+  const value = (raw ?? {}) as Record<string, unknown>;
+  return {
+    id: String(value.id ?? ''),
+    username: String(value.username ?? input.username),
+    role_ids: Array.isArray(value.role_ids) ? value.role_ids.map(String) : [],
+  };
+}
+
 export async function updateAdminUserStatus(id: string, isActive: boolean): Promise<Pick<AdminUser, 'id' | 'username' | 'is_active'>> {
   const raw = await http.patch<unknown>(`/users/admin/users/${id}/status`, { is_active: isActive });
   const value = (raw ?? {}) as Record<string, unknown>;
