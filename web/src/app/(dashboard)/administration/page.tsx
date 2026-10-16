@@ -2,12 +2,14 @@
 
 import { intlLocale } from '@/lib/format';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Edit3, RefreshCw, ShieldCheck, UserRound, Users, X } from 'lucide-react';
+import { Check, Edit3, RefreshCw, ShieldCheck, UserPlus, UserRound, Users, Wand2, X } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/states';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { Modal } from '@/components/ui/Modal';
+import { Field, Input } from '@/components/ui/form';
 import { useToast } from '@/components/ui/Toast';
 import { humanError } from '@/lib/api/errors';
 import { PERMISSIONS } from '@/lib/auth/permissions';
@@ -16,11 +18,26 @@ import { useI18n } from '@/lib/i18n';
 import {
   AdminRole,
   AdminUser,
+  createAdminUser,
   listAdminRoles,
   listAdminUsers,
   replaceAdminUserRoles,
   updateAdminUserStatus,
 } from '@/features/admin/api';
+
+const PASSWORD_ALPHABET = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const DIGITS = '23456789';
+
+/** Random 14-character password (letters + at least two digits), no look-alike characters. */
+function generatePassword(): string {
+  const pick = (alphabet: string, count: number) => {
+    const bytes = crypto.getRandomValues(new Uint32Array(count));
+    return Array.from(bytes, (b) => alphabet[b % alphabet.length]);
+  };
+  const chars = [...pick(PASSWORD_ALPHABET, 12), ...pick(DIGITS, 2)];
+  const order = crypto.getRandomValues(new Uint32Array(chars.length));
+  return chars.map((c, i) => [order[i], c] as const).sort((a, b) => a[0] - b[0]).map(([, c]) => c).join('');
+}
 
 export default function AdministrationPage() {
   const { session, can } = useSession();
@@ -38,6 +55,13 @@ export default function AdministrationPage() {
   const [draftRoleIds, setDraftRoleIds] = useState<string[]>([]);
   const [savingRolesFor, setSavingRolesFor] = useState<string | null>(null);
   const [updatingStatusFor, setUpdatingStatusFor] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [newRoleIds, setNewRoleIds] = useState<string[]>([]);
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!canManageUsers && !canManageRoles) {
@@ -94,6 +118,33 @@ export default function AdministrationPage() {
     }
   };
 
+  const openAdd = () => {
+    setNewUsername('');
+    setNewEmail('');
+    setNewPassword('');
+    setNewRoleIds([]);
+    setCreateError(null);
+    setAddOpen(true);
+  };
+
+  const submitNewUser = async () => {
+    const username = newUsername.trim();
+    if (username.length < 3) { setCreateError(t('module.adminUsernameRule')); return; }
+    if (newPassword.length < 10 || !/\p{L}/u.test(newPassword) || !/\d/.test(newPassword)) { setCreateError(t('module.adminPasswordHint')); return; }
+    setCreating(true);
+    setCreateError(null);
+    try {
+      await createAdminUser({ username, email: newEmail.trim() || undefined, password: newPassword, role_ids: newRoleIds });
+      setAddOpen(false);
+      toast.success(t('module.adminUserCreated'), username);
+      await load();
+    } catch (err) {
+      setCreateError(humanError(err, t('module.adminUserCreateFailed'), locale));
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const toggleUserStatus = async (user: AdminUser) => {
     const nextStatus = !user.is_active;
     const approved = await confirm({
@@ -120,7 +171,12 @@ export default function AdministrationPage() {
       <PageHeader
         title={t('nav.administrationPage')}
         subtitle={t('module.adminSubtitle')}
-        actions={<Button variant="secondary" size="sm" onClick={() => void load()} loading={loading}><RefreshCw className="h-4 w-4" aria-hidden="true" />{t('common.refresh')}</Button>}
+        actions={
+          <>
+            {canManageUsers && <Button variant="primary" size="sm" onClick={openAdd}><UserPlus className="h-4 w-4" aria-hidden="true" />{t('module.adminAddUser')}</Button>}
+            <Button variant="secondary" size="sm" onClick={() => void load()} loading={loading}><RefreshCw className="h-4 w-4" aria-hidden="true" />{t('common.refresh')}</Button>
+          </>
+        }
       />
 
       {!session || (!canManageUsers && !canManageRoles) ? (
@@ -206,6 +262,47 @@ export default function AdministrationPage() {
           </div>
         </>
       )}
+      <Modal
+        open={addOpen}
+        onClose={() => { if (!creating) setAddOpen(false); }}
+        title={t('module.adminAddUserTitle')}
+        footer={
+          <>
+            <Button variant="ghost" size="sm" onClick={() => setAddOpen(false)} disabled={creating}>{t('common.cancel')}</Button>
+            <Button variant="primary" size="sm" loading={creating} onClick={() => void submitNewUser()}><UserPlus className="h-3.5 w-3.5" aria-hidden="true" />{t('module.adminCreateUser')}</Button>
+          </>
+        }
+      >
+        <form className="space-y-3" autoComplete="off" onSubmit={(event) => { event.preventDefault(); void submitNewUser(); }}>
+          <Field label={t('module.adminUsername')} hint={t('module.adminUsernameRule')}>
+            <Input value={newUsername} onChange={(event) => setNewUsername(event.target.value)} aria-label={t('module.adminUsername')} dir="ltr" autoComplete="off" maxLength={100} />
+          </Field>
+          <Field label={t('module.adminEmail')}>
+            <Input type="email" value={newEmail} onChange={(event) => setNewEmail(event.target.value)} aria-label={t('module.adminEmail')} dir="ltr" autoComplete="off" maxLength={254} />
+          </Field>
+          <Field label={t('module.adminPassword')} hint={t('module.adminPasswordHint')}>
+            <div className="flex gap-2">
+              <Input value={newPassword} onChange={(event) => setNewPassword(event.target.value)} aria-label={t('module.adminPassword')} dir="ltr" autoComplete="new-password" maxLength={128} className="flex-1" />
+              <Button type="button" variant="secondary" size="sm" onClick={() => setNewPassword(generatePassword())}><Wand2 className="h-3.5 w-3.5" aria-hidden="true" />{t('module.adminGeneratePassword')}</Button>
+            </div>
+          </Field>
+          {canManageRoles && roles.length > 0 && (
+            <div>
+              <p className="ax-label mb-1">{t('module.adminRolesOptional')}</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {roles.map((role) => (
+                  <label key={role.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm text-ink hover:bg-surface-muted">
+                    <input type="checkbox" checked={newRoleIds.includes(role.id)} onChange={() => setNewRoleIds((current) => current.includes(role.id) ? current.filter((id) => id !== role.id) : [...current, role.id])} className="h-4 w-4 accent-brand" />
+                    <span>{label(role.name)}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          {createError && <p role="alert" className="text-sm text-danger">{createError}</p>}
+          <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+        </form>
+      </Modal>
     </div>
   );
 }
