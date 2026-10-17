@@ -5,7 +5,7 @@ import { Play, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/states';
-import { Field, Input } from '@/components/ui/form';
+import { Field, Input, Select } from '@/components/ui/form';
 import { Modal } from '@/components/ui/Modal';
 import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
@@ -123,17 +123,17 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
     <Modal open onClose={onClose} title={t('maintenance.createTitle').replace('{name}', assetName)} size="md">
       <form onSubmit={submit} className="space-y-4">
         <Field label={t('maintenance.type')}>
-          <select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="ax-select w-full py-2">
+          <Select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="w-full py-2">
             <option value="preventive">{t('maintenance.type.preventive')}</option>
             <option value="corrective">{t('maintenance.corrective')}</option>
-          </select>
+          </Select>
         </Field>
         <Field label={t('maintenance.technician')}><Input value={technician} onChange={(event) => setTechnician(event.target.value)} /></Field>
         <Field label={t('maintenance.technicianContact')}><Input value={technicianContact} onChange={(event) => setTechnicianContact(event.target.value)} /></Field>
         <Field label={t('maintenance.priority')}>
-          <select value={priority} onChange={(event) => setPriority(event.target.value as MaintenancePriority)} className="ax-select w-full py-2">
+          <Select value={priority} onChange={(event) => setPriority(event.target.value as MaintenancePriority)} className="w-full py-2">
             {(['low', 'medium', 'high', 'critical'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.priority.${value}`)}</option>)}
-          </select>
+          </Select>
         </Field>
         <Field label={t('maintenance.dueDate')}><Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /></Field>
         {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
