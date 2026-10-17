@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { Play, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/states';
 import { Field, Input, Select } from '@/components/ui/form';
@@ -55,7 +56,7 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
           <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> {t('maintenance.create')}</Button>
         )}
       </div>
-      {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       {orders.length === 0 ? (
         <EmptyState title={t('maintenance.emptyTitle')} description={assetId ? t('maintenance.emptyAsset') : t('maintenance.emptyAll')} />
       ) : (
@@ -136,7 +137,7 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
           </Select>
         </Field>
         <Field label={t('maintenance.dueDate')}><Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /></Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" size="sm" loading={saving}>{t('maintenance.create')}</Button></div>
       </form>
     </Modal>
@@ -164,7 +165,7 @@ function CompleteMaintenanceOrderModal({ order, onClose, onCompleted }: { order:
         <Field label={t('maintenance.endDate')}><Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></Field>
         <Field label={t('maintenance.cost')}><Input type="number" min="0" step="0.01" value={cost} onChange={(event) => setCost(event.target.value)} /></Field>
         <Field label={t('maintenance.dueDate')}><Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /></Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" size="sm" loading={saving}>{t('maintenance.complete')}</Button></div>
       </form>
     </Modal>

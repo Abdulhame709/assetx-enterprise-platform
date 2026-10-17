@@ -1,5 +1,6 @@
 'use client';
 import { MetricCard } from '@/components/ui/MetricCard';
+import { Alert } from '@/components/ui/Alert';
 
 import { intlLocale } from '@/lib/format';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
@@ -155,7 +156,7 @@ function ModelFormModal({ model, categories, onClose, onSaved }: { model: Refere
         <Field label={t('models.category')} hint={t('models.categoryHint')}>
           <SearchableSelect options={categories} value={categoryId} onChange={setCategoryId} placeholder={t('models.chooseCategory')} clearable />
         </Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
           <Button type="submit" size="sm" loading={saving}>{model ? t('models.save') : t('models.create')}</Button>

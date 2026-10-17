@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/form';
 import { humanError } from '@/lib/api/errors';
@@ -57,7 +58,7 @@ export function EmployeeFormModal({ open, employee, onClose, onSaved }: Props) {
       <Field label={t('employees.department')}><Input value={department} onChange={(event) => setDepartment(event.target.value)} /></Field>
       <Field label={t('employees.phone')}><Input value={phone} onChange={(event) => setPhone(event.target.value)} /></Field>
       <Field label={t('employees.email')}><Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} /></Field>
-      {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" variant="primary" size="sm" loading={saving}>{t('assetForm.save')}</Button></div>
     </form>
   </Modal>;
