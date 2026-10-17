@@ -16,6 +16,7 @@ import { AssetDetail, AssetSummary } from '@/features/assets/types';
 import { useToast } from '@/components/ui/Toast';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { deleteAsset, disposeAsset, downloadAssetExport, getAsset, getCategories } from '@/features/assets/api';
 import { printReportExport } from '@/features/reports/api';
 import { getLocationsTree } from '@/features/assets/components/reference-selects';
@@ -341,7 +342,7 @@ function AssetListItem({ asset, active, checked, statusName, tone, onOpen, onTog
   return (
     <div className={`group mb-1 rounded-lg border p-2 transition-colors ${active ? 'border-brand bg-brand-soft/45' : 'border-transparent hover:border-line hover:bg-surface-muted'}`}>
       <div className="flex items-start gap-2">
-        <input type="checkbox" aria-label={asset.name} checked={checked} onChange={onToggle} className="mt-1 h-4 w-4 rounded border-line text-brand focus:ring-brand" />
+        <Checkbox aria-label={asset.name} checked={checked} onChange={onToggle} className="mt-1" />
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-start outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
           <div className="flex items-start justify-between gap-2"><span className="truncate text-sm font-semibold text-ink">{asset.name}</span><Badge tone={tone}>{statusName}</Badge></div>
           <p className="mt-1 truncate text-xs font-medium text-brand">{asset.base_asset_code}</p>

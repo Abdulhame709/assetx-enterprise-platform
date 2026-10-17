@@ -19,6 +19,7 @@ import { getEmployees, getStatuses } from '@/features/reference/api';
 import { SearchableSelect, SelectOption } from '@/components/ui/SearchableSelect';
 import { createReportTemplate, deleteReportTemplate, listReportTemplates, ReportTemplateRecord } from '@/features/reports/templates-api';
 import { Field, Input, Select } from '@/components/ui/form';
+import { Switch } from '@/components/ui/Switch';
 import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
 import { useCan, useSession } from '@/lib/auth/session-context';
 import type { AnalyticsBucket, LifecycleDistributionBucket } from '@/features/assets/types';
@@ -313,14 +314,16 @@ function ReportPreviewCard({ state, onRetry }: { state: PreviewState; onRetry: (
 function PreviewTable({ data }: { data: ReportPreview }) {
   const { t } = useI18n();
   const detail = data.rows.filter((row) => !isBandRow(row)).length;
+  const numericColumns = useMemo(() => numericColumnKeys(data), [data]);
   if (data.rows.length === 0) return <p className="rounded-lg bg-surface-muted/50 px-3 py-4 text-sm text-ink-muted">{t('rc.empty')}</p>;
   return (
     <>
       <p className="text-xs text-ink-faint">{detail} {t('rc.of')} {data.total} {t('rc.rows')}</p>
       <div className="max-h-[32rem] overflow-auto rounded-lg border border-line">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-muted text-xs text-ink-muted">
-            <tr>{data.columns.map((column) => <th key={column.key} className="whitespace-nowrap px-3 py-2 text-start font-semibold">{column.label}</th>)}</tr>
+          <caption className="sr-only">{data.title}</caption>
+          <thead className="sticky top-0 z-10 bg-surface-muted text-xs text-ink-muted shadow-[inset_0_-1px_0_rgb(0_0_0/0.1)]">
+            <tr>{data.columns.map((column) => <th key={column.key} scope="col" className={`whitespace-nowrap px-3 py-2 font-semibold ${numericColumns.has(column.key) ? 'text-end' : 'text-start'}`}>{column.label}</th>)}</tr>
           </thead>
           <tbody className="divide-y divide-line">
             {data.rows.map((row, index) => isBandRow(row) ? (
@@ -330,8 +333,8 @@ function PreviewTable({ data }: { data: ReportPreview }) {
                 </td>
               </tr>
             ) : (
-              <tr key={index}>
-                {data.columns.map((column) => <td key={column.key} className="whitespace-nowrap px-3 py-1.5 text-ink">{cellText(row[column.key])}</td>)}
+              <tr key={index} className="transition-colors hover:bg-surface-muted/50">
+                {data.columns.map((column) => <PreviewCell key={column.key} value={row[column.key]} numeric={numericColumns.has(column.key)} />)}
               </tr>
             ))}
           </tbody>
@@ -343,9 +346,38 @@ function PreviewTable({ data }: { data: ReportPreview }) {
 }
 
 /** Empty values show "-" so a blank never looks like a missing cell. */
-function cellText(value: unknown): string {
-  if (value === null || value === undefined || value === '') return '-';
-  return String(value);
+function isEmptyCell(value: unknown): boolean {
+  return value === null || value === undefined || value === '';
+}
+
+function isNumericValue(value: unknown): boolean {
+  if (typeof value === 'number') return Number.isFinite(value);
+  return typeof value === 'string' && /^-?\d[\d,]*(\.\d+)?$/.test(value.trim());
+}
+
+/** A column is numeric when every non-empty detail value is a number (codes such as 2026-1537 are not). */
+function numericColumnKeys(data: ReportPreview): Set<string> {
+  const keys = new Set<string>();
+  for (const column of data.columns) {
+    let seen = 0;
+    let allNumeric = true;
+    for (const row of data.rows) {
+      if (isBandRow(row)) continue;
+      const value = row[column.key];
+      if (isEmptyCell(value)) continue;
+      seen += 1;
+      if (!isNumericValue(value)) { allNumeric = false; break; }
+    }
+    if (allNumeric && seen > 0) keys.add(column.key);
+  }
+  return keys;
+}
+
+/** Numbers align to the column end with equal-width digits; mixed Arabic/Latin text (codes, names) isolates its own direction. */
+function PreviewCell({ value, numeric }: { value: unknown; numeric: boolean }) {
+  if (isEmptyCell(value)) return <td className="whitespace-nowrap px-3 py-1.5 text-ink-faint">-</td>;
+  if (numeric) return <td className="whitespace-nowrap px-3 py-1.5 text-end tabular-nums text-ink">{String(value)}</td>;
+  return <td className="whitespace-nowrap px-3 py-1.5 text-ink"><bdi dir="auto">{String(value)}</bdi></td>;
 }
 
 export default function ReportsPage() {
@@ -839,13 +871,13 @@ export default function ReportsPage() {
                         )}
                       </div>
                       {has('group') && (
-                        <label className="flex items-start gap-2 text-sm text-ink">
-                          <input type="checkbox" className="mt-1" checked={groupByLocation} disabled={grouping.length > 0} onChange={(event) => setFilter('group', event.target.checked)} />
-                          <span>
-                            {t('rc.f.groupByLocation')}
-                            <span className="block text-xs text-ink-faint">{grouping.length > 0 ? t('rc.f.groupDisabled') : t('rc.f.groupByLocationHint')}</span>
-                          </span>
-                        </label>
+                        <Switch
+                          checked={groupByLocation}
+                          disabled={grouping.length > 0}
+                          onChange={(next) => setFilter('group', next)}
+                          label={t('rc.f.groupByLocation')}
+                          description={grouping.length > 0 ? t('rc.f.groupDisabled') : t('rc.f.groupByLocationHint')}
+                        />
                       )}
                     </div>
                   )}
@@ -1059,10 +1091,9 @@ export default function ReportsPage() {
                           <Field label={t('module.reportsTemplateDescription')}>
                             <Input value={templateDescription} onChange={(event) => setTemplateDescription(event.target.value)} aria-label={t('module.reportsTemplateDescription')} />
                           </Field>
-                          <label className="flex items-center gap-2 self-end rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink">
-                            <input type="checkbox" checked={templateShared} onChange={(event) => setTemplateShared(event.target.checked)} />
-                            <span>{t('module.reportsTemplateShared')}</span>
-                          </label>
+                          <div className="self-end rounded-lg border border-line bg-surface px-3 py-2">
+                            <Switch checked={templateShared} onChange={setTemplateShared} label={t('module.reportsTemplateShared')} />
+                          </div>
                           <Button variant="primary" size="sm" className="self-end" loading={templateSaving} onClick={() => void saveTemplate()}><Save className="h-4 w-4" />{t('module.reportsSaveTemplate')}</Button>
                         </div>
                       )}

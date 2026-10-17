@@ -10,6 +10,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { Modal } from '@/components/ui/Modal';
 import { Field, Input } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useToast } from '@/components/ui/Toast';
 import { humanError } from '@/lib/api/errors';
 import { PERMISSIONS } from '@/lib/auth/permissions';
@@ -221,10 +222,7 @@ export default function AdministrationPage() {
                               <p className="mb-2 text-xs font-semibold text-ink">{t('module.adminChooseRoles')}</p>
                               <div className="grid gap-2 sm:grid-cols-2">
                                 {roles.map((role) => (
-                                  <label key={role.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm text-ink hover:bg-surface-muted">
-                                    <input type="checkbox" checked={draftRoleIds.includes(role.id)} onChange={() => toggleDraftRole(role.id)} className="h-4 w-4 accent-brand" />
-                                    <span>{label(role.name)}</span>
-                                  </label>
+                                  <Checkbox key={role.id} variant="card" checked={draftRoleIds.includes(role.id)} onChange={() => toggleDraftRole(role.id)} label={label(role.name)} />
                                 ))}
                               </div>
                               <div className="mt-3 flex justify-end gap-2">
@@ -291,10 +289,7 @@ export default function AdministrationPage() {
               <p className="ax-label mb-1">{t('module.adminRolesOptional')}</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {roles.map((role) => (
-                  <label key={role.id} className="flex cursor-pointer items-center gap-2 rounded-lg border border-line bg-surface-raised px-3 py-2 text-sm text-ink hover:bg-surface-muted">
-                    <input type="checkbox" checked={newRoleIds.includes(role.id)} onChange={() => setNewRoleIds((current) => current.includes(role.id) ? current.filter((id) => id !== role.id) : [...current, role.id])} className="h-4 w-4 accent-brand" />
-                    <span>{label(role.name)}</span>
-                  </label>
+                  <Checkbox key={role.id} variant="card" checked={newRoleIds.includes(role.id)} onChange={() => setNewRoleIds((current) => current.includes(role.id) ? current.filter((id) => id !== role.id) : [...current, role.id])} label={label(role.name)} />
                 ))}
               </div>
             </div>

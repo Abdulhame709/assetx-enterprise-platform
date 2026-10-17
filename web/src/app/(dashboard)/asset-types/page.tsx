@@ -13,7 +13,7 @@ import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { Field, Input } from '@/components/ui/form';
+import { Field, Input, Select } from '@/components/ui/form';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/states';
 import { PermissionGate } from '@/components/auth/PermissionGate';
 import { PERMISSIONS } from '@/lib/auth/permissions';
@@ -303,12 +303,12 @@ function AssetTypeModal({
         </Field>
         {mode === 'edit' && (
           <Field label={t('assetTypes.parent')} hint={t('assetTypes.parentHint')}>
-            <select value={parentId} onChange={(e) => setParentId(e.target.value)} className="ax-select">
+            <Select value={parentId} onChange={(e) => setParentId(e.target.value)}>
               <option value="">{t('assetTypes.rootParent')}</option>
               {parentOptions.map((option) => (
                 <option key={option.id} value={option.id}>{option.full_path}</option>
               ))}
-            </select>
+            </Select>
           </Field>
         )}
         {error && <p className="text-sm text-danger">{error}</p>}

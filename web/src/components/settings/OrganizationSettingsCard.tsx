@@ -5,6 +5,7 @@ import { ImageUp, Trash2 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useToast } from '@/components/ui/Toast';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { useI18n } from '@/lib/i18n';
@@ -124,19 +125,13 @@ function OrganizationForm({ initial }: { initial: OrganizationSettings }) {
 
       <div className="space-y-3">
         <p className="ax-label">{t('org.options')}</p>
-        <label className="flex items-start gap-2 text-sm text-ink">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={signatures}
-            disabled={!canEdit || busy}
-            onChange={(e) => setSignatures(e.target.checked)}
-          />
-          <span>
-            {t('org.signatures')}
-            <span className="block text-xs text-ink-faint">{t('org.signaturesHint')}</span>
-          </span>
-        </label>
+        <Checkbox
+          checked={signatures}
+          disabled={!canEdit || busy}
+          onChange={(e) => setSignatures(e.target.checked)}
+          label={t('org.signatures')}
+          description={t('org.signaturesHint')}
+        />
         <Field label={t('org.orientation')}>
           <Select value={orientation} disabled={!canEdit || busy} onChange={(e) => setOrientation(e.target.value as ReportOrientation)}>
             <option value="auto">{t('org.orientationAuto')}</option>
