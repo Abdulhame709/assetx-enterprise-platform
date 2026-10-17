@@ -296,7 +296,7 @@ export default function InventoryCyclePage() {
                         return (
                           <div key={suggestion.record_id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/5 px-3 py-2">
                             <div className="min-w-0">
-                              <p className="font-medium text-ink">{suggestion.asset_name} <span className="font-mono text-xs text-ink-faint">{suggestion.asset_code}</span></p>
+                              <p className="font-medium text-ink"><bdi dir="auto">{suggestion.asset_name}</bdi> <bdi dir="auto" className="font-mono text-xs text-ink-faint">{suggestion.asset_code}</bdi></p>
                               <p className="text-xs text-ink-muted">{suggestion.expected_location ?? '—'} ← {suggestion.actual_location ?? '—'} · {reasons.join(' ')}</p>
                             </div>
                             <div className="flex items-center gap-2">

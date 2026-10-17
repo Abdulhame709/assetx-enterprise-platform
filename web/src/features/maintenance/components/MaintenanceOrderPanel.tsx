@@ -75,8 +75,8 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
             <tbody className="divide-y divide-line bg-surface">
               {orders.map((order) => (
                 <tr key={order.id}>
-                  {!assetId && <td className="px-3 py-3 text-ink"><div>{order.asset_name ?? '—'}</div><div className="text-xs text-ink-muted">{order.asset_code ?? ''}</div></td>}
-                  <td className="px-3 py-3 font-mono text-xs text-ink">{order.maintenance_code ?? '—'}</td>
+                  {!assetId && <td className="px-3 py-3 text-ink"><div><bdi dir="auto">{order.asset_name ?? '—'}</bdi></div><div className="text-xs text-ink-muted"><bdi dir="auto">{order.asset_code ?? ''}</bdi></div></td>}
+                  <td className="px-3 py-3 font-mono text-xs text-ink"><bdi dir="auto">{order.maintenance_code ?? '—'}</bdi></td>
                   <td className="px-3 py-3 text-ink">{order.maintenance_type ? (maintenanceTypeKey[order.maintenance_type] ? t(maintenanceTypeKey[order.maintenance_type]) : order.maintenance_type) : t('maintenance.corrective')}</td>
                   <td className="px-3 py-3"><Badge tone={order.priority === 'critical' || order.priority === 'high' ? 'danger' : 'neutral'}>{t(`maintenance.priority.${order.priority ?? 'medium'}`)}</Badge></td>
                   <td className="px-3 py-3"><Badge tone={statusTone[order.workflow_status]}>{t(`maintenance.status.${order.workflow_status}`)}</Badge></td>

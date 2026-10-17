@@ -65,7 +65,7 @@ export default function AssetDetailPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h1 className="text-xl font-semibold text-ink">{detail.name}</h1>
-                    <Badge tone="neutral">{detail.base_asset_code}</Badge>
+                    <Badge tone="neutral"><bdi dir="auto">{detail.base_asset_code}</bdi></Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-muted">
                     <Meta label={t('assetDetail.category')} value={detail._categoryName ?? '—'} />
@@ -310,7 +310,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line py-1.5 text-sm">
       <span className="text-ink-muted">{label}</span>
-      <span className="text-end text-ink">{value}</span>
+      <span className="text-end text-ink"><bdi dir="auto">{value}</bdi></span>
     </div>
   );
 }
