@@ -20,6 +20,7 @@ import { SearchableSelect, SelectOption } from '@/components/ui/SearchableSelect
 import { createReportTemplate, deleteReportTemplate, listReportTemplates, ReportTemplateRecord } from '@/features/reports/templates-api';
 import { Field, Input, Select } from '@/components/ui/form';
 import { Switch } from '@/components/ui/Switch';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { PERMISSIONS, PermissionKey } from '@/lib/auth/permissions';
 import { useCan, useSession } from '@/lib/auth/session-context';
 import type { AnalyticsBucket, LifecycleDistributionBucket } from '@/features/assets/types';
@@ -383,6 +384,7 @@ function PreviewCell({ value, numeric }: { value: unknown; numeric: boolean }) {
 export default function ReportsPage() {
   const state = useAnalytics();
   const toast = useToast();
+  const { confirm } = useConfirm();
   const { t, locale, label } = useI18n();
   const can = useCan();
   const { session } = useSession();
@@ -621,7 +623,13 @@ export default function ReportsPage() {
 
   const removeTemplate = async (template: ReportTemplateRecord) => {
     if (!canDeleteTemplates || template.created_by !== session?.user.id) return;
-    if (!window.confirm(`${t('module.reportsDeleteTemplate')}: ${template.name}?`)) return;
+    const ok = await confirm({
+      title: t('module.reportsDeleteTemplate'),
+      message: template.name,
+      tone: 'danger',
+      confirmLabel: t('common.delete'),
+    });
+    if (!ok) return;
     setTemplateDeleting(template.id);
     try {
       await deleteReportTemplate(template.id);

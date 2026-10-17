@@ -1,9 +1,9 @@
 'use client';
 
-import { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { Children, InputHTMLAttributes, ReactElement, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes, cloneElement, isValidElement, useId } from 'react';
 import { cn } from '@/lib/cn';
 
-/** Field wrapper — label + hint + control + error. */
+/** Field wrapper — label + hint + control + error. A single control child is linked to the label, hint and error automatically. */
 export function Field({
   label,
   hint,
@@ -17,11 +17,23 @@ export function Field({
   children: ReactNode;
   className?: string;
 }) {
+  const autoId = useId();
+  const only = Children.count(children) === 1 && isValidElement(children) ? (children as ReactElement<{ id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>) : null;
+  const controlId = only?.props.id ?? autoId;
+  const noteId = `${controlId}-note`;
+  const hasNote = Boolean(error || hint);
+  const control = only
+    ? cloneElement(only, {
+        id: controlId,
+        'aria-describedby': [only.props['aria-describedby'], hasNote ? noteId : null].filter(Boolean).join(' ') || undefined,
+        'aria-invalid': error ? true : only.props['aria-invalid'],
+      })
+    : children;
   return (
     <div className={cn('space-y-1', className)}>
-      {label && <label className="ax-label">{label}</label>}
-      {children}
-      {error ? <p className="text-xs text-danger">{error}</p> : hint ? <p className="text-xs text-ink-faint">{hint}</p> : null}
+      {label && <label className="ax-label" htmlFor={only ? controlId : undefined}>{label}</label>}
+      {control}
+      {error ? <p id={noteId} role="alert" className="text-xs text-danger">{error}</p> : hint ? <p id={noteId} className="text-xs text-ink-faint">{hint}</p> : null}
     </div>
   );
 }

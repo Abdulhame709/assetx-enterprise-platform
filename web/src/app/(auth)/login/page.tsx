@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Boxes, Languages } from 'lucide-react';
+import { Alert } from '@/components/ui/Alert';
 import { Card } from '@/components/ui/Card';
 import { Field, Input } from '@/components/ui/form';
 import { Button } from '@/components/ui/Button';
@@ -41,7 +42,7 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink-muted hover:bg-surface-muted hover:text-ink"
+          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           aria-label={t('login.language')}
         >
           <Languages className="h-4 w-4" aria-hidden />
@@ -63,7 +64,7 @@ export default function LoginPage() {
         <Field label={t('login.password')}>
           <Input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
         </Field>
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>
           {t('login.signIn')}
         </Button>
