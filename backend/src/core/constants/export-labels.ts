@@ -17,6 +17,12 @@ export const RESOURCE_TITLES: Record<ExportResource, Record<ReportLang, string>>
   'asset-types': { ar: 'تقرير أنواع الأصول', en: 'Asset Types Report' },
   duplicates: { ar: 'تقرير الأصول المكررة والمتشابهة', en: 'Duplicate & Similar Assets Report' },
   'inventory-form': { ar: 'نموذج الجرد الميداني', en: 'Field Inventory Form' },
+  'dq-duplicate-ids': { ar: 'جودة البيانات: أرقام تسلسلية وباركودات مكررة', en: 'Data quality: Duplicate serial numbers & barcodes' },
+  'dq-missing-fields': { ar: 'جودة البيانات: أصول ببيانات ناقصة', en: 'Data quality: Assets with missing details' },
+  'dq-naming': { ar: 'جودة البيانات: تعارض الأسماء والرموز', en: 'Data quality: Name and code conflicts' },
+  'dq-anomalies': { ar: 'جودة البيانات: كميات وأسعار وتواريخ شاذة', en: 'Data quality: Quantity, price and date anomalies' },
+  'dq-stale': { ar: 'جودة البيانات: أصول لم يتم التحقق منها', en: 'Data quality: Stale / unverified assets' },
+  'dq-movements': { ar: 'جودة البيانات: حركات مشبوهة', en: 'Data quality: Suspicious movements' },
 };
 
 export const PROFILE_NAMES: Record<string, Record<ReportLang, string>> = {
@@ -109,6 +115,11 @@ export const COLUMN_LABELS: Record<string, Record<ReportLang, string>> = {
   group_no: { ar: 'المجموعة', en: 'Group' },
   actual_status: { ar: 'الحالة الفعلية', en: 'Actual status' },
   checked: { ar: 'تم الجرد', en: 'Checked' },
+  // data quality
+  issue: { ar: 'المشكلة', en: 'Issue' },
+  last_seen: { ar: 'آخر ظهور', en: 'Last seen' },
+  last_seen_source: { ar: 'مصدر آخر ظهور', en: 'Seen via' },
+  days_since: { ar: 'عدد الأيام', en: 'Days' },
 };
 
 /**
@@ -136,7 +147,7 @@ export const BLANK_FORM_KEYS = new Set(['actual_quantity', 'actual_status', 'che
 export const MONEY_KEYS = new Set(['purchase_price', 'sum', 'avg', 'min', 'max', 'total_value']);
 export const NUMERIC_KEYS = new Set([
   ...MONEY_KEYS, 'quantity', 'expected_quantity', 'actual_quantity', 'count', 'depreciation_rate', 'useful_life',
-  'direct_count', 'total_count', 'assets_count', 'total_quantity', 'level',
+  'direct_count', 'total_count', 'assets_count', 'total_quantity', 'level', 'days_since',
 ]);
 
 /** Fixed texts printed by the report generators (PDF / Excel). */

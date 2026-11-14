@@ -5,8 +5,40 @@ import { filenameFromDisposition } from '@/lib/download';
 export type ReportResource = 'assets' | 'movements' | 'inventory' | 'audit' | 'dashboard';
 export type ReportFormat = 'csv' | 'xlsx' | 'pdf';
 
+/** Data-quality reports: each one lists assets or movements that look like input mistakes. */
+export const DATA_QUALITY_RESOURCES = [
+  'dq-duplicate-ids',
+  'dq-missing-fields',
+  'dq-naming',
+  'dq-anomalies',
+  'dq-stale',
+  'dq-movements',
+] as const;
+export type DataQualityResource = (typeof DATA_QUALITY_RESOURCES)[number];
+
+export function isDataQualityResource(value: string): value is DataQualityResource {
+  return (DATA_QUALITY_RESOURCES as readonly string[]).includes(value);
+}
+
+/** Number of problems found by each data-quality check. */
+export type DataQualitySummary = Record<DataQualityResource, number>;
+
+export async function getDataQualitySummary(opts: { staleDays?: number; movementDays?: number } = {}): Promise<DataQualitySummary> {
+  const params = new URLSearchParams();
+  if (opts.staleDays) params.set('stale_days', String(opts.staleDays));
+  if (opts.movementDays) params.set('movement_days', String(opts.movementDays));
+  const qs = params.toString();
+  return http.get<DataQualitySummary>(`/exports/data-quality/summary${qs ? `?${qs}` : ''}`);
+}
+
 /** Reports of the Report Center (asset-derived, filterable, viewable and printable). */
-export type ReportCenterResource = 'assets' | 'asset-locations' | 'asset-types' | 'duplicates' | 'inventory-form';
+export type ReportCenterResource =
+  | 'assets'
+  | 'asset-locations'
+  | 'asset-types'
+  | 'duplicates'
+  | 'inventory-form'
+  | DataQualityResource;
 export type AnyReportResource = ReportResource | ReportCenterResource;
 
 export type AssetSortKey = 'location' | 'category' | 'name' | 'status' | 'employee' | 'code' | 'price';
@@ -25,6 +57,8 @@ export interface ReportFilters {
   sort_by?: AssetSortKey;
   sort_dir?: 'asc' | 'desc';
   blank_rows?: number;
+  /** Look-back period in days (stale assets: not seen for; suspicious movements: window). */
+  days?: number;
   /** 'location': main location, its sub-locations and the assets in each, as nested bands. */
   group_by?: 'location';
 }

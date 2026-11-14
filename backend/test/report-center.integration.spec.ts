@@ -181,7 +181,7 @@ describe('Report center — integration', () => {
     });
 
     it('type / status / employee filters add the location name and the filtered column', async () => {
-      const ctrl = new ExportController(h.exportService, meta) as unknown as {
+      const ctrl = new ExportController(h.exportService, meta, h.dataQuality) as unknown as {
         withFilterColumns(c: ExportColumn[] | undefined, g: unknown, f: Row): ExportColumn[] | undefined;
       };
       const base: ExportColumn[] = [{ key: 'name', label: 'x', order: 1 }];
