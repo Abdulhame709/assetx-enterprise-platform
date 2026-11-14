@@ -46,6 +46,45 @@ export const REPORT_CATALOG: Partial<Record<ExportResource, ReportCatalogEntry>>
       'actual_quantity', 'actual_status', 'checked', 'notes',
     ],
   },
+  'dq-duplicate-ids': {
+    columns: [
+      'group_no', 'issue', 'base_asset_code', 'name', 'serial_number', 'barcode', 'category_name', 'location_name',
+      'employee_name', 'status_name', 'purchase_price',
+    ],
+    defaults: ['group_no', 'issue', 'base_asset_code', 'name', 'serial_number', 'barcode', 'category_name', 'location_name'],
+  },
+  'dq-missing-fields': {
+    columns: [
+      'issue', 'base_asset_code', 'name', 'category_name', 'location_name', 'status_name', 'employee_name',
+      'purchase_price', 'purchase_date',
+    ],
+    defaults: ['issue', 'base_asset_code', 'name', 'category_name', 'location_name', 'status_name', 'employee_name'],
+  },
+  'dq-naming': {
+    columns: ['group_no', 'issue', 'base_asset_code', 'name', 'category_name', 'location_name', 'status_name'],
+    defaults: ['group_no', 'issue', 'base_asset_code', 'name', 'category_name', 'location_name'],
+  },
+  'dq-anomalies': {
+    columns: ['issue', 'base_asset_code', 'name', 'category_name', 'location_name', 'quantity', 'purchase_price', 'purchase_date'],
+    defaults: ['issue', 'base_asset_code', 'name', 'category_name', 'quantity', 'purchase_price', 'purchase_date'],
+  },
+  'dq-stale': {
+    columns: [
+      'issue', 'base_asset_code', 'name', 'category_name', 'location_name', 'employee_name', 'last_seen',
+      'last_seen_source', 'days_since',
+    ],
+    defaults: ['issue', 'base_asset_code', 'name', 'category_name', 'location_name', 'employee_name', 'last_seen', 'days_since'],
+  },
+  'dq-movements': {
+    columns: [
+      'group_no', 'issue', 'asset_code', 'asset_name', 'movement_type', 'from_location_name', 'to_location_name',
+      'performed_by_name', 'created_at',
+    ],
+    defaults: [
+      'group_no', 'issue', 'asset_code', 'asset_name', 'movement_type', 'from_location_name', 'to_location_name',
+      'performed_by_name', 'created_at',
+    ],
+  },
   movements: {
     columns: [
       'asset_code', 'asset_name', 'movement_type', 'status', 'from_location_name', 'to_location_name',

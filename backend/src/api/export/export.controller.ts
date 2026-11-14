@@ -12,6 +12,7 @@ import { Response } from 'express';
 import { ExportService } from '../../application/export.service';
 import { ReportFilterInput, ReportMetaService } from '../../application/export/report-meta.service';
 import { isAssetSortKey } from '../../application/export/export-sort';
+import { DataQualityService, MAX_DAYS } from '../../application/export/data-quality.service';
 import { contentDisposition } from './content-disposition';
 import { ExportColumn, ExportFormat, ExportOptions, ExportResource } from '../../core/entities/export.entity';
 import { ReportAggregation, ReportGroup, ReportSort } from '../../core/entities/report.entity';
@@ -40,6 +41,13 @@ const FILTER_KEYS: Partial<Record<ExportResource, FilterKey[]>> = {
   'asset-locations': ['location_id', 'location_scope'],
   'asset-types': ['location_id', 'status_id'],
   duplicates: ['category_id'],
+  // data-quality reports: only the stale check and the movement check take a period
+  'dq-duplicate-ids': [],
+  'dq-missing-fields': [],
+  'dq-naming': [],
+  'dq-anomalies': [],
+  'dq-stale': ['days'],
+  'dq-movements': ['days'],
 };
 
 type QueryParams = Record<string, unknown>;
@@ -47,7 +55,61 @@ type QueryParams = Record<string, unknown>;
 @Controller('exports')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class ExportController {
-  constructor(private readonly exports: ExportService, private readonly reportMeta: ReportMetaService) {}
+  constructor(
+    private readonly exports: ExportService,
+    private readonly reportMeta: ReportMetaService,
+    private readonly dataQuality: DataQualityService,
+  ) {}
+
+  /** Number of problems found by each data-quality check (cheap overview for the Reports page). */
+  @Get('data-quality/summary')
+  @RequirePermission('export.assets')
+  async dataQualitySummary(@Query() q: QueryParams, @CurrentUser() u: RequestUser) {
+    const days = (key: string) => {
+      const value = str(q[key]);
+      if (value === undefined) return undefined;
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 1 || n > MAX_DAYS) throw new BadRequestException('INVALID_EXPORT_FILTER');
+      return n;
+    };
+    return this.dataQuality.summary(u.tenant_id, { staleDays: days('stale_days'), movementDays: days('movement_days') });
+  }
+
+  @Get('dq-duplicate-ids')
+  @RequirePermission('export.assets')
+  dqDuplicateIds(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-duplicate-ids', q, u, res);
+  }
+
+  @Get('dq-missing-fields')
+  @RequirePermission('export.assets')
+  dqMissingFields(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-missing-fields', q, u, res);
+  }
+
+  @Get('dq-naming')
+  @RequirePermission('export.assets')
+  dqNaming(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-naming', q, u, res);
+  }
+
+  @Get('dq-anomalies')
+  @RequirePermission('export.assets')
+  dqAnomalies(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-anomalies', q, u, res);
+  }
+
+  @Get('dq-stale')
+  @RequirePermission('export.assets')
+  dqStale(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-stale', q, u, res);
+  }
+
+  @Get('dq-movements')
+  @RequirePermission('export.assets')
+  dqMovements(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-movements', q, u, res);
+  }
 
   @Get('assets')
   @RequirePermission('export.assets')
@@ -274,6 +336,12 @@ export class ExportController {
     if (scope && allowed.includes('location_scope')) {
       if (scope !== 'main' && scope !== 'sub') throw bad();
       out.location_scope = scope;
+    }
+    const days = str(q.days);
+    if (days && allowed.includes('days')) {
+      const n = Number(days);
+      if (!Number.isInteger(n) || n < 1 || n > MAX_DAYS) throw bad();
+      out.days = n;
     }
     const blank = str(q.blank_rows);
     if (blank && allowed.includes('blank_rows')) {

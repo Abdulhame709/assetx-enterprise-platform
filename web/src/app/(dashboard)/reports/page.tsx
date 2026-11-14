@@ -2,7 +2,7 @@
 'use client';
 
 import { intlLocale } from '@/lib/format';
-import { Activity, Archive, ArrowDown, ArrowUp, BarChart3, BrainCircuit, Check, CircleCheckBig, Columns3, Download, Eye, FileSearch, FolderOpen, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, RotateCcw, Save, Trash2, Users, Wrench, X } from 'lucide-react';
+import { Activity, Archive, ArrowDown, ArrowLeftRight, ArrowUp, BarChart3, BrainCircuit, Check, CircleCheckBig, Columns3, Copy, Download, Eye, FileQuestion, FileSearch, FolderOpen, Hourglass, Layers3, MapPin, PackageCheck, Plus, Printer, RefreshCw, RotateCcw, Save, Tags, Trash2, TriangleAlert, Users, Wrench, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { useToast } from '@/components/ui/Toast';
 import { useAnalytics } from '@/features/assets/use-assets';
-import { AnyReportResource, AssetSortKey, downloadReportExport, generateReportAiSummary, getReportPreview, isBandRow, printReportExport, ReportAggregation, ReportAiSummary, ReportCenterResource, ReportColumn, ReportDefinition, ReportFilters, ReportFormat, ReportGroup, ReportPreview, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
+import { AnyReportResource, AssetSortKey, DATA_QUALITY_RESOURCES, DataQualityResource, DataQualitySummary, downloadReportExport, generateReportAiSummary, getDataQualitySummary, getReportPreview, isDataQualityResource, isBandRow, printReportExport, ReportAggregation, ReportAiSummary, ReportCenterResource, ReportColumn, ReportDefinition, ReportFilters, ReportFormat, ReportGroup, ReportPreview, ReportProfileId, ReportResource, ReportSort } from '@/features/reports/api';
 import { getCategories, getLocationsTree } from '@/features/assets/components/reference-selects';
 import { getEmployees, getStatuses } from '@/features/reference/api';
 import { SearchableSelect, SelectOption } from '@/components/ui/SearchableSelect';
@@ -37,15 +37,31 @@ const REPORT_RESOURCES: Array<{ resource: AnyReportResource; permission: Permiss
   { resource: 'asset-types', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.asset-types', descriptionKey: 'rc.type.asset-typesDesc' },
   { resource: 'duplicates', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.duplicates', descriptionKey: 'rc.type.duplicatesDesc' },
   { resource: 'inventory-form', permission: PERMISSIONS.EXPORT_ASSETS, labelKey: 'rc.type.inventory-form', descriptionKey: 'rc.type.inventory-formDesc' },
+  ...DATA_QUALITY_RESOURCES.map((resource) => ({
+    resource,
+    permission: PERMISSIONS.EXPORT_ASSETS,
+    labelKey: `rc.type.${resource}`,
+    descriptionKey: `rc.type.${resource}Desc`,
+  })),
 ];
+
+/** Icon of each data-quality card on the Reports page. */
+const DATA_QUALITY_ICONS: Record<DataQualityResource, LucideIcon> = {
+  'dq-duplicate-ids': Copy,
+  'dq-missing-fields': FileQuestion,
+  'dq-naming': Tags,
+  'dq-anomalies': TriangleAlert,
+  'dq-stale': Hourglass,
+  'dq-movements': ArrowLeftRight,
+};
 
 /** Reports with their own column list, profiles, sorting, grouping and saved templates. */
 const DESIGNER_RESOURCES: ReportResource[] = ['assets', 'movements', 'inventory', 'audit', 'dashboard'];
 
 /** Reports that can be viewed on screen before printing (the server previews these). */
-const PREVIEW_RESOURCES: ReportCenterResource[] = ['assets', 'asset-locations', 'asset-types', 'duplicates', 'inventory-form'];
+const PREVIEW_RESOURCES: ReportCenterResource[] = ['assets', 'asset-locations', 'asset-types', 'duplicates', 'inventory-form', ...DATA_QUALITY_RESOURCES];
 
-type FilterKey = 'location' | 'scope' | 'category' | 'status' | 'employee' | 'search' | 'sort' | 'blank' | 'group';
+type FilterKey = 'location' | 'scope' | 'category' | 'status' | 'employee' | 'search' | 'sort' | 'blank' | 'group' | 'days';
 
 /** Which filters each report understands (mirrors the server's allow-list). */
 const RESOURCE_FILTERS: Partial<Record<AnyReportResource, FilterKey[]>> = {
@@ -54,8 +70,13 @@ const RESOURCE_FILTERS: Partial<Record<AnyReportResource, FilterKey[]>> = {
   'asset-locations': ['location', 'scope'],
   'asset-types': ['location', 'status'],
   duplicates: ['category'],
+  'dq-stale': ['days'],
+  'dq-movements': ['days'],
 };
 const NO_FILTERS: FilterKey[] = [];
+/** Default look-back periods of the two period-based checks (mirrors the server). */
+const DEFAULT_DAYS: Partial<Record<DataQualityResource, number>> = { 'dq-stale': 365, 'dq-movements': 90 };
+const MAX_DAYS = 3650;
 const NO_COLUMNS: ReportColumnOption[] = [];
 const SORT_KEYS: AssetSortKey[] = ['location', 'category', 'name', 'status', 'employee', 'code', 'price'];
 const NO_EMPLOYEE = 'none';
@@ -72,12 +93,13 @@ interface FilterForm {
   sort_by: '' | AssetSortKey;
   sort_dir: 'asc' | 'desc';
   blank_rows: string;
+  days: string;
   group: boolean;
 }
 
 const EMPTY_FILTERS: FilterForm = {
   location_id: '', location_scope: '', category_id: '', status_id: '', employee_id: '',
-  q: '', sort_by: '', sort_dir: 'asc', blank_rows: '0', group: false,
+  q: '', sort_by: '', sort_dir: 'asc', blank_rows: '0', days: '', group: false,
 };
 
 type PreviewState =
@@ -413,6 +435,9 @@ export default function ReportsPage() {
   const [categories, setCategories] = useState<SelectOption[]>([]);
   const [statuses, setStatuses] = useState<SelectOption[]>([]);
   const [employees, setEmployees] = useState<SelectOption[]>([]);
+  const [dqCounts, setDqCounts] = useState<DataQualitySummary | null>(null);
+  const [dqState, setDqState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [dqOpenCount, setDqOpenCount] = useState(0);
   const availableResources = useMemo(() => REPORT_RESOURCES.filter((item) => can(item.permission)), [can]);
   const selectedResource = availableResources.find((item) => item.resource === resource) ?? availableResources[0] ?? null;
   const designerResource = (DESIGNER_RESOURCES as string[]).includes(resource) ? (resource as ReportResource) : null;
@@ -441,7 +466,24 @@ export default function ReportsPage() {
   }, [resource]);
 
   // The filter lists are loaded once, the first time a report that uses them is opened.
-  const needsReferences = filterKeys.length > 0 && can(PERMISSIONS.EXPORT_ASSETS);
+  const needsReferences = filterKeys.some((key) => key !== 'days') && can(PERMISSIONS.EXPORT_ASSETS);
+  const canSeeDataQuality = can(PERMISSIONS.EXPORT_ASSETS);
+
+  // Counts of the data-quality checks (a light server call), shown as cards.
+  const loadDataQuality = () => {
+    setDqState('loading');
+    getDataQualitySummary()
+      .then((counts) => { setDqCounts(counts); setDqState('idle'); })
+      .catch(() => setDqState('error'));
+  };
+  useEffect(() => {
+    if (!canSeeDataQuality) return undefined;
+    let active = true;
+    getDataQualitySummary()
+      .then((counts) => { if (active) setDqCounts(counts); })
+      .catch(() => { if (active) setDqState('error'); });
+    return () => { active = false; };
+  }, [canSeeDataQuality]);
   useEffect(() => {
     if (!needsReferences) return;
     getLocationsTree().then(setLocations).catch(() => undefined);
@@ -668,6 +710,8 @@ export default function ReportsPage() {
     if (has('sort') && filterForm.sort_by) { out.sort_by = filterForm.sort_by; out.sort_dir = filterForm.sort_dir; }
     const blank = Math.min(Math.max(parseInt(filterForm.blank_rows, 10) || 0, 0), MAX_BLANK_ROWS);
     if (has('blank') && blank > 0) out.blank_rows = blank;
+    const days = Math.min(Math.max(parseInt(filterForm.days, 10) || 0, 0), MAX_DAYS);
+    if (has('days') && days > 0) out.days = days;
     if (has('group') && groupByLocation) out.group_by = 'location';
     return out;
   };
@@ -700,6 +744,19 @@ export default function ReportsPage() {
       setPreview({ status: 'error', message: humanError(error, undefined, locale) });
     }
   };
+
+  /** A data-quality card: select that report with default filters and open it on screen. */
+  const openDataQuality = (target: DataQualityResource) => {
+    setFilterForm(EMPTY_FILTERS);
+    setResource(target);
+    setDqOpenCount((n) => n + 1);
+  };
+  // Runs after the new report is selected (and the earlier reset effect), so the right report is opened.
+  useEffect(() => {
+    if (dqOpenCount === 0 || !isDataQualityResource(resource)) return;
+    void viewReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dqOpenCount]);
 
   const printServerPdf = async () => {
     if (!selectedResource) return;
@@ -783,6 +840,50 @@ export default function ReportsPage() {
                 <KpiCard label={t('assetDashboard.archived')} value={data.archived_assets.toLocaleString(intlLocale(locale))} icon={Archive} tone="neutral" />
               </div>
 
+              {canSeeDataQuality && (
+                <Card className="print-hide" aria-labelledby="dq-title">
+                  <CardBody className="space-y-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 id="dq-title" className="text-sm font-semibold text-ink">{t('rc.dq.title')}</h3>
+                        <p className="mt-0.5 text-xs text-ink-muted">{t('rc.dq.hint')}</p>
+                      </div>
+                      <Button variant="ghost" onClick={loadDataQuality} loading={dqState === 'loading'}>
+                        <RefreshCw className="h-4 w-4" /> {t('common.refresh')}
+                      </Button>
+                    </div>
+                    {dqState === 'error' && <p role="alert" className="text-sm text-danger">{t('rc.dq.failed')}</p>}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      {DATA_QUALITY_RESOURCES.map((key) => {
+                        const Icon = DATA_QUALITY_ICONS[key];
+                        const count = dqCounts?.[key];
+                        const active = resource === key;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => openDataQuality(key)}
+                            aria-pressed={active}
+                            className={`flex items-start gap-3 rounded-xl border p-3 text-start transition-colors hover:border-brand/50 hover:bg-brand-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${active ? 'border-brand bg-brand-soft/40' : 'border-line bg-surface'}`}
+                          >
+                            <span className={`rounded-lg p-2 ${count === undefined ? 'bg-surface-muted text-ink-muted' : count > 0 ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'}`}>
+                              <Icon className="h-4 w-4" aria-hidden="true" />
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium text-ink">{t(`rc.type.${key}`)}</span>
+                              <span className="mt-0.5 block text-xs text-ink-faint">{t(`rc.type.${key}Desc`)}</span>
+                            </span>
+                            <bdi dir="auto" className="shrink-0 text-lg font-semibold text-ink">
+                              {count === undefined ? '—' : count.toLocaleString(intlLocale(locale))}
+                            </bdi>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </CardBody>
+                </Card>
+              )}
+
               <Card className="border-brand/20 bg-gradient-to-br from-brand-soft/60 via-surface to-surface print-hide">
                 <CardBody className="space-y-4">
                   <div className="flex items-start gap-3">
@@ -801,7 +902,12 @@ export default function ReportsPage() {
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <Field label={t('module.reportsResource')}>
                         <Select value={selectedResource?.resource ?? ''} onChange={(event) => setResource(event.target.value as AnyReportResource)} aria-label={t('module.reportsResource')}>
-                          {availableResources.map((item) => <option key={item.resource} value={item.resource}>{t(item.labelKey)}</option>)}
+                          {availableResources.filter((item) => !isDataQualityResource(item.resource)).map((item) => <option key={item.resource} value={item.resource}>{t(item.labelKey)}</option>)}
+                          {availableResources.some((item) => isDataQualityResource(item.resource)) && (
+                            <optgroup label={t('rc.dq.group')}>
+                              {availableResources.filter((item) => isDataQualityResource(item.resource)).map((item) => <option key={item.resource} value={item.resource}>{t(item.labelKey)}</option>)}
+                            </optgroup>
+                          )}
                         </Select>
                         {selectedResource && <p className="mt-1 text-xs text-ink-faint">{t(selectedResource.descriptionKey)}</p>}
                       </Field>
@@ -871,6 +977,18 @@ export default function ReportsPage() {
                               </Select>
                             </Field>
                           </>
+                        )}
+                        {has('days') && isDataQualityResource(resource) && (
+                          <Field label={t('rc.f.days')} hint={t(`rc.f.days.${resource}Hint`)}>
+                            <Input
+                              inputMode="numeric"
+                              dir="ltr"
+                              value={filterForm.days}
+                              placeholder={String(DEFAULT_DAYS[resource] ?? '')}
+                              onChange={(event) => setFilter('days', event.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                              aria-label={t('rc.f.days')}
+                            />
+                          </Field>
                         )}
                         {has('blank') && (
                           <Field label={t('rc.f.blankRows')} hint={t('rc.f.blankRowsHint')}>

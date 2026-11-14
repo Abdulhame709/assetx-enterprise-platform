@@ -104,6 +104,8 @@ import { AssetLocationsExportProvider } from './application/export/providers/ass
 import { AssetTypesExportProvider } from './application/export/providers/asset-types-export.provider';
 import { DuplicatesExportProvider } from './application/export/providers/duplicates-export.provider';
 import { InventoryFormExportProvider } from './application/export/providers/inventory-form-export.provider';
+import { DataQualityExportProvider } from './application/export/providers/data-quality-export.provider';
+import { DQ_RESOURCES, DataQualityService } from './application/export/data-quality.service';
 import { ExportService } from './application/export.service';
 import { ExportController } from './api/export/export.controller';
 import { ExportPipelineService } from './application/export/export-pipeline.service';
@@ -267,12 +269,18 @@ function resolveJwtSecrets(): { access: string; refresh: string } {
     AssetTypesExportProvider,
     DuplicatesExportProvider,
     InventoryFormExportProvider,
+    DataQualityService,
     {
       provide: EXPORT_PROVIDERS,
-      useFactory: (...providers) => providers,
+      // The six data-quality reports share one service; one provider is made per report.
+      useFactory: (...deps) => {
+        const dataQuality = deps[deps.length - 1] as DataQualityService;
+        return [...deps.slice(0, -1), ...DQ_RESOURCES.map((resource) => new DataQualityExportProvider(resource, dataQuality))];
+      },
       inject: [
         AssetsExportProvider, MovementsExportProvider, InventoryExportProvider, AuditExportProvider, DashboardExportProvider,
         AssetLocationsExportProvider, AssetTypesExportProvider, DuplicatesExportProvider, InventoryFormExportProvider,
+        DataQualityService,
       ],
     },
     CsvExportStrategy,

@@ -17,7 +17,13 @@ export type ExportResource =
   | 'asset-locations'
   | 'asset-types'
   | 'duplicates'
-  | 'inventory-form';
+  | 'inventory-form'
+  | 'dq-duplicate-ids'
+  | 'dq-missing-fields'
+  | 'dq-naming'
+  | 'dq-anomalies'
+  | 'dq-stale'
+  | 'dq-movements';
 
 export interface ReportExecutionMetadata {
   /** selected fields to project before formatting */
