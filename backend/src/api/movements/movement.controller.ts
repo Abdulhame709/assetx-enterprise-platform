@@ -63,6 +63,8 @@ export class MovementController {
     return this.movements.list(user.tenant_id, {
       status: status as never,
       movement_type: movementType as never,
+      // The movements screen loads the list in one call; return the newest 5000.
+      limit: 5000,
     });
   }
 

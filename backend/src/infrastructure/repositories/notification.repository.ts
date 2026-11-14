@@ -32,8 +32,8 @@ export class NotificationRepository implements NotificationPort {
 
   async findUserNotifications(tenantId: string, userId: string): Promise<Notification[]> {
     const { rows } = await this.db.query<Notification>(
-      `SELECT * FROM notifications WHERE tenant_id = $1 AND user_id = $2 ORDER BY created_at DESC`,
-      [tenantId, userId],
+      `SELECT * FROM notifications WHERE tenant_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT $3`,
+      [tenantId, userId, 500],
     );
     return rows;
   }

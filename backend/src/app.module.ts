@@ -7,6 +7,7 @@ import { Module, Global } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { buildThrottlers } from './common/http/throttle-config';
 import { randomBytes } from 'crypto';
 import { ScheduledReportService } from './application/scheduled-report.service';
 import { ReportBuilderService } from './application/report-builder.service';
@@ -186,7 +187,7 @@ function resolveJwtSecrets(): { access: string; refresh: string } {
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
+    ThrottlerModule.forRoot(buildThrottlers()),
   ],
   providers: [
     {

@@ -11,6 +11,7 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
 import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
+import { MAX_PAGE_SIZE, normalizePaging } from '../../common/utils/pagination';
 
 @Controller('audit')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
@@ -30,6 +31,7 @@ export class AuditController {
     @Query('limit') limit?: string,
   ) {
     assertOptionalUuid(user);
+    const paging = normalizePaging(page, limit, { defaultLimit: 50, maxLimit: MAX_PAGE_SIZE });
     return this.audit.query({
       tenant_id: current.tenant_id,
       action,
@@ -37,8 +39,8 @@ export class AuditController {
       userId: user,
       dateFrom: dateFrom ? new Date(dateFrom) : undefined,
       dateTo: dateTo ? new Date(dateTo) : undefined,
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+      page: paging.page,
+      limit: paging.limit,
     });
   }
 

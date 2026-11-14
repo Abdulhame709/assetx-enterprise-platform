@@ -20,6 +20,7 @@ import { PermissionGuard } from '../../common/guards/permission.guard';
 import { RequirePermission } from '../../common/decorators/require-permission.decorator';
 import { CurrentUser, RequestUser } from '../../common/decorators/current-user.decorator';
 import { assertUuid, assertOptionalUuid } from '../../common/utils/uuid';
+import { normalizePaging } from '../../common/utils/pagination';
 import {
   AssetQueryDto,
   BulkUpdateAssetDto,
@@ -73,6 +74,8 @@ export class AssetController {
     assertOptionalUuid(query.location_id);
     assertOptionalUuid(query.category_id);
     assertOptionalUuid(query.employee_id);
+    // Query-string values are strings; coerce and cap so `limit=999999` cannot dump the table.
+    const { page, limit } = normalizePaging(query.page, query.limit);
     return this.assets.search({
       tenant_id: user.tenant_id,
       q: query.q,
@@ -80,8 +83,8 @@ export class AssetController {
       location_id: query.location_id,
       category_id: query.category_id,
       employee_id: query.employee_id,
-      page: query.page,
-      limit: query.limit,
+      page,
+      limit,
     });
   }
 

@@ -136,7 +136,7 @@ export class MovementService {
     return this.movements.listByAsset(assetId, tenantId);
   }
 
-  async list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType }): Promise<AssetMovement[]> {
+  async list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType; limit?: number }): Promise<AssetMovement[]> {
     await this.db.setTenant(tenantId);
     return this.movements.list(tenantId, filter);
   }

@@ -29,7 +29,7 @@ export const ERROR_CODES: Record<string, { http: number; code: string }> = {
   TRANSFER_TARGET_REQUIRED: { http: 400, code: 'VALIDATION_ERROR' },
   ASSET_BULK_EMPTY:         { http: 400, code: 'VALIDATION_ERROR' },
   ASSET_BULK_FIELDS_REQUIRED: { http: 400, code: 'VALIDATION_ERROR' },
-  ASSET_HAS_REFERENCES:     { http: 409, code: 'CONFLICT' },
+  ASSET_BULK_TOO_LARGE:     { http: 413, code: 'PAYLOAD_TOO_LARGE' },  ASSET_HAS_REFERENCES:     { http: 409, code: 'CONFLICT' },
   // Master data
   NAME_INVALID:              { http: 400, code: 'VALIDATION_ERROR' },
   DUPLICATE_LOCATION:        { http: 409, code: 'CONFLICT' },
