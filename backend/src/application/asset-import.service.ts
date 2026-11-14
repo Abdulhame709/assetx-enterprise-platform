@@ -3,6 +3,7 @@ import * as ExcelJS from 'exceljs';
 import { AssetService } from './asset.service';
 import { foldAssetName } from './asset-algorithms';
 import { DATABASE_PORT } from '../core/ports/tokens';
+import { assertImportRowCount, assertXlsxBuffer } from './import-limits';
 import { DatabasePort } from '../core/ports/database.port';
 
 export interface ImportUploadFile { buffer: Buffer; originalname: string; mimetype?: string; }
@@ -97,12 +98,14 @@ export class AssetImportService {
   private async parse(file: ImportUploadFile, tenantId: string): Promise<{ rows: AssetImportInput[]; errors: AssetImportIssue[]; totalRows: number }> {
     if (!file?.buffer?.length) throw new BadRequestException('IMPORT_FILE_REQUIRED');
     if (file.buffer.length > 2 * 1024 * 1024 || !/\.xlsx$/i.test(file.originalname ?? '')) throw new BadRequestException('IMPORT_FILE_INVALID');
+    assertXlsxBuffer(file.buffer);
     const workbook = new ExcelJS.Workbook();
     // exceljs ships a Node Buffer declaration that conflicts structurally with Node 22's generic Buffer type.
     // The runtime object remains the original multer Buffer; `never` only bridges the duplicate declarations.
     try { await workbook.xlsx.load(file.buffer as never); } catch { throw new BadRequestException('IMPORT_FILE_INVALID'); }
     const sheet = workbook.worksheets[0];
     if (!sheet) throw new BadRequestException('IMPORT_SHEET_REQUIRED');
+    assertImportRowCount(sheet.rowCount);
 
     const headerRow = sheet.getRow(1);
     const headers = new Map<string, number>();

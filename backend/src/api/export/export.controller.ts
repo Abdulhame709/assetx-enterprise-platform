@@ -9,6 +9,8 @@
  */
 import { BadRequestException, Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { maxExportRows, normalizePaging } from '../../common/utils/pagination';
 import { ExportService } from '../../application/export.service';
 import { ReportFilterInput, ReportMetaService } from '../../application/export/report-meta.service';
 import { isAssetSortKey } from '../../application/export/export-sort';
@@ -52,6 +54,8 @@ const FILTER_KEYS: Partial<Record<ExportResource, FilterKey[]>> = {
 
 type QueryParams = Record<string, unknown>;
 
+// Exports are CPU- and memory-heavy (XLSX/PDF generation); allow far fewer per minute than the global default.
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 @Controller('exports')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class ExportController {
@@ -204,7 +208,8 @@ export class ExportController {
       if (err instanceof BadRequestException) throw err;
       // eslint-disable-next-line no-console
       console.error(`[ExportController] ${resource} preview failed:`, err);
-      throw new BadRequestException(`EXPORT_FAILED: ${(err as Error)?.message ?? 'unknown error'}`);
+      // The real reason (SQL/driver text) stays in the server log only.
+      throw new BadRequestException('EXPORT_FAILED');
     }
   }
 
@@ -214,7 +219,9 @@ export class ExportController {
     let result;
     let title: string | undefined;
     try {
-      const planned = await this.plan(resource, q, u, limit ? Number(limit) : 10000);
+      // Clamp the requested row cap: default 10000, never above EXPORT_MAX_ROWS (50000).
+      const rowCap = normalizePaging(1, limit, { defaultLimit: 10000, maxLimit: maxExportRows() }).limit;
+      const planned = await this.plan(resource, q, u, rowCap);
       const options = planned.options;
       title = planned.meta.title;
       result = await this.exports.generate({
@@ -226,12 +233,11 @@ export class ExportController {
       });
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
-      // Surface the real reason (e.g. DB/SQL errors) so a failed export is
-      // diagnosable instead of a generic 500.
-      const reason = (err as Error)?.message ?? 'unknown export error';
+      // Log the real reason (DB/SQL errors) for diagnosis, but never return it to the
+      // client: driver messages can expose table names, SQL fragments and hostnames.
       // eslint-disable-next-line no-console
       console.error(`[ExportController] ${resource}/${fmt} export failed:`, err);
-      throw new BadRequestException(`EXPORT_FAILED: ${reason}`);
+      throw new BadRequestException('EXPORT_FAILED');
     }
     res.setHeader('Content-Type', result.mimeType);
     res.setHeader('Content-Disposition', contentDisposition(result.filename, title));

@@ -25,7 +25,7 @@ export interface MovementPort {
   create(input: CreateMovementInput): Promise<AssetMovement>;
   findById(id: string, tenantId: string): Promise<AssetMovement | null>;
   listByAsset(assetId: string, tenantId: string): Promise<AssetMovement[]>;
-  list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType }): Promise<AssetMovement[]>;
+  list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType; limit?: number }): Promise<AssetMovement[]>;
   /** advanced search with date/user filters + pagination + sorting (Phase 11.4) */
   searchAdvanced(tenantId: string, q: {
     status?: MovementStatus;

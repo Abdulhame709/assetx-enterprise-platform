@@ -15,7 +15,7 @@ export class JwtTokenManager implements TokenManager {
   ) {}
 
   private sign(payload: TokenPayload, secret: string, ttl: string): string {
-    return jwt.sign({ ...payload }, secret, { expiresIn: ttl } as jwt.SignOptions);
+    return jwt.sign({ ...payload }, secret, { expiresIn: ttl, algorithm: 'HS256' } as jwt.SignOptions);
   }
 
   signAccessToken(payload: TokenPayload): string {
@@ -26,7 +26,7 @@ export class JwtTokenManager implements TokenManager {
   }
 
   private verify(token: string, secret: string): TokenPayload {
-    const decoded = jwt.verify(token, secret) as TokenPayload;
+    const decoded = jwt.verify(token, secret, { algorithms: ['HS256'] }) as TokenPayload;
     return decoded;
   }
   verifyAccessToken(token: string): TokenPayload {

@@ -13,6 +13,7 @@ import {
 } from '../../core/ports/asset.port';
 import { DATABASE_PORT } from '../../core/ports/tokens';
 import { PLACEHOLDER_EMPLOYEE_PATTERN } from '../../core/constants/placeholder-employee';
+import { maxExportRows, normalizePaging } from '../../common/utils/pagination';
 import {
   findBaseCodeForName,
   foldAssetName,
@@ -174,9 +175,7 @@ export class AssetRepository implements AssetPort {
   }
 
   async search(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }> {
-    const page = filter.page ?? 1;
-    const limit = filter.limit ?? 20;
-    const offset = (page - 1) * limit;
+    const { limit, offset } = normalizePaging(filter.page, filter.limit, { defaultLimit: 20, maxLimit: maxExportRows() });
     const params: unknown[] = [filter.tenant_id];
     let where = `WHERE tenant_id = $1 AND is_active = true`;
     let idx = 2;
@@ -224,9 +223,7 @@ export class AssetRepository implements AssetPort {
 
   /** Advanced search with dynamic filters + sorting (Phase 11.4). */
   async searchAdvanced(filter: AssetFilter): Promise<{ items: AssetSummary[]; total: number }> {
-    const page = filter.page ?? 1;
-    const limit = filter.limit ?? 20;
-    const offset = (page - 1) * limit;
+    const { limit, offset } = normalizePaging(filter.page, filter.limit, { defaultLimit: 20, maxLimit: maxExportRows() });
     const params: unknown[] = [filter.tenant_id];
     let where = `WHERE tenant_id = $1`;
     let idx = 2;

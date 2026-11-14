@@ -25,4 +25,8 @@ COPY backend/assets ./backend/assets
 COPY db ./db
 USER node
 EXPOSE 3001
+# Liveness only (no database call), so a database outage does not make the
+# orchestrator kill healthy API containers. Readiness is GET /health/ready.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3001)+'/health/live').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "backend/dist/main.js"]

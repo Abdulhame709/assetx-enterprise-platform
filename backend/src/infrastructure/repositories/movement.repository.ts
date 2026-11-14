@@ -7,6 +7,7 @@ import { DatabasePort } from '../../core/ports/database.port';
 import { AssetMovement, MovementStatus, MovementType } from '../../core/entities/movement.entity';
 import { CreateMovementInput, MovementPort } from '../../core/ports/movement.port';
 import { DATABASE_PORT } from '../../core/ports/tokens';
+import { maxExportRows, normalizePaging } from '../../common/utils/pagination';
 
 @Injectable()
 export class MovementRepository implements MovementPort {
@@ -43,20 +44,23 @@ export class MovementRepository implements MovementPort {
 
   async listByAsset(assetId: string, tenantId: string): Promise<AssetMovement[]> {
     const { rows } = await this.db.query<AssetMovement>(
-      `SELECT * FROM asset_movements WHERE asset_id = $1 AND tenant_id = $2 ORDER BY created_at DESC`,
-      [assetId, tenantId],
+      // Newest first, bounded: one asset can accumulate unbounded history.
+      `SELECT * FROM asset_movements WHERE asset_id = $1 AND tenant_id = $2 ORDER BY created_at DESC LIMIT $3`,
+      [assetId, tenantId, 1000],
     );
     return rows;
   }
 
-  async list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType }): Promise<AssetMovement[]> {
+  async list(tenantId: string, filter?: { status?: MovementStatus; movement_type?: MovementType; limit?: number }): Promise<AssetMovement[]> {
     let where = `tenant_id = $1`;
     const params: unknown[] = [tenantId];
     if (filter?.status) { params.push(filter.status); where += ` AND status = $${params.length}`; }
     if (filter?.movement_type) { params.push(filter.movement_type); where += ` AND movement_type = $${params.length}`; }
     const { rows } = await this.db.query<AssetMovement>(
-      `SELECT * FROM asset_movements WHERE ${where} ORDER BY created_at DESC`,
-      params,
+      // Bounded by the same ceiling as exports (EXPORT_MAX_ROWS) so this can never
+      // load an entire tenant's movement history into memory.
+      `SELECT * FROM asset_movements WHERE ${where} ORDER BY created_at DESC LIMIT $${params.length + 1}`,
+      [...params, normalizePaging(1, filter?.limit, { defaultLimit: maxExportRows(), maxLimit: maxExportRows() }).limit],
     );
     return rows;
   }
@@ -72,9 +76,7 @@ export class MovementRepository implements MovementPort {
     page?: number;
     limit?: number;
   }): Promise<{ items: AssetMovement[]; total: number }> {
-    const page = q.page ?? 1;
-    const limit = q.limit ?? 20;
-    const offset = (page - 1) * limit;
+    const { limit, offset } = normalizePaging(q.page, q.limit, { defaultLimit: 20, maxLimit: maxExportRows() });
     const params: unknown[] = [tenantId];
     let where = `tenant_id = $1`;
     let idx = 2;

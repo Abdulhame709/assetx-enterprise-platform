@@ -17,9 +17,13 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('login')
   async login(@Body() dto: LoginRequestDto) {
+    // A POST with no body leaves `dto` undefined (the validation pipe skips it); answer
+    // 401 like any bad credential instead of crashing into a 500.
+    if (!dto) throw new Error('INVALID_CREDENTIALS');
     return this.auth.login({ username: dto.username, password: dto.password });
   }
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('logout')
   async logout(@Headers('authorization') authorization: string) {
     const token = (authorization ?? '').replace(/^Bearer /, '');
@@ -30,12 +34,14 @@ export class AuthController {
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Post('refresh')
   async refresh(@Body() dto: RefreshRequestDto) {
+    if (!dto) throw new Error('UNAUTHORIZED');
     return this.auth.refresh(dto.refreshToken);
   }
 
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('reset-password')
   async resetPassword(@Body() dto: ResetPasswordRequestDto) {
+    if (!dto) throw new Error('PASSWORD_RESET_TOKEN_INVALID');
     return this.auth.completePasswordReset(dto.resetToken, dto.newPassword);
   }
 }
