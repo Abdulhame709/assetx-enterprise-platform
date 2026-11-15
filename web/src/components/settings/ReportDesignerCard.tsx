@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/form';
+import { Checkbox } from '@/components/ui/Checkbox';
 import { useToast } from '@/components/ui/Toast';
 import { AsyncBoundary } from '@/components/ui/AsyncBoundary';
 import { useI18n } from '@/lib/i18n';
@@ -142,20 +143,8 @@ function DesignerForm({ initial }: { initial: ReportDesigner }) {
             onChange={(e) => setRows(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
           />
         </Field>
-        <label className="flex items-start gap-2 text-sm text-ink">
-          <input type="checkbox" className="mt-1" checked={totals} disabled={!canEdit || busy} onChange={(e) => setTotals(e.target.checked)} />
-          <span>
-            {t('rd.showTotals')}
-            <span className="block text-xs text-ink-faint">{t('rd.showTotalsHint')}</span>
-          </span>
-        </label>
-        <label className="flex items-start gap-2 text-sm text-ink">
-          <input type="checkbox" className="mt-1" checked={numbers} disabled={!canEdit || busy} onChange={(e) => setNumbers(e.target.checked)} />
-          <span>
-            {t('rd.rowNumbers')}
-            <span className="block text-xs text-ink-faint">{t('rd.rowNumbersHint')}</span>
-          </span>
-        </label>
+        <Checkbox checked={totals} disabled={!canEdit || busy} onChange={(e) => setTotals(e.target.checked)} label={t('rd.showTotals')} description={t('rd.showTotalsHint')} />
+        <Checkbox checked={numbers} disabled={!canEdit || busy} onChange={(e) => setNumbers(e.target.checked)} label={t('rd.rowNumbers')} description={t('rd.rowNumbersHint')} />
       </div>
 
       <div className="space-y-3 border-t border-line pt-4">

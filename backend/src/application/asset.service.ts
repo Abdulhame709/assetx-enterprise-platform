@@ -43,6 +43,9 @@ export interface BulkAssetUpdateResult {
   failed: { id: string; reason: string }[];
 }
 
+/** Maximum assets one bulk-update request may touch (matches the largest list page). */
+export const MAX_BULK_ASSET_IDS = 500;
+
 @Injectable()
 export class AssetService {
   constructor(
@@ -158,6 +161,8 @@ export class AssetService {
   async bulkUpdate(tenantId: string, input: BulkAssetUpdateInput): Promise<BulkAssetUpdateResult> {
     const ids = [...new Set(input.asset_ids ?? [])];
     if (ids.length === 0) throw new Error('ASSET_BULK_EMPTY');
+    // Each id costs several queries; bound the work a single request can trigger.
+    if (ids.length > MAX_BULK_ASSET_IDS) throw new Error('ASSET_BULK_TOO_LARGE');
     const has = (key: keyof BulkAssetUpdateInput) => Object.prototype.hasOwnProperty.call(input, key);
     const changes: { column: string; value: unknown }[] = [];
     if (has('location_id')) changes.push({ column: 'location_id', value: input.location_id ?? null });

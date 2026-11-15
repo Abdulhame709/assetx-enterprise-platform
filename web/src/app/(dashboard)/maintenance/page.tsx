@@ -9,6 +9,7 @@ import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { EmptyState } from '@/components/ui/states';
+import { Select } from '@/components/ui/form';
 import { MaintenanceOrderPanel } from '@/features/maintenance/components/MaintenanceOrderPanel';
 import { useMaintenanceOrders } from '@/features/maintenance/use-maintenance';
 import { useI18n } from '@/lib/i18n';
@@ -61,7 +62,7 @@ export default function MaintenancePage() {
 
         <section className="rounded-xl border border-line bg-surface-raised p-3 shadow-card sm:p-4" aria-label={t('maintenance.controlsTitle')}>
           <div className="mb-3 flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-sm font-semibold text-ink">{t('maintenance.controlsTitle')}</h2><p className="text-xs text-ink-muted">{formatMessage('maintenance.resultsSummary', { shown: visibleOrders.length, total: orders.length })}</p></div></div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]"><label className="relative block"><span className="sr-only">{t('maintenance.search')}</span><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input ref={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('maintenance.search')} className="ax-input w-full py-2 ps-9" /></label><select value={workflow} onChange={(event) => setWorkflow(event.target.value as typeof workflow)} className="ax-select w-full py-2"><option value="all">{t('maintenance.allStatuses')}</option>{(['open', 'in_progress', 'completed', 'cancelled'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.status.${value}`)}</option>)}</select></div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px]"><label className="relative block"><span className="sr-only">{t('maintenance.search')}</span><Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" /><input ref={searchInputRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('maintenance.search')} className="ax-input w-full py-2 ps-9" /></label><Select value={workflow} onChange={(event) => setWorkflow(event.target.value as typeof workflow)} className="w-full py-2"><option value="all">{t('maintenance.allStatuses')}</option>{(['open', 'in_progress', 'completed', 'cancelled'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.status.${value}`)}</option>)}</Select></div>
         </section>
 
         <Card className="overflow-hidden p-0 shadow-card"><CardHeader title={t('maintenance.ordersTitle')} subtitle={t('maintenance.ordersSubtitle')} /><CardBody className="pt-0">{visibleOrders.length || !filtered ? <MaintenanceOrderPanel orders={visibleOrders} onChanged={state.reload} /> : <EmptyState title={t('maintenance.noMatch')} description={t('maintenance.noMatchDesc')} />}</CardBody></Card>

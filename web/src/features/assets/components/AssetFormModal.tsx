@@ -8,6 +8,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
+import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select, Textarea } from '@/components/ui/form';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -201,7 +202,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
       ) : (
       <form onSubmit={submit} className="space-y-4">
         <p className="rounded-lg bg-brand-soft px-3 py-2 text-xs text-ink-muted">{t('assetForm.requiredHint')}</p>
-        {refError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{refError}</p>}
+        {refError && <Alert tone="danger">{refError}</Alert>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t('assetForm.assetName')} error={errors.name} className="sm:col-span-2">
             <Input value={form.name} onChange={(e) => set('name', e.target.value)} autoFocus minLength={2} required placeholder={t('assetForm.exampleName')} />
@@ -265,7 +266,7 @@ export function AssetFormModal({ open, mode, asset, onClose, onSaved }: Props) {
             <Textarea value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder={t('assetForm.internalNotes')} />
           </Field>
         </div>
-        {serverError && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{serverError}</p>}
+        {serverError && <Alert tone="danger">{serverError}</Alert>}
         <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap justify-end gap-2 border-t border-line bg-surface px-1 pt-3">
           {mode === 'edit' && asset && (
             <Button type="button" variant="secondary" size="sm" onClick={() => setForm(formFromAsset(asset))}>{t('assetForm.revert')}</Button>

@@ -11,36 +11,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/http/http-exception.filter';
 import { loadLocalEnvironment } from './bootstrap/local-environment';
-
-function assertProductionConfig(): void {
-  if (process.env.NODE_ENV !== 'production') return;
-
-  const required = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'CORS_ORIGIN'];
-  const tooShort = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'].filter(
-    (key) => (process.env[key] ?? '').trim().length < 32,
-  );
-  const missing = required.filter((key) => !process.env[key]?.trim());
-  const weakDefaults = ['change-me', 'assetx-local-', 'dev-only'];
-  const weak = required.filter((key) =>
-    weakDefaults.some((marker) => (process.env[key] ?? '').includes(marker)),
-  );
-
-  if (tooShort.length) {
-    throw new Error(
-      `PRODUCTION_CONFIG_INVALID: secrets shorter than 32 characters: ${tooShort.join(',')}`,
-    );
-  }
-
-  if (missing.length || weak.length) {
-    throw new Error(
-      `PRODUCTION_CONFIG_INVALID: missing=${missing.join(',') || 'none'} weak=${weak.join(',') || 'none'}`,
-    );
-  }
-
-  if (process.env.CORS_ORIGIN?.trim() === '*') {
-    throw new Error('PRODUCTION_CONFIG_INVALID: CORS_ORIGIN cannot be *');
-  }
-}
+import { assertProductionConfig } from './bootstrap/production-config';
 
 async function bootstrap() {
   loadLocalEnvironment();
@@ -51,8 +22,11 @@ async function bootstrap() {
   // Set TRUST_PROXY_HOPS=0 if the backend is exposed directly to the internet.
   const proxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
   if (proxyHops > 0) app.getHttpAdapter().getInstance().set('trust proxy', proxyHops);
+  // The API is JSON-only, so avoid advertising the framework.
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
   // Logo uploads arrive as base64 JSON (max 300 KB image), above express's 100 KB default.
   app.useBodyParser('json', { limit: '600kb' });
+  app.useBodyParser('urlencoded', { extended: false, limit: '100kb' });
   app.use(helmet());
 
   const origins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
@@ -73,11 +47,24 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
+  // Let SIGTERM/SIGINT (docker stop, rolling deploys) drain in-flight requests and
+  // close the database pool instead of cutting connections mid-query.
+  app.enableShutdownHooks();
   // Match the web proxy target (next.config.mjs -> 127.0.0.1:3001) and the
   // documented PORT=3001 in .env.example. Previously defaulted to 3000, which
   // made the web app get ECONNREFUSED whenever backend/.env was absent.
   const port = Number(process.env.PORT ?? 3001);
   await app.listen(port);
+
+  // Connection hygiene under load. Keep-alive must outlive typical proxy/LB idle
+  // timeouts (60s) or the proxy reuses sockets we already closed (502s);
+  // headersTimeout must be larger than keepAliveTimeout. requestTimeout bounds slow
+  // clients (slowloris) and is generous enough for report exports.
+  const server = app.getHttpServer();
+  server.keepAliveTimeout = Number(process.env.HTTP_KEEP_ALIVE_TIMEOUT_MS ?? 65_000);
+  server.headersTimeout = Number(process.env.HTTP_HEADERS_TIMEOUT_MS ?? 66_000);
+  server.requestTimeout = Number(process.env.HTTP_REQUEST_TIMEOUT_MS ?? 120_000);
+
   // eslint-disable-next-line no-console
   console.log(`AssetX Backend listening on :${port}`);
 }

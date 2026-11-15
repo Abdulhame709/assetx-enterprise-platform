@@ -8,6 +8,7 @@ import { DatabasePort } from '../../core/ports/database.port';
 import { AuditEvent, AuditLogInput, AuditQuery } from '../../core/entities/audit.entity';
 import { AuditPort } from '../../core/ports/audit.port';
 import { DATABASE_PORT } from '../../core/ports/tokens';
+import { maxExportRows, normalizePaging } from '../../common/utils/pagination';
 
 @Injectable()
 export class AuditRepository implements AuditPort {
@@ -59,9 +60,7 @@ export class AuditRepository implements AuditPort {
   }
 
   async search(query: AuditQuery): Promise<{ items: AuditEvent[]; total: number }> {
-    const page = query.page ?? 1;
-    const limit = query.limit ?? 50;
-    const offset = (page - 1) * limit;
+    const { limit, offset } = normalizePaging(query.page, query.limit, { defaultLimit: 50, maxLimit: maxExportRows() });
     const params: unknown[] = [query.tenant_id];
     let where = `tenant_id = $1`;
     let idx = 2;

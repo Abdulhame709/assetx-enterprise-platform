@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Field, Select, Textarea } from '@/components/ui/form';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -96,7 +97,7 @@ export function AssetBulkEditModal({ open, assetIds, locations, employees, statu
             />
           </Field>
         )}
-        {field === 'notes' && error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {field === 'notes' && error && <Alert tone="danger">{error}</Alert>}
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>{t('assetActions.bulkApply')}</Button>

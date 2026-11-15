@@ -22,9 +22,18 @@ export class PostgresDatabase implements DatabasePort {
             idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30_000),
             connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS ?? 10_000),
             maxUses: Number(process.env.DB_MAX_USES ?? 0) || undefined,
+            // A runaway query must not hold a pooled connection forever.
+            // 0 disables the limit. Migrations (exec) opt out of it below.
+            statement_timeout: Number(process.env.DB_STATEMENT_TIMEOUT_MS ?? 30_000) || undefined,
           }
         : config,
     );
+    // An idle client can emit 'error' (database restart, network drop). With no
+    // listener Node treats it as an uncaught exception and kills the process.
+    this.pool.on('error', (error) => {
+      // eslint-disable-next-line no-console
+      console.error('[db] idle client error:', error.message);
+    });
   }
 
   async query<T = Record<string, unknown>>(
@@ -75,7 +84,16 @@ export class PostgresDatabase implements DatabasePort {
 
   /** Execute migrations/bootstrap SQL outside request transactions. */
   async exec(sql: string): Promise<void> {
-    await this.pool.query(sql);
+    // Index builds and data migrations may legitimately exceed the request
+    // statement timeout, so lift it for this dedicated connection only.
+    const client = await this.pool.connect();
+    try {
+      await client.query('SET statement_timeout = 0');
+      await client.query(sql);
+    } finally {
+      await client.query('RESET statement_timeout').catch(() => undefined);
+      client.release();
+    }
   }
 
   async setTenant(tenantId: string | null): Promise<void> {
@@ -85,7 +103,17 @@ export class PostgresDatabase implements DatabasePort {
     this.tenantContext.enterWith(tenantId);
   }
 
+  private closed = false;
+
   async close(): Promise<void> {
+    // pg throws if Pool.end() is called twice (explicit close + shutdown hook).
+    if (this.closed) return;
+    this.closed = true;
     await this.pool.end();
+  }
+
+  /** Nest calls this on SIGTERM/SIGINT (enableShutdownHooks) so in-flight queries drain. */
+  async onModuleDestroy(): Promise<void> {
+    await this.close();
   }
 }

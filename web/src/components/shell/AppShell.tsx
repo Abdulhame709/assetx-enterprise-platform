@@ -63,7 +63,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenu={() => setMobileNav(true)} />
-        <main id="main-content" key={pathname} className="ax-workspace flex-1 overflow-y-auto p-4 md:p-5 lg:p-6 xl:p-8">
+        <main id="main-content" key={pathname} tabIndex={0} className="ax-workspace flex-1 overflow-y-auto p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/30 md:p-5 lg:p-6 xl:p-8">
           {children}
         </main>
       </div>

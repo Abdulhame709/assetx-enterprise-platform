@@ -9,9 +9,12 @@
  */
 import { BadRequestException, Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { maxExportRows, normalizePaging } from '../../common/utils/pagination';
 import { ExportService } from '../../application/export.service';
 import { ReportFilterInput, ReportMetaService } from '../../application/export/report-meta.service';
 import { isAssetSortKey } from '../../application/export/export-sort';
+import { DataQualityService, MAX_DAYS } from '../../application/export/data-quality.service';
 import { contentDisposition } from './content-disposition';
 import { ExportColumn, ExportFormat, ExportOptions, ExportResource } from '../../core/entities/export.entity';
 import { ReportAggregation, ReportGroup, ReportSort } from '../../core/entities/report.entity';
@@ -40,14 +43,77 @@ const FILTER_KEYS: Partial<Record<ExportResource, FilterKey[]>> = {
   'asset-locations': ['location_id', 'location_scope'],
   'asset-types': ['location_id', 'status_id'],
   duplicates: ['category_id'],
+  // data-quality reports: only the stale check and the movement check take a period
+  'dq-duplicate-ids': [],
+  'dq-missing-fields': [],
+  'dq-naming': [],
+  'dq-anomalies': [],
+  'dq-stale': ['days'],
+  'dq-movements': ['days'],
 };
 
 type QueryParams = Record<string, unknown>;
 
+// Exports are CPU- and memory-heavy (XLSX/PDF generation); allow far fewer per minute than the global default.
+@Throttle({ default: { limit: 20, ttl: 60_000 } })
 @Controller('exports')
 @UseGuards(AuthGuard, TenantGuard, PermissionGuard)
 export class ExportController {
-  constructor(private readonly exports: ExportService, private readonly reportMeta: ReportMetaService) {}
+  constructor(
+    private readonly exports: ExportService,
+    private readonly reportMeta: ReportMetaService,
+    private readonly dataQuality: DataQualityService,
+  ) {}
+
+  /** Number of problems found by each data-quality check (cheap overview for the Reports page). */
+  @Get('data-quality/summary')
+  @RequirePermission('export.assets')
+  async dataQualitySummary(@Query() q: QueryParams, @CurrentUser() u: RequestUser) {
+    const days = (key: string) => {
+      const value = str(q[key]);
+      if (value === undefined) return undefined;
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 1 || n > MAX_DAYS) throw new BadRequestException('INVALID_EXPORT_FILTER');
+      return n;
+    };
+    return this.dataQuality.summary(u.tenant_id, { staleDays: days('stale_days'), movementDays: days('movement_days') });
+  }
+
+  @Get('dq-duplicate-ids')
+  @RequirePermission('export.assets')
+  dqDuplicateIds(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-duplicate-ids', q, u, res);
+  }
+
+  @Get('dq-missing-fields')
+  @RequirePermission('export.assets')
+  dqMissingFields(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-missing-fields', q, u, res);
+  }
+
+  @Get('dq-naming')
+  @RequirePermission('export.assets')
+  dqNaming(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-naming', q, u, res);
+  }
+
+  @Get('dq-anomalies')
+  @RequirePermission('export.assets')
+  dqAnomalies(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-anomalies', q, u, res);
+  }
+
+  @Get('dq-stale')
+  @RequirePermission('export.assets')
+  dqStale(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-stale', q, u, res);
+  }
+
+  @Get('dq-movements')
+  @RequirePermission('export.assets')
+  dqMovements(@Query() q: QueryParams, @CurrentUser() u: RequestUser, @Res() res: Response) {
+    return this.stream('dq-movements', q, u, res);
+  }
 
   @Get('assets')
   @RequirePermission('export.assets')
@@ -142,7 +208,8 @@ export class ExportController {
       if (err instanceof BadRequestException) throw err;
       // eslint-disable-next-line no-console
       console.error(`[ExportController] ${resource} preview failed:`, err);
-      throw new BadRequestException(`EXPORT_FAILED: ${(err as Error)?.message ?? 'unknown error'}`);
+      // The real reason (SQL/driver text) stays in the server log only.
+      throw new BadRequestException('EXPORT_FAILED');
     }
   }
 
@@ -152,7 +219,9 @@ export class ExportController {
     let result;
     let title: string | undefined;
     try {
-      const planned = await this.plan(resource, q, u, limit ? Number(limit) : 10000);
+      // Clamp the requested row cap: default 10000, never above EXPORT_MAX_ROWS (50000).
+      const rowCap = normalizePaging(1, limit, { defaultLimit: 10000, maxLimit: maxExportRows() }).limit;
+      const planned = await this.plan(resource, q, u, rowCap);
       const options = planned.options;
       title = planned.meta.title;
       result = await this.exports.generate({
@@ -164,12 +233,11 @@ export class ExportController {
       });
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
-      // Surface the real reason (e.g. DB/SQL errors) so a failed export is
-      // diagnosable instead of a generic 500.
-      const reason = (err as Error)?.message ?? 'unknown export error';
+      // Log the real reason (DB/SQL errors) for diagnosis, but never return it to the
+      // client: driver messages can expose table names, SQL fragments and hostnames.
       // eslint-disable-next-line no-console
       console.error(`[ExportController] ${resource}/${fmt} export failed:`, err);
-      throw new BadRequestException(`EXPORT_FAILED: ${reason}`);
+      throw new BadRequestException('EXPORT_FAILED');
     }
     res.setHeader('Content-Type', result.mimeType);
     res.setHeader('Content-Disposition', contentDisposition(result.filename, title));
@@ -274,6 +342,12 @@ export class ExportController {
     if (scope && allowed.includes('location_scope')) {
       if (scope !== 'main' && scope !== 'sub') throw bad();
       out.location_scope = scope;
+    }
+    const days = str(q.days);
+    if (days && allowed.includes('days')) {
+      const n = Number(days);
+      if (!Number.isInteger(n) || n < 1 || n > MAX_DAYS) throw bad();
+      out.days = n;
     }
     const blank = str(q.blank_rows);
     if (blank && allowed.includes('blank_rows')) {

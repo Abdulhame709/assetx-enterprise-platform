@@ -35,7 +35,7 @@ export function Alert({
   return (
     <div
       role={tone === 'danger' || tone === 'warning' ? 'alert' : 'status'}
-      className={cn('flex items-start gap-3 rounded-xl border border-s-4 p-3 text-sm sm:p-4', box, tone === 'info' ? 'border-s-info' : tone === 'success' ? 'border-s-success' : tone === 'warning' ? 'border-s-warning' : 'border-s-danger', className)}
+      className={cn('flex items-start gap-3 rounded-xl border border-s-4 p-3 text-sm sm:p-4', (tone === 'danger' || tone === 'warning') && 'animate-attention', tone === 'warning' && '[--ax-attention:var(--ax-warning)]', box,tone === 'info' ? 'border-s-info' : tone === 'success' ? 'border-s-success' : tone === 'warning' ? 'border-s-warning' : 'border-s-danger', className)}
     >
       <Icon className={cn('mt-0.5 h-5 w-5 shrink-0', icon)} aria-hidden />
       <div className="min-w-0 flex-1 space-y-1">

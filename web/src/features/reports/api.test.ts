@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { downloadReportExport, filterParams, generateReportAiSummary, getReportPreview, isBandRow } from './api';
+import { DATA_QUALITY_RESOURCES, downloadReportExport, filterParams, generateReportAiSummary, getDataQualitySummary, getReportPreview, isBandRow, isDataQualityResource } from './api';
 import { http } from '@/lib/api/client';
 
 vi.mock('@/lib/api/client', () => ({
@@ -152,5 +152,38 @@ describe('report export API', () => {
     await expect(downloadReportExport({ resource: 'inventory', format: 'csv' })).rejects.toThrow(
       'Export failed (400): EXPORT_FAILED: syntax error at or near "es"',
     );
+  });
+});
+
+describe('data quality reports API', () => {
+  beforeEach(() => {
+    vi.mocked(http.get).mockReset();
+  });
+
+  it('knows the six data quality report ids', () => {
+    expect(DATA_QUALITY_RESOURCES).toHaveLength(6);
+    expect(isDataQualityResource('dq-stale')).toBe(true);
+    expect(isDataQualityResource('assets')).toBe(false);
+  });
+
+  it('loads the counts per check from the light summary endpoint', async () => {
+    const counts = { 'dq-duplicate-ids': 2, 'dq-missing-fields': 0, 'dq-naming': 1, 'dq-anomalies': 3, 'dq-stale': 4, 'dq-movements': 5 };
+    vi.mocked(http.get).mockResolvedValueOnce(counts);
+    await expect(getDataQualitySummary()).resolves.toEqual(counts);
+    expect(http.get).toHaveBeenCalledWith('/exports/data-quality/summary');
+  });
+
+  it('passes the chosen periods to the summary', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({});
+    await getDataQualitySummary({ staleDays: 180, movementDays: 30 });
+    expect(http.get).toHaveBeenCalledWith('/exports/data-quality/summary?stale_days=180&movement_days=30');
+  });
+
+  it('sends the period filter of a data quality preview', async () => {
+    vi.mocked(http.get).mockResolvedValueOnce({ title: 'T', columns: [], rows: [], total: 0 });
+    await getReportPreview('dq-stale', { filters: { days: 200 } });
+    const url = String(vi.mocked(http.get).mock.calls[0][0]);
+    expect(url.startsWith('/exports/preview/dq-stale?')).toBe(true);
+    expect(url).toContain('days=200');
   });
 });

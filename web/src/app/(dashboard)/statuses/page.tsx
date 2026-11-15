@@ -5,6 +5,7 @@ import { intlLocale } from '@/lib/format';
 import { FormEvent, useMemo, useRef, useState } from 'react';
 import { CircleDot, FileSpreadsheet, Pencil, Plus, Printer, RefreshCw, Search, Trash2, Undo2 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Alert } from '@/components/ui/Alert';
 import { CommandToolbar } from '@/components/ui/CommandToolbar';
 import { Card, CardBody } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -172,7 +173,7 @@ function StatusModal({ mode, status, onClose, onSaved }: { mode: 'create' | 'edi
         <Field label={t('statuses.color')} hint={t('statuses.colorHint')}>
           <div className="flex items-center gap-2"><input type="color" value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : '#C8853F'} onChange={(event) => setColor(event.target.value)} className="h-10 w-12 cursor-pointer rounded border border-line bg-surface p-1" /><Input value={color} onChange={(event) => setColor(event.target.value)} dir="ltr" placeholder="#C8853F" /></div>
         </Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" size="sm" loading={saving}>{mode === 'create' ? t('statuses.create') : t('statuses.save')}</Button></div>
       </form>
     </Modal>

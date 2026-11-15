@@ -5,6 +5,7 @@ import { EmployeeService } from './employee.service';
 import { LocationService } from './location.service';
 import { StatusService } from './status.service';
 import { ImportUploadFile } from './asset-import.service';
+import { assertImportRowCount, assertXlsxBuffer } from './import-limits';
 
 export const MASTER_DATA_IMPORT_RESOURCES = ['categories', 'locations', 'statuses', 'employees'] as const;
 export type MasterDataImportResource = typeof MASTER_DATA_IMPORT_RESOURCES[number];
@@ -117,10 +118,12 @@ export class MasterDataImportService {
   private async parse(resource: MasterDataImportResource, file: ImportUploadFile, tenantId: string): Promise<{ rows: ParsedRow[]; errors: MasterDataImportIssue[]; totalRows: number }> {
     if (!file?.buffer?.length) throw new BadRequestException('IMPORT_FILE_REQUIRED');
     if (file.buffer.length > 2 * 1024 * 1024 || !/\.xlsx$/i.test(file.originalname ?? '')) throw new BadRequestException('IMPORT_FILE_INVALID');
+    assertXlsxBuffer(file.buffer);
     const workbook = new ExcelJS.Workbook();
     try { await workbook.xlsx.load(file.buffer as never); } catch { throw new BadRequestException('IMPORT_FILE_INVALID'); }
     const sheet = workbook.worksheets[0];
     if (!sheet) throw new BadRequestException('IMPORT_SHEET_REQUIRED');
+    assertImportRowCount(sheet.rowCount);
     const aliases = HEADER_ALIASES[resource];
     const headers = new Map<string, number>();
     sheet.getRow(1).eachCell((cell, column) => { const canonical = aliases[key(text(cell.value))]; if (canonical) headers.set(canonical, column); });

@@ -6,6 +6,7 @@
  */
 import { FormEvent, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/form';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -93,7 +94,7 @@ export function CycleFormModal({ open, onClose, onCreated }: Props) {
             <SearchableSelect options={categories} value={categoryId} onChange={setCategoryId} placeholder={t('inventoryForm.chooseType')} />
           </Field>
         )}
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('inventoryForm.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>{t('inventoryForm.create')}</Button>

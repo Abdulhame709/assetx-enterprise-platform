@@ -8,6 +8,7 @@
  */
 import { FormEvent, useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
+import { Alert } from '@/components/ui/Alert';
 import { Button } from '@/components/ui/Button';
 import { Field, Textarea } from '@/components/ui/form';
 import { SearchableSelect } from '@/components/ui/SearchableSelect';
@@ -85,7 +86,7 @@ export function TransferAssetModal({ open, assetId, assetName, onClose, onDone }
         <Field label={t('assetLifecycle.reason')}>
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('assetLifecycle.transferReason')} />
         </Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetLifecycle.cancel')}</Button>
           <Button type="submit" variant="primary" size="sm" loading={saving}>{t('assetLifecycle.createTransfer')}</Button>
@@ -131,7 +132,7 @@ export function EndOfLifeModal({
         <Field label={t('assetLifecycle.reason')}>
           <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('assetLifecycle.endOfLifeReason').replace('{verb}', verb)} />
         </Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('assetLifecycle.cancel')}</Button>
           <Button type="submit" variant="danger" size="sm" loading={saving}>{t('assetLifecycle.confirm').replace('{verb}', verb)}</Button>

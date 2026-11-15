@@ -13,7 +13,7 @@ export function CardHeader({ title, subtitle, actions }: { title: ReactNode; sub
   return (
     <div className="mb-3 flex items-start justify-between gap-3">
       <div>
-        <h3 className="text-sm font-semibold text-ink">{title}</h3>
+        <h2 className="text-sm font-semibold text-ink">{title}</h2>
         {subtitle && <p className="text-xs text-ink-muted mt-0.5">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

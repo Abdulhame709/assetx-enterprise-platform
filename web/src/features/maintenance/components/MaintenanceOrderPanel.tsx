@@ -3,9 +3,10 @@
 import { FormEvent, useState } from 'react';
 import { Play, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Alert } from '@/components/ui/Alert';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/states';
-import { Field, Input } from '@/components/ui/form';
+import { Field, Input, Select } from '@/components/ui/form';
 import { Modal } from '@/components/ui/Modal';
 import { useCan } from '@/lib/auth/session-context';
 import { PERMISSIONS } from '@/lib/auth/permissions';
@@ -55,7 +56,7 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
           <Button size="sm" onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4" /> {t('maintenance.create')}</Button>
         )}
       </div>
-      {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && <Alert tone="danger">{error}</Alert>}
       {orders.length === 0 ? (
         <EmptyState title={t('maintenance.emptyTitle')} description={assetId ? t('maintenance.emptyAsset') : t('maintenance.emptyAll')} />
       ) : (
@@ -75,8 +76,8 @@ export function MaintenanceOrderPanel({ assetId, assetName, orders, onChanged, c
             <tbody className="divide-y divide-line bg-surface">
               {orders.map((order) => (
                 <tr key={order.id}>
-                  {!assetId && <td className="px-3 py-3 text-ink"><div>{order.asset_name ?? '—'}</div><div className="text-xs text-ink-muted">{order.asset_code ?? ''}</div></td>}
-                  <td className="px-3 py-3 font-mono text-xs text-ink">{order.maintenance_code ?? '—'}</td>
+                  {!assetId && <td className="px-3 py-3 text-ink"><div><bdi dir="auto">{order.asset_name ?? '—'}</bdi></div><div className="text-xs text-ink-muted"><bdi dir="auto">{order.asset_code ?? ''}</bdi></div></td>}
+                  <td className="px-3 py-3 font-mono text-xs text-ink"><bdi dir="auto">{order.maintenance_code ?? '—'}</bdi></td>
                   <td className="px-3 py-3 text-ink">{order.maintenance_type ? (maintenanceTypeKey[order.maintenance_type] ? t(maintenanceTypeKey[order.maintenance_type]) : order.maintenance_type) : t('maintenance.corrective')}</td>
                   <td className="px-3 py-3"><Badge tone={order.priority === 'critical' || order.priority === 'high' ? 'danger' : 'neutral'}>{t(`maintenance.priority.${order.priority ?? 'medium'}`)}</Badge></td>
                   <td className="px-3 py-3"><Badge tone={statusTone[order.workflow_status]}>{t(`maintenance.status.${order.workflow_status}`)}</Badge></td>
@@ -123,20 +124,20 @@ function CreateMaintenanceOrderModal({ assetId, assetName, onClose, onCreated }:
     <Modal open onClose={onClose} title={t('maintenance.createTitle').replace('{name}', assetName)} size="md">
       <form onSubmit={submit} className="space-y-4">
         <Field label={t('maintenance.type')}>
-          <select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="ax-select w-full py-2">
+          <Select value={maintenanceType} onChange={(event) => setMaintenanceType(event.target.value)} className="w-full py-2">
             <option value="preventive">{t('maintenance.type.preventive')}</option>
             <option value="corrective">{t('maintenance.corrective')}</option>
-          </select>
+          </Select>
         </Field>
         <Field label={t('maintenance.technician')}><Input value={technician} onChange={(event) => setTechnician(event.target.value)} /></Field>
         <Field label={t('maintenance.technicianContact')}><Input value={technicianContact} onChange={(event) => setTechnicianContact(event.target.value)} /></Field>
         <Field label={t('maintenance.priority')}>
-          <select value={priority} onChange={(event) => setPriority(event.target.value as MaintenancePriority)} className="ax-select w-full py-2">
+          <Select value={priority} onChange={(event) => setPriority(event.target.value as MaintenancePriority)} className="w-full py-2">
             {(['low', 'medium', 'high', 'critical'] as const).map((value) => <option key={value} value={value}>{t(`maintenance.priority.${value}`)}</option>)}
-          </select>
+          </Select>
         </Field>
         <Field label={t('maintenance.dueDate')}><Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /></Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" size="sm" loading={saving}>{t('maintenance.create')}</Button></div>
       </form>
     </Modal>
@@ -164,7 +165,7 @@ function CompleteMaintenanceOrderModal({ order, onClose, onCompleted }: { order:
         <Field label={t('maintenance.endDate')}><Input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></Field>
         <Field label={t('maintenance.cost')}><Input type="number" min="0" step="0.01" value={cost} onChange={(event) => setCost(event.target.value)} /></Field>
         <Field label={t('maintenance.dueDate')}><Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /></Field>
-        {error && <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+        {error && <Alert tone="danger">{error}</Alert>}
         <div className="flex justify-end gap-2"><Button type="button" variant="secondary" size="sm" onClick={onClose}>{t('common.cancel')}</Button><Button type="submit" size="sm" loading={saving}>{t('maintenance.complete')}</Button></div>
       </form>
     </Modal>

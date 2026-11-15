@@ -17,6 +17,7 @@ import { ExportFormat, ExportRequest, ExportResource } from '../core/entities/ex
 
 const VALID_RESOURCES: ExportResource[] = [
   'assets', 'movements', 'inventory', 'audit', 'dashboard', 'asset-locations', 'asset-types', 'duplicates', 'inventory-form',
+  'dq-duplicate-ids', 'dq-missing-fields', 'dq-naming', 'dq-anomalies', 'dq-stale', 'dq-movements',
 ];
 const VALID_FORMATS: ExportFormat[] = ['csv', 'xlsx', 'pdf'];
 const VALID_FILTER_OPERATORS = ['eq', 'in', 'contains', 'range'];

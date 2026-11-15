@@ -58,6 +58,8 @@ import { DashboardExportProvider } from '../../src/application/export/providers/
 import { AssetLocationsExportProvider } from '../../src/application/export/providers/asset-locations-export.provider';
 import { AssetTypesExportProvider } from '../../src/application/export/providers/asset-types-export.provider';
 import { DuplicatesExportProvider } from '../../src/application/export/providers/duplicates-export.provider';
+import { DataQualityExportProvider } from '../../src/application/export/providers/data-quality-export.provider';
+import { DQ_RESOURCES, DataQualityService } from '../../src/application/export/data-quality.service';
 import { InventoryFormExportProvider } from '../../src/application/export/providers/inventory-form-export.provider';
 import { ExportService } from '../../src/application/export.service';
 import { ExportPipelineService } from '../../src/application/export/export-pipeline.service';
@@ -119,6 +121,7 @@ export interface Harness {
   sse: SSEManager;
   bus: EventBus;
   exportService: ExportService;
+  dataQuality: DataQualityService;
   exportStrategyFactory: ExportStrategyFactory;
   exportProfiles: ExportProfileRegistry;
   exportMetrics: ExportMetricsService;
@@ -295,6 +298,7 @@ export async function createHarness(): Promise<Harness> {
   const reportBuilder = new ReportBuilderService();
   const exportPipeline = new ExportPipelineService(bus, exportMetrics, new ExportDataAdapter(), reportBuilder);
   const assetsExportProvider = new AssetsExportProvider(assetRepo, db);
+  const dataQuality = new DataQualityService(db);
   const exportService = new ExportService(
     exportStrategyFactory,
     exportPipeline,
@@ -312,6 +316,7 @@ export async function createHarness(): Promise<Harness> {
       new AssetTypesExportProvider(db),
       new DuplicatesExportProvider(db),
       new InventoryFormExportProvider(assetsExportProvider),
+      ...DQ_RESOURCES.map((resource) => new DataQualityExportProvider(resource, dataQuality)),
     ],
   );
 
@@ -341,5 +346,5 @@ export async function createHarness(): Promise<Harness> {
   const analytics = new AnalyticsService();
 
   return { db, repo, auth, users, tokens, hasher, assetRepo, assets,     locations, locationTypes, categories, models, employees, cycles, records, inventoryResult, movements, maintenance, reporting, audit, compliance, integrity,
- notificationService, realtime, sse, bus, exportService, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
+ notificationService, realtime, sse, bus, exportService, dataQuality, exportStrategyFactory, exportProfiles, exportMetrics, exportPipeline, lifecycle, lifecycleConfig, lifecycleAdapter, lifecycleRead, assetAnalytics, lifecycleEvents, workflow, rules, scheduledReports, reportBuilder, reportTemplates, analytics, searchService, savedSearches, tenantA, tenantB, refA, refB };
 }

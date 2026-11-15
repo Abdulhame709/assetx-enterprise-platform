@@ -10,8 +10,8 @@
 :root {
   /* ========== Warm Sophisticated Palette ========== */
   /* Primary: Caramel/Amber — warm, elegant, professional */
-  --ax-primary: 164 104 38;            /* #A46826 bronze caramel (white text AA) */
-  --ax-primary-hover: 138 86 28;       /* #8A561C */
+  --ax-primary: 150 94 32;             /* #965E20 bronze caramel (AA as text and with white text) */
+  --ax-primary-hover: 124 77 24;       /* #7C4D18 */
   --ax-primary-soft: 240 227 208;     /* #F0E3D0 tint */
   --ax-primary-fg: 255 255 255;
 
@@ -23,8 +23,8 @@
 
   /* Text: Rich ink with warmth */
   --ax-ink: 31 36 33;                 /* #1F2421 warm black */
-  --ax-ink-muted: 138 138 128;        /* #8A8A80 warm gray */
-  --ax-ink-faint: 180 177 168;        /* #B4B1A8 */
+  --ax-ink-muted: 92 94 84;    /* #5C5E54 warm gray (AA on surface) */
+  --ax-ink-faint: 110 110 100;   /* #6E6E64 (AA on surface) */
 
   /* Lines: Warm borders */
   --ax-line: 226 217 200;             /* #E2D9C8 */
@@ -523,7 +523,7 @@
   --ax-surface-muted: 236 253 245;
   --ax-ink: 15 23 42;
   --ax-ink-muted: 71 85 105;
-  --ax-ink-faint: 148 163 184;
+  --ax-ink-faint: 100 116 139;
   --ax-line: 226 232 240;
   --ax-line-subtle: 238 242 247;
   --ax-accent-dark: 6 78 59;
@@ -571,3 +571,25 @@
 .theme-preview-midnight { --preview-primary: 96 165 250; --preview-surface: 15 23 42; }
 .theme-preview-emerald { --preview-primary: 5 150 105; --preview-surface: 236 253 245; }
 .theme-preview-graphite { --preview-primary: 167 139 250; --preview-surface: 39 39 42; }
+
+/* ========== Attention cues (one-shot; reduced-motion users get none) ========== */
+@keyframes attention-ring {
+  0% { box-shadow: 0 0 0 0 rgb(var(--ax-attention, var(--ax-danger)) / 0.45); }
+  70% { box-shadow: 0 0 0 8px rgb(var(--ax-attention, var(--ax-danger)) / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(var(--ax-attention, var(--ax-danger)) / 0); }
+}
+
+/* Soft pulsing ring: draws the eye to a new error/warning without blocking the user. */
+.animate-attention {
+  animation: attention-ring 0.9s ease-out 2;
+}
+
+@keyframes flash-highlight {
+  from { background-color: rgb(var(--ax-primary) / 0.22); }
+  to { background-color: transparent; }
+}
+
+/* Row/card that was just created or changed. */
+.animate-flash {
+  animation: flash-highlight 1.6s ease-out;
+}

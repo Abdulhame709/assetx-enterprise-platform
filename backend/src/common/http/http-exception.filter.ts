@@ -12,6 +12,15 @@ import {
 import { Response } from 'express';
 import { ERROR_CODES } from './error-codes';
 
+/** 4xx status carried by an Express/http-errors style exception, if any. */
+export function clientErrorStatus(exception: unknown): number | null {
+  if (!exception || typeof exception !== 'object') return null;
+  const candidate = exception as { status?: unknown; statusCode?: unknown; expose?: unknown };
+  const status = typeof candidate.status === 'number' ? candidate.status : candidate.statusCode;
+  if (typeof status !== 'number' || candidate.expose !== true) return null;
+  return status >= 400 && status < 500 ? status : null;
+}
+
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
@@ -42,6 +51,22 @@ export class HttpExceptionFilter implements ExceptionFilter {
       res.status(http).json({
         data: null,
         error: { code, message: exception.message, details },
+      });
+      return;
+    }
+
+    // Client errors raised by Express middleware (body-parser: oversized or
+    // malformed JSON) are http-errors, not Nest exceptions. Without this they would
+    // surface as 500 internal_error and flood the logs with stack traces.
+    const clientStatus = clientErrorStatus(exception);
+    if (clientStatus) {
+      res.status(clientStatus).json({
+        data: null,
+        error: {
+          code: clientStatus === 413 ? 'PAYLOAD_TOO_LARGE' : 'VALIDATION_ERROR',
+          message: clientStatus === 413 ? 'request_body_too_large' : 'request_body_invalid',
+          details: {},
+        },
       });
       return;
     }

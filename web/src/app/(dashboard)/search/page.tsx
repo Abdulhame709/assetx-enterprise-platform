@@ -81,7 +81,7 @@ function renderAssetResult(item: SearchItem, t: (key: string, fallback?: string)
         <p className="font-medium text-brand">{item.name}</p>
         <p className="text-xs text-ink-muted">{label(item._statusName)} · {item._employeeName ?? t('module.searchUnassigned')}</p>
       </div>
-      <p className="text-xs text-ink-muted">{t('module.searchCode')}: {item.base_asset_code} · {t('module.searchLocation')}: {item._locationName ?? '—'}</p>
+      <p className="text-xs text-ink-muted">{t('module.searchCode')}: <bdi dir="auto">{item.base_asset_code}</bdi> · {t('module.searchLocation')}: {item._locationName ?? '—'}</p>
     </Link>
   );
 }

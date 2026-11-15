@@ -1,0 +1,54 @@
+# Build context is the repository root (see docker-compose.staging.yml and the
+# Dockerfiles in backend/ and web/). Keep secrets, dependencies and large
+# non-runtime files out of the image and out of the build cache.
+
+# Version control and tooling
+.git
+.github
+.claude
+.vscode
+.idea
+
+# Secrets and local environment files (never bake into an image)
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+
+# Dependencies and build output are produced inside the image
+**/node_modules
+**/dist
+**/.next
+**/coverage
+**/*.tsbuildinfo
+
+# Tests, logs, local backups
+**/*.log
+backend/test
+assetx-backup-*.json
+*.bak
+tools/db-cleanup/out
+
+# Documentation, specs, archives and screenshots (not needed at runtime)
+*.zip
+*.md
+docs
+Administration
+Architecture
+AssetX-Architecture-Bible
+Database
+DevOps
+Engineering-Specifications
+Execution
+Mobile
+Operations
+Requirements
+Security
+Testing
+UI-UX
+User_Guides
+API
+scripts
+tools
+ops
